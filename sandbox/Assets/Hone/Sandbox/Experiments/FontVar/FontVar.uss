@@ -1,4 +1,4 @@
-/* #11 の実験用の共通レイアウト。フォントに関する宣言は CaseN.uss と FontVar.tss に置く。 */
+/* #11 の実験用の共通レイアウト。フォントの宣言は CaseN.uss と FontVar.tss に置く（対照の .direct だけ例外でこのファイルに置く）。 */
 .fontvar-root {
     flex-grow: 1;
     padding: 24px;
