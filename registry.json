@@ -1,0 +1,33 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "hone",
+  "homepage": "https://github.com/kaibutsu50/hone",
+  "items": [
+    {
+      "name": "Core",
+      "type": "registry:lib",
+      "title": "Core",
+      "description": "全コンポーネントが依存する headless 層（フォーカス・ナビゲーション・dismiss）",
+      "files": [
+        { "path": "Core/Runtime/Hone.Core.asmdef", "type": "registry:lib" },
+        { "path": "Core/Editor/Hone.Core.Editor.asmdef", "type": "registry:lib" }
+      ],
+      "registryDependencies": [],
+      "dependencies": [],
+      "classes": []
+    },
+    {
+      "name": "Default",
+      "type": "registry:theme",
+      "title": "Default",
+      "description": "トークン定義とテーマの雛形",
+      "files": [
+        { "path": "Tokens.uss", "type": "registry:theme" },
+        { "path": "HoneTheme.tss", "type": "registry:theme" }
+      ],
+      "registryDependencies": [],
+      "dependencies": [],
+      "classes": []
+    }
+  ]
+}

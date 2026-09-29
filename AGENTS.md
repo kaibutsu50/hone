@@ -17,23 +17,44 @@ Unity UI Toolkit 向けの、shadcn/ui 方式の UI コンポーネント集。
 
 ```
 AGENTS.md                  このファイル
-registry.json              shadcn 互換の配布定義。type は registry:ui | registry:block | registry:lib | registry:theme
-registry/
-  lib/Hone.Core/           headless 層。全コンポーネントが依存する
-  ui/<Name>/               プリミティブ。<Name>.cs <Name>.uxml <Name>.uss README.md の4点セット
-  blocks/<Name>/           プリミティブの合成で作る画面単位のパターン
-  themes/Tokens.uss        トークン定義。利用者側では Assets/Hone/Tokens.uss になる
-  themes/HoneTheme.tss     テーマの雛形。Unity 既定テーマ、Tokens.uss、Core の USS、追加した各コンポーネントの USS を @import する
+registry.json              shadcn 互換の配布定義。形式は「registry.json の形式」節
+registry/                  中身は利用者側の Assets/Hone/ と同じ構造
+  Core/                    headless 層。全コンポーネントが依存する
+  UI/<Name>/               プリミティブ。<Name>.cs <Name>.uxml <Name>.uss README.md の4点セット
+  Blocks/<Name>/           プリミティブの合成で作る画面単位のパターン
+  Tokens.uss               トークン定義
+  HoneTheme.tss            テーマの雛形。Unity 既定テーマ、Tokens.uss、Core の USS、追加した各コンポーネントの USS を @import する
 cli/                       hone CLI
 sandbox/                   検証用 Unity プロジェクト。多言語スクリーンショット基盤を含む
 ```
 
-利用者のプロジェクトでは `Assets/Hone/` 配下に同じ相対構造でコピーされる。asmdef は `Hone.Core` に一つだけ置く。ui と blocks は利用者側の asmdef に乗る。
+利用者のプロジェクトでは、`registry/` 配下が出力先（既定 `Assets/Hone/`、`hone.json` で変えられる）へ同じ相対構造でコピーされる。asmdef は Core にだけ置く（Runtime 用の `Hone.Core` と Editor 用の `Hone.Core.Editor`）。UI と Blocks は利用者側の asmdef に乗る。
+
+## registry.json の形式
+
+トップレベルは shadcn の `registry.json` と同じ。`$schema` `name`（`hone`）`homepage` `items` を持つ。
+
+`items` の各項目のフィールド:
+
+| フィールド | 型 | 意味 |
+|---|---|---|
+| `name` | string | CLI で指定する名前。PascalCase で、ディレクトリ名・クラス名と同じ（`Button`, `Core`, `PauseMenu`） |
+| `type` | `registry:ui` / `registry:block` / `registry:lib` / `registry:theme` | 項目の種別。配置先は決めない |
+| `title` | string | 表示名（`Button`） |
+| `description` | string | 一行説明 |
+| `files` | `{ path, type }[]` | `registry/` からの相対パス。出力先からの相対パスでもある。`type` は項目の type と同じ |
+| `registryDependencies` | string[] | 先にコピーが必要な Hone の項目名。ui は必ず `Core` を含む |
+| `dependencies` | string[] | 必要な UPM パッケージ名（`com.unity.render-pipelines.universal` 等）。CLI は検出して警告するだけで、インストールはしない |
+| `classes` | string[] | 項目が定義する C# クラス名（`Hone.Button`）。将来の `--prefix` 用。今は記録するだけ |
+
+- shadcn の `tailwind` `cssVars` は持たない。Unity には対応物がない。
+- `files[].target` は持たない。配置先は出力先と `files[].path` をつなげたものに決まる。
+- リポジトリ内に独自の JSON Schema ファイルや検証スクリプトは置かない。`$schema` は shadcn のものを参照するだけ。
 
 ## コンポーネントと block の境界
 
 判定基準は一つ。「既存プリミティブの組み合わせでは供給できない headless な振る舞いを持つか」。
-持つならプリミティブとして `registry/ui/` に置く。持たないなら block として `registry/blocks/` に置く。
+持つならプリミティブとして `registry/UI/` に置く。持たないなら block として `registry/Blocks/` に置く。
 block は必ず `registryDependencies` でプリミティブを宣言し、自前で振る舞いを実装しない。
 
 ## 命名規約
