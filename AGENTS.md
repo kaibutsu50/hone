@@ -1,0 +1,96 @@
+# Hone
+
+Unity UI Toolkit 向けの、shadcn/ui 方式の UI コンポーネント集。
+振る舞い（フォーカス・ナビゲーション・dismiss）は基盤が担い、見た目の主導権は利用者が持つ。
+配布は UPM ではなく、CLI で利用者の `Assets/` 配下にコピーし、以後は利用者自身のコードになる。
+
+第一の利用者は AI エージェントである。このファイルは、エージェントがこのリポジトリで正しく作業するための正典である。
+
+## 対象と前提
+
+- UI Toolkit のみ。uGUI は対象外。
+- 基準バージョンは Unity 6.7 LTS。6.7 LTS が出るまでは 6000.7 系の最新 alpha で検証する。Unity 7 は 6.7 の直接の継続と公式に宣言されているため、6.7 対応が Unity 7 対応を意味する。
+- 平面のランタイム UI を対象とする。Editor 拡張は対象外。XR 固有の対応は後回しだが、World Space で壊れる設計は禁止する（後述の DO NOT を参照）。
+- Advanced Text Generator がランタイム既定である前提で組む。static な FontAsset は存在しないものとして扱う。
+
+## リポジトリ構成
+
+```
+AGENTS.md                  このファイル
+registry.json              shadcn 互換の配布定義。type は registry:ui | registry:block | registry:lib | registry:theme
+registry/
+  lib/Hone.Core/           headless 層。全コンポーネントが依存する
+  ui/<Name>/               プリミティブ。<Name>.cs <Name>.uxml <Name>.uss README.md の4点セット
+  blocks/<Name>/           プリミティブの合成で作る画面単位のパターン
+  themes/Tokens.uss        トークン定義。利用者側では Assets/Hone/Tokens.uss になる
+  themes/HoneTheme.tss     テーマの雛形。Unity 既定テーマ、Tokens.uss、Core の USS、追加した各コンポーネントの USS を @import する
+cli/                       hone CLI
+sandbox/                   検証用 Unity プロジェクト。多言語スクリーンショット基盤を含む
+```
+
+利用者のプロジェクトでは `Assets/Hone/` 配下に同じ相対構造でコピーされる。asmdef は `Hone.Core` に一つだけ置く。ui と blocks は利用者側の asmdef に乗る。
+
+## コンポーネントと block の境界
+
+判定基準は一つ。「既存プリミティブの組み合わせでは供給できない headless な振る舞いを持つか」。
+持つならプリミティブとして `registry/ui/` に置く。持たないなら block として `registry/blocks/` に置く。
+block は必ず `registryDependencies` でプリミティブを宣言し、自前で振る舞いを実装しない。
+
+## 命名規約
+
+- C# namespace は `Hone`。headless 層は `Hone.Core`。
+- C# クラス名には `Hone` を前置する（例: `HoneButton`）。`UnityEngine.UIElements` の同名クラスと `using` が衝突し、曖昧参照エラーになるのを防ぐため。
+- UXML タグ名は `[UxmlElement("Button")]` で前置なしに戻し、`<hone:Button>` のように namespace prefix で区別する。
+- USS クラスは BEM 風。ブロックは `.hone-button`、variant は `.hone-button--outline`。状態は pseudo-class（`:focus` `:disabled` `:hover`）を優先し、pseudo-class で表せない状態のみ `.is-open` 形式のクラスを使う。
+- トークンは `--hone-color-*` `--hone-radius-*` `--hone-space-*` `--hone-font-*`。prefix は利用者の変数との衝突回避のため。
+- ファイル名はクラス名と一致させる。1 コンポーネント 1 ディレクトリ。
+
+## スタイルの規約
+
+- コンポーネントの USS はトークンを `var()` で参照するだけで構成する。色・角丸・余白・フォントの実値を書かない。
+- USS の `var()` は他の関数の中に書けない。`calc()` も存在しない。合成が必要な値はトークン側で完成形として定義する。
+- 影とぼかしは `filter: drop-shadow()` と `backdrop-filter: blur()` を使う。`backdrop-filter` は URP のみ、Screen Space のみ、transition 非対応なので、必須の見た目に使わず opt-in の variant に留める。
+- `line-height` `font-weight` `font-feature-settings` は USS プロパティとして存在しない。これらを前提にした API を作らない。
+
+## フォントと多言語の規約
+
+- フォントを同梱しない。全コンポーネントはテーマ上の `--hone-font-body` を参照し、既定は Unity 組み込みフォントに落ちる。
+- USS 変数経由のフォント差し替えは動作報告があるが公式には未文書化である。C# 側にも FontAsset を注入する入口を必ず用意し、USS 経路が通らなくても成立させる。
+- fallback が空の状態で未収録文字に当たると OS フォントの全列挙が走り、フリーズする報告がある。CJK を表示するプロジェクトでは `hone add font <lang>` で fallback を追加することを必須手順として案内する。
+- レイアウトの規約。テキストを含む要素の幅を固定しない。ボタンは min-width と flex で伸ばす。行高はスクリプトごとに変わる前提で余白を組む。切り詰めは省略記号。
+- 各スクリプトのテスト文字列（日本語、한국어、中文、العربية、ไทย、絵文字、長いドイツ語）で全コンポーネントのスクリーンショットを撮る。見た目の変更を伴う PR にはこれを添付する。
+
+## headless 層の責務
+
+UI Toolkit のランタイムが既定でやらないことが、そのまま `Hone.Core` の責務である。
+
+- subtree に限定したフォーカス移動と、外へ出さない trap。
+- Dialog を開いた時の初期フォーカスと、閉じた時の元の要素への復元。
+- Cancel 操作で一段戻る意味付け。panel 単位のスタックで最前面の scope が処理する。
+- 起動時と再表示時の初期フォーカス。
+- `:focus` に対する一貫した見た目。
+- variant を切り替える小さなヘルパー。
+
+既定の 2D ナビゲーションは panel 全域を走査し、内部実装は差し替えできない。介入する手段は `NavigationMoveEvent` で `FocusController.IgnoreEvent` を呼んでから自前で `Focus()` する形のみ。フォーカス変更は非同期なので、同 frame での確定を前提にしない。
+
+## DO NOT
+
+- `UIDocument` と `rootVisualElement` に依存しない。6.5 以降 `PanelRenderer` が正であり、ライブラリは `VisualElement` と `AttachToPanelEvent` の層で完結させる。
+- `Screen.width` `Screen.height` `Screen.dpi` を参照しない。World Space では意味を持たない。
+- Input System を直接読まない。入力は Navigation イベントと Pointer イベントからのみ受け取る。scene に EventSystem がある場合とない場合で入力経路が変わるため、両方で動く必要がある。
+- `UxmlTraits` `UxmlFactory` を使わない。6.6 で削除済み。`[UxmlElement]` と `[UxmlAttribute]` のみ。
+- コンポーネントの USS に実値を書かない。トークン参照のみ。
+- block に振る舞いを実装しない。必要なら振る舞いをプリミティブに切り出す。
+- 「便利そうだから」で API を増やさない。shadcn と同じく、利用者がコピーして自分で書き換える前提なので、薄いほど価値がある。
+
+## 各コンポーネントに同梱するもの
+
+- `<Name>.cs` `[UxmlElement]` 付きの partial class。
+- `<Name>.uxml` 使用例。
+- `<Name>.uss` トークン参照のみのスタイル。
+- `README.md` 数行の説明、UXML の使用例、variant の一覧、headless 層との関係。
+
+## 検証
+
+- 未検証の Unity 挙動を前提に設計しない。ドキュメントが沈黙している事項は sandbox で実験し、結果を Issue か PR に記録する。
+- Unity のバージョン差で挙動が変わる。調査結果には対象バージョンを必ず添える。

@@ -1,0 +1,23 @@
+# Unity (sandbox project)
+sandbox/**/[Ll]ibrary/
+sandbox/**/[Tt]emp/
+sandbox/**/[Oo]bj/
+sandbox/**/[Bb]uild/
+sandbox/**/[Bb]uilds/
+sandbox/**/[Ll]ogs/
+sandbox/**/[Uu]ser[Ss]ettings/
+sandbox/**/*.csproj
+sandbox/**/*.sln
+sandbox/**/.vs/
+sandbox/**/.idea/
+
+# Node (cli)
+node_modules/
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code worktrees
+.claude/worktrees/
