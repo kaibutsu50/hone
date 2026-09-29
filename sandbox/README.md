@@ -14,9 +14,13 @@ Hone の検証用 Unity プロジェクト。コンポーネントの動作確�
 
 ## 構成
 
+`Assets/Hone/` 配下のみ示す。`Assets/Scenes/` `Assets/Settings/` `Assets/TutorialInfo/` などの URP テンプレート由来のアセットは省略している。
+
 ```
 Assets/Hone/
-  Core/               registry/Core の手コピー（asmdef のみ）
+  Core/               registry/Core の手コピー
+    Runtime/          Hone.Core.asmdef
+    Editor/           Hone.Core.Editor.asmdef
   Tokens.uss          registry/Tokens.uss の手コピー
   HoneTheme.tss       registry/HoneTheme.tss の手コピー
   Sandbox/            sandbox 固有のアセット。`hone add` がコピーする領域と混ぜない
@@ -47,11 +51,13 @@ unity test sandbox --mode PlayMode --editor-version 6000.7.0b2 --filter "Hone.Sa
 `sandbox/` で Editor を開いている状態（`unity command` で同じ Editor に投げる）:
 
 ```bash
-unity command run_tests --mode PlayMode --filter Hone.Sandbox.Tests.SandboxSmokeTests --filter_type testName
+unity command run_tests --mode playmode --filter Hone.Sandbox.Tests.SandboxSmokeTests --filter_type testName
 ```
 
 どちらも `SandboxSmokeTests.TestRunnerIsAlive`（`Assert.Pass()` 1 件）が通れば基盤は動いている。
-EditMode は `--mode EditMode` に替える。
+
+`--mode` の値は 2 系統で綴りが違う。`unity test` は `PlayMode` / `EditMode`、`unity command run_tests` は `playmode` / `editor` / `all`（既定 all）。
+`--filter` も、`run_tests` は大文字小文字を区別しない部分一致。
 
 ## Editor の開き方
 
@@ -61,7 +67,7 @@ EditMode は `--mode EditMode` に替える。
    "C:/Program Files/Unity/Hub/Editor/6000.7.0b2/Editor/Unity.exe" -batchmode -nographics -quit -projectPath <sandbox の絶対パス> -logFile <ログの絶対パス>
    ```
 
-   終了コードが 0 で、ログに `error CS` が無いこと。
+   終了コードが 0 で、ログに `error CS` が無いこと。Unity.exe のパスは Hub 既定のインストール先の例。
 2. `unity open <sandbox の絶対パス> --editor-version 6000.7.0b2 --args "-automated"`。
    `-automated` が無いと、初回に URP のマテリアル更新ダイアログが出て、人が閉じるまで `unity command` が 503 を返す。
 
