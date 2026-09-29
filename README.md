@@ -57,7 +57,7 @@ Sync が行うこと。
 ### 2. コンポーネントの追加
 
 ```bash
-npx hone add button dialog
+npx hone add Button Dialog
 ```
 
 CLI が行うこと。
@@ -122,7 +122,7 @@ Unity に戻り、`Hone > Sync` を実行する。Sync が行うこと。
 | Web (shadcn) | Unity (Hone) |
 |---|---|
 | `npx shadcn init` が `tailwind.config` と `globals.css` を書く | `npx hone init` が `HoneTheme.tss` を書き、`Hone > Sync` が `PanelSettings` に割り当てる |
-| `npx shadcn add button` | `npx hone add button` |
+| `npx shadcn add button` | `npx hone add Button` |
 | `import { Button } from "@/components/ui/button"` | UXML は `xmlns:hone="Hone"`、C# は `using Hone;` |
 | スタイルはコンポーネント内の Tailwind クラス | スタイルは `Button.uss`。`HoneTheme.tss` から `@import` される |
 | `next/font` でフォントを取得 | `npx hone add font ja` と `Hone > Sync` |
