@@ -8,6 +8,7 @@ sandbox/**/[Ll]ogs/
 sandbox/**/[Uu]ser[Ss]ettings/
 sandbox/**/*.csproj
 sandbox/**/*.sln
+sandbox/**/*.slnx
 sandbox/**/.vs/
 sandbox/**/.idea/
 
