@@ -1,0 +1,15 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Style src="FontVar.uss" />
+    <ui:Style src="Case1.uss" />
+    <ui:Style src="Case2.uss" />
+    <ui:Style src="Case3.uss" />
+    <ui:Style src="Case4.uss" />
+    <ui:VisualElement class="fontvar-root">
+        <ui:Label name="control" class="fontvar-label" text="control (no font-definition): The quick brown fox 0123" />
+        <ui:Label name="direct" class="fontvar-label direct" text="direct url(), no var(): The quick brown fox 0123" />
+        <ui:Label name="case1" class="fontvar-label case1" text="case1 project:// via var(): The quick brown fox 0123" />
+        <ui:Label name="case2" class="fontvar-label case2" text="case2 /Assets/ path via var(): The quick brown fox 0123" />
+        <ui:Label name="case3" class="fontvar-label case3" text="case3 resource() via var(): The quick brown fox 0123" />
+        <ui:Label name="case4" class="fontvar-label case4" text="case4 var() defined in FontVar.tss :root: The quick brown fox 0123" />
+    </ui:VisualElement>
+</ui:UXML>

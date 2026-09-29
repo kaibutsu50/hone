@@ -27,6 +27,8 @@ Assets/Hone/
     Sandbox.unity     PanelRenderer を 1 つ置いたシーン（EventSystem は置かない）
     Sandbox.uxml      空の UXML
     PanelSettings.asset   Theme Style Sheet に HoneTheme.tss を割り当て済み
+    Fonts/            検証用フォント。RobotoMono-Regular.ttf（Apache-2.0、Unity Editor 同梱）と、そこから作った Dynamic の FontAsset
+    Experiments/<Name>/   Issue ごとの検証。FontVar/ は `-unity-font-definition` を USS 変数経由で差し替えられるかの検証
     Tests/PlayMode/   PlayMode テスト
 ```
 
@@ -73,6 +75,9 @@ unity command run_tests --mode playmode --filter Hone.Sandbox.Tests.SandboxSmoke
 
 ## 既知の事項
 
+- `LegacyRuntime.ttf`（Unity 組み込み）からは `FontAsset` を作れない。`FontAsset.CreateFontAsset(font, ...)` が `null` を返し
+  `Unable to load font face for [LegacyRuntime]. Make sure "Include Font Data" is enabled in the Font Import Settings.` の警告が出る（6000.7.0b2）。
+  検証用の `FontAsset` は `Fonts/` の TTF から作る。
 - `Hone.Core` / `Hone.Core.Editor` は `.cs` が 1 本も無い間は Unity がアセンブリを生成しない。
   `Core/` に最初のスクリプトが入った時点で `Library/ScriptAssemblies/` に現れる。
   `Hone.Core.Editor` は asmdef の `includePlatforms` が `Editor` のみなので、Player ビルドには含まれない。

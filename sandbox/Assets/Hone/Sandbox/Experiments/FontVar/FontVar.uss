@@ -1,0 +1,17 @@
+/* #11 の実験用の共通レイアウト。フォントに関する宣言は CaseN.uss と FontVar.tss に置く。 */
+.fontvar-root {
+    flex-grow: 1;
+    padding: 24px;
+    background-color: rgb(24, 24, 27);
+}
+
+.fontvar-label {
+    color: rgb(250, 250, 250);
+    font-size: 28px;
+    margin-bottom: 16px;
+}
+
+/* 対照: var() を経由せず url() を直接書く。FontAsset と URL 自体が有効かの確認 */
+.direct {
+    -unity-font-definition: url("project://database/Assets/Hone/Sandbox/Fonts/RobotoMono.asset?fileID=11400000&guid=8e30fac64f691ac4693c1f510183ed2d&type=2#RobotoMono");
+}

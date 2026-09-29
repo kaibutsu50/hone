@@ -1,0 +1,4 @@
+.case3 {
+    --f: resource("Fonts/RobotoMono");
+    -unity-font-definition: var(--f);
+}

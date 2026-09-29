@@ -1,0 +1,4 @@
+.case2 {
+    --f: url("/Assets/Hone/Sandbox/Fonts/RobotoMono.asset");
+    -unity-font-definition: var(--f);
+}
