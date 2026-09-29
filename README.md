@@ -62,9 +62,9 @@ npx hone add button dialog
 
 CLI が行うこと。
 
-- `Assets/Hone/UI/Button/` に `HoneButton.cs` `HoneButton.uxml` `HoneButton.uss` `README.md` をコピーする
+- `Assets/Hone/UI/Button/` に `Button.cs` `Button.uxml` `Button.uss` `README.md` をコピーする
 - `registryDependencies` を解決し、依存先も一緒にコピーする
-- `HoneTheme.tss` に `@import url("/Assets/Hone/UI/Button/HoneButton.uss");` を追記する。これで USS はプロジェクト全体に効く
+- `HoneTheme.tss` に `@import url("/Assets/Hone/UI/Button/Button.uss");` を追記する。これで USS はプロジェクト全体に効く
 
 Unity に戻ってコンパイルが終われば使える。ここで Sync は不要。
 
@@ -78,18 +78,21 @@ UXML から。ルート要素に `xmlns:hone="Hone"` を足し、タグは `<hon
 </ui:UXML>
 ```
 
-C# から。クラス名は `HoneButton`。`UnityEngine.UIElements.Button` と衝突しない。
+C# から。クラス名は `Hone.Button`。
 
 ```csharp
 using Hone;
 
-var start = root.Q<HoneButton>("start");
+var start = root.Q<Button>("start");
 start.clicked += () => Debug.Log("start");
 ```
 
+同じファイルで `UnityEngine.UIElements` も `using` していると `Button` が曖昧になる。
+その時は `using Button = Hone.Button;` のエイリアスを書くか、Unity 側を完全修飾で書く。
+
 UI Builder からは、Library の Project タブに `Hone` 配下として現れる。
 
-見た目を変えたいときは、`Assets/Hone/UI/Button/HoneButton.uss` を直接編集する。
+見た目を変えたいときは、`Assets/Hone/UI/Button/Button.uss` を直接編集する。
 それは利用者のファイルであり、Hone は二度と上書きしない。
 トークン（色、角丸、余白）をまとめて変えたいときは `Assets/Hone/Tokens.uss` を編集する。
 
@@ -121,7 +124,7 @@ Unity に戻り、`Hone > Sync` を実行する。Sync が行うこと。
 | `npx shadcn init` が `tailwind.config` と `globals.css` を書く | `npx hone init` が `HoneTheme.tss` を書き、`Hone > Sync` が `PanelSettings` に割り当てる |
 | `npx shadcn add button` | `npx hone add button` |
 | `import { Button } from "@/components/ui/button"` | UXML は `xmlns:hone="Hone"`、C# は `using Hone;` |
-| スタイルはコンポーネント内の Tailwind クラス | スタイルは `HoneButton.uss`。`HoneTheme.tss` から `@import` される |
+| スタイルはコンポーネント内の Tailwind クラス | スタイルは `Button.uss`。`HoneTheme.tss` から `@import` される |
 | `next/font` でフォントを取得 | `npx hone add font ja` と `Hone > Sync` |
 | ホットリロード | Unity Editor に戻った時の import とコンパイル |
 

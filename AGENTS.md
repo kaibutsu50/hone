@@ -39,8 +39,9 @@ block は必ず `registryDependencies` でプリミティブを宣言し、自�
 ## 命名規約
 
 - C# namespace は `Hone`。headless 層は `Hone.Core`。
-- C# クラス名には `Hone` を前置する（例: `HoneButton`）。`UnityEngine.UIElements` の同名クラスと `using` が衝突し、曖昧参照エラーになるのを防ぐため。
-- UXML タグ名は `[UxmlElement("Button")]` で前置なしに戻し、`<hone:Button>` のように namespace prefix で区別する。
+- C# クラス名は shadcn と同じ短い名前にする（例: `Hone.Button`）。prefix は付けない。
+- UXML タグ名はクラス名そのままで、`xmlns:hone="Hone"` を宣言して `<hone:Button>` と書く。
+- `UnityEngine.UIElements` にも `Button` `Toggle` `Slider` 等の同名クラスがある。同じファイルで両方の namespace を `using` すると曖昧参照エラーになる。衝突したファイルでは `using Button = Hone.Button;` のエイリアスを書くか、Unity 側を完全修飾で書く。Hone のクラス定義自身は基底クラスを完全修飾で書く（例: `class Button : UnityEngine.UIElements.Button`）。
 - USS クラスは BEM 風。ブロックは `.hone-button`、variant は `.hone-button--outline`。状態は pseudo-class（`:focus` `:disabled` `:hover`）を優先し、pseudo-class で表せない状態のみ `.is-open` 形式のクラスを使う。
 - トークンは `--hone-color-*` `--hone-radius-*` `--hone-space-*` `--hone-font-*`。prefix は利用者の変数との衝突回避のため。
 - ファイル名はクラス名と一致させる。1 コンポーネント 1 ディレクトリ。
