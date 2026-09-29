@@ -41,7 +41,7 @@ npx hone init
 CLI が行うこと。
 
 - `hone.json` を作る。出力先（既定 `Assets/Hone`）と registry の URL を記録する
-- `Assets/Hone/Core/` に headless 層をコピーする。asmdef はここに一つだけ入る
+- `Assets/Hone/Core/` に headless 層をコピーする。asmdef はここにだけ入る（Runtime 用の `Hone.Core` と Editor 用の `Hone.Core.Editor`）
 - `Assets/Hone/HoneTheme.tss` を作る。Unity 既定テーマを `@import` し、その後に Hone のトークンと Core の USS を `@import` する
 - `Assets/Hone/hone.manifest.json` を作る。Unity 側の Sync が読む台帳
 
