@@ -1,0 +1,9 @@
+{
+    "name": "Hone.Core.Editor",
+    "references": [
+        "Hone.Core"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ]
+}
