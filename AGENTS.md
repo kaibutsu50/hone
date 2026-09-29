@@ -30,6 +30,27 @@ sandbox/                   検証用 Unity プロジェクト。多言語スク�
 
 利用者のプロジェクトでは `Assets/Hone/` 配下に同じ相対構造でコピーされる。asmdef は `Hone.Core` に一つだけ置く。ui と blocks は利用者側の asmdef に乗る。
 
+## registry.json の形式
+
+トップレベルは shadcn の `registry.json` と同じ。`$schema` `name`（`hone`）`homepage` `items` を持つ。
+
+`items` の各項目のフィールド:
+
+| フィールド | 型 | 意味 |
+|---|---|---|
+| `name` | string | CLI で指定する名前。小文字ケバブ（`button`, `core`, `pause-menu`） |
+| `type` | `registry:ui` / `registry:block` / `registry:lib` / `registry:theme` | 配置先を決める。ui → `Assets/Hone/UI/<Name>/`、block → `Assets/Hone/Blocks/<Name>/`、lib → `Assets/Hone/Core/`、theme → `Assets/Hone/` |
+| `title` | string | 表示名（`Button`） |
+| `description` | string | 一行説明 |
+| `files` | `{ path, type }[]` | `registry/` からの相対パス。`type` は項目の type と同じ |
+| `registryDependencies` | string[] | 先にコピーが必要な Hone の項目名。ui は必ず `core` を含む |
+| `dependencies` | string[] | 必要な UPM パッケージ名（`com.unity.inputsystem` 等）。CLI は検出して警告するだけで、インストールはしない |
+| `classes` | string[] | 項目が定義する C# クラス名（`Hone.Button`）。将来の `--prefix` 用。今は記録するだけ |
+
+- shadcn の `tailwind` `cssVars` は持たない。Unity には対応物がない。
+- `files[].target` は持たない。配置先は `type` から一意に決まる。
+- JSON Schema ファイルや検証スクリプトは置かない。
+
 ## コンポーネントと block の境界
 
 判定基準は一つ。「既存プリミティブの組み合わせでは供給できない headless な振る舞いを持つか」。
