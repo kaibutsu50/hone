@@ -1,3 +1,4 @@
+/* sandbox の撮影用の見た目。コンポーネントの USS ではないので、トークン規約（実値を書かない）の対象外 */
 .gallery {
     flex-grow: 1;
     padding: 8px;

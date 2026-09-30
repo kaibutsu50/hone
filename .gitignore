@@ -27,5 +27,5 @@ Thumbs.db
 # Claude Code worktrees
 .claude/worktrees/
 
-# スクリーンショット（unity command screenshot の出力先）
+# スクリーンショットの置き場（sandbox/README.md の Gallery。Assets/ の外に置く）
 sandbox/Screenshots/

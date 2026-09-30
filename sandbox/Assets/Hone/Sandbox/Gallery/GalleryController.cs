@@ -21,7 +21,9 @@ namespace Hone.Sandbox.Gallery
     }
 
     // 登録されたコンポーネントの生成関数ごとに 1 列を作り、TestStrings.json の全スクリプトの文字列（短文と長文）で 1 行ずつ並べる。
-    // Hone のコンポーネントは、各自が Register を呼ぶ。
+    // Register は sandbox 側のファイルから呼ぶ（registry/ 配下のコードには書かない。配布物が sandbox の asmdef に依存してしまう）。
+    // 呼ぶ時点は [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]。
+    // 列を作るのは PanelRenderer の UI が読み込まれた時点の 1 回だけで、それより後の Register は画面に出ない。
     [RequireComponent(typeof(PanelRenderer))]
     public class GalleryController : MonoBehaviour
     {
@@ -35,7 +37,9 @@ namespace Hone.Sandbox.Gallery
 
         [SerializeField] TextAsset m_TestStrings;
 
-        // 同じ name の再登録は factory を置き換える（Domain Reload 無効でも二重に並ばない）
+        // 同じ name の再登録は factory を置き換える（Domain Reload 無効でも二重に並ばない）。
+        // 異なる name の登録は残り続けるので、テストなどで登録したものは Unregister で消す。
+        // factory は呼ぶたびに新しい要素を返すこと（同じインスタンスを返すと、後から追加した行に付け替わって前の行から消える）。
         public static void Register(string name, Func<string, VisualElement> factory)
         {
             if (string.IsNullOrEmpty(name))
@@ -51,15 +55,21 @@ namespace Hone.Sandbox.Gallery
                 s_Entries.Add(entry);
         }
 
+        public static void Unregister(string name)
+        {
+            s_Entries.RemoveAll(e => e.Name == name);
+        }
+
         public static IReadOnlyList<ScriptStrings> ParseTestStrings(string json)
         {
             var result = new List<ScriptStrings>();
             foreach (var property in JObject.Parse(json).Properties())
             {
-                var shortText = (string)property.Value["short"];
-                var longText = (string)property.Value["long"];
+                var value = property.Value as JObject;
+                var shortText = value?["short"]?.Type == JTokenType.String ? (string)value["short"] : null;
+                var longText = value?["long"]?.Type == JTokenType.String ? (string)value["long"] : null;
                 if (shortText == null || longText == null)
-                    throw new FormatException($"TestStrings.json: '{property.Name}' needs both \"short\" and \"long\"");
+                    throw new FormatException($"TestStrings.json: '{property.Name}' needs both \"short\" and \"long\" as strings");
                 result.Add(new ScriptStrings(property.Name, shortText, longText));
             }
             return result;
@@ -116,12 +126,12 @@ namespace Hone.Sandbox.Gallery
             var scrollView = root.Q<ScrollView>("gallery");
             if (scrollView == null)
             {
-                Debug.LogError("Gallery: ScrollView named 'gallery' is not in the UXML");
+                Debug.LogError("Gallery: ScrollView named 'gallery' was not found (the PanelRenderer's UXML is not Gallery.uxml, or it has no such element)", this);
                 return;
             }
             if (m_TestStrings == null)
             {
-                Debug.LogError("Gallery: TestStrings is not assigned");
+                Debug.LogError("Gallery: TestStrings is not assigned", this);
                 return;
             }
             Build(scrollView.contentContainer, ParseTestStrings(m_TestStrings.text));
