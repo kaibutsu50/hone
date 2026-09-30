@@ -2,6 +2,7 @@
 
 開いている間フォーカスを中に閉じ込め、閉じると元の要素へフォーカスを戻し、Cancel で閉じるダイアログ。
 フォーカスは `FocusScope` に、Cancel は `BackStack` に委ねていて、Dialog 自身はナビゲーションのイベントを扱わない。
+自分で扱うのは overlay の PointerDown だけ。
 
 ```xml
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:hone="Hone">
@@ -43,7 +44,7 @@ UI Toolkit には z-index が無く、描画とポインタの判定は hierarch
 
 | 属性 | 既定 | 意味 |
 |---|---|---|
-| `modal` | `true` | overlay（背景）を押すと閉じる。`false` なら押しても閉じない（overlay は表示され、背後への入力は止める） |
+| `modal` | `true` | overlay（背景）を押すと閉じる。閉じる時は PointerDown の既定のフォーカス処理を止め、`Close()` で戻したフォーカスを保つ。`false` なら押しても閉じない（overlay は表示され、背後への入力は止める） |
 | `dismissOnCancel` | `true` | Cancel（ゲームパッドの B、Esc）で閉じる。`false` なら `BackStack` に積まない。`Open()` の時点の値で決まり、開いている間に変えても次に開くまで反映されない |
 
 ## USS クラス
@@ -63,6 +64,7 @@ UI Toolkit には z-index が無く、描画とポインタの判定は hierarch
 ## headless 層との関係
 
 - 中身の枠は `FocusScope`（`trap = true`、`autoFocus = false`）。方向入力と Tab は枠の中に留まる。
+  枠は Dialog の `contentContainer` なので、中の要素の `parent`（論理上の親）は枠を飛ばして Dialog を指す。`FocusScope` は `hierarchy.parent` で祖先を辿るので、この構造でも留まる。
   `autoFocus` を `false` にしているのは、閉じた Dialog が panel に attach された時点でフォーカスを奪わないため。初期フォーカスは `Open()` が `FocusFirst()` で当てる。
 - Cancel は `BackStack` が処理する。Dialog は `IDismissable` を実装し、`Dismiss()` で `Close()` する。重ねて開いたときは、最後に開いたものだけが閉じる。
 - ボタン等の中身には何も要求しない。`Hone.Button` 以外の focusable でも同じように動く。registry の依存に `Button` があるのは、`Dialog.uxml` の使用例が使うため。

@@ -6,6 +6,7 @@ namespace Hone
 {
     // フォーカスの trap・初期フォーカス・復元は FocusScope に、Cancel で閉じるのは BackStack に委ねる。
     // Dialog 自身は NavigationMoveEvent / NavigationCancelEvent / FocusOutEvent を扱わない。
+    // 扱うのは overlay の PointerDown だけで、閉じる時にその既定のフォーカス処理を止める。
     //
     // 構造: Dialog（.hone-dialog）> overlay（.hone-dialog__overlay）+ FocusScope（.hone-dialog__content）。
     // UXML の子要素と Add() は contentContainer（FocusScope）に入る。
@@ -100,10 +101,14 @@ namespace Hone
             m_Stack = null;
         }
 
+        // PointerDown の既定の処理（押した要素が focusable でなければフォーカスを外す）は、この callback の後に走る。
+        // 閉じる時は IgnoreEvent で止め、Close() で戻したフォーカスを外させない
         void OnOverlayPointerDown(PointerDownEvent evt)
         {
-            if (modal)
-                Close();
+            if (!modal)
+                return;
+            panel.focusController.IgnoreEvent(evt);
+            Close();
         }
 
         // attach 前に Open() した場合と、開いたまま付け直した場合に、Cancel で閉じられるよう積む
