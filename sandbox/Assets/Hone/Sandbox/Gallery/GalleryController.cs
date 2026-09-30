@@ -6,6 +6,9 @@ using UnityEngine.UIElements;
 
 namespace Hone.Sandbox.Gallery
 {
+    // Hone.Sandbox.UI を参照すると、namespace Hone の中の Button は Hone.Button を指す。ここの Button は Unity 標準のもの
+    using Button = UnityEngine.UIElements.Button;
+
     public readonly struct ScriptStrings
     {
         public readonly string Script;

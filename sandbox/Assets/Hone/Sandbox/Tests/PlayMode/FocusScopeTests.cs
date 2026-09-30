@@ -12,6 +12,9 @@ using Object = UnityEngine.Object;
 
 namespace Hone.Sandbox.Tests
 {
+    // Hone.Sandbox.UI を参照すると、namespace Hone の中の Button は Hone.Button を指す。ここの Button は Unity 標準のもの
+    using Button = UnityEngine.UIElements.Button;
+
     // Editor で実行する前提（PanelSettings と UXML を AssetDatabase から読む）。
     // 移動は NavigationMoveEvent を SendEvent で送る。入力層（Input System、EventSystem）を通らないので、EventSystem の有無ではテストを分けない。
     // EventSystem の有無による入力経路の差は、sandbox の Experiments/FocusTrap（FocusTrap.unity と FocusTrapEventSystem.unity）で Player を使って確かめている。

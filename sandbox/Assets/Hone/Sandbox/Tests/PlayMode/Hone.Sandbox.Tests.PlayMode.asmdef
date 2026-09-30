@@ -4,7 +4,8 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "Hone.Sandbox.Gallery",
-        "Hone.Core"
+        "Hone.Core",
+        "Hone.Sandbox.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

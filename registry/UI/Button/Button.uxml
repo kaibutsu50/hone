@@ -1,0 +1,8 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:hone="Hone">
+    <ui:VisualElement style="flex-direction: row;">
+        <hone:Button text="Default" />
+        <hone:Button variant="outline" text="Outline" />
+        <hone:Button variant="ghost" text="Ghost" />
+        <hone:Button variant="destructive" text="Destructive" />
+    </ui:VisualElement>
+</ui:UXML>

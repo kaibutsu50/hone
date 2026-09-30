@@ -37,3 +37,15 @@
     min-width: 56px;
     opacity: 0.6;
 }
+
+/* Hone.Button の列。セルは縦並びで、幅は行の残りを短文と長文で等分する。中身の間を少し空ける */
+.gallery-cell {
+    flex-grow: 1;
+    flex-basis: 0;
+    min-width: 0;
+    margin-right: 4px;
+}
+
+.gallery-cell > * {
+    margin-bottom: 2px;
+}

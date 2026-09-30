@@ -22,9 +22,13 @@ Assets/Hone/
     Runtime/          Hone.Core.asmdef、Core.uss、BackStack.cs（NavigationCancel で最前面の IDismissable を閉じる）、IDismissable.cs、
                       FocusScope.cs（subtree 限定のナビ、trap、初期フォーカスと復元）
     Editor/           Hone.Core.Editor.asmdef
+  UI/                 registry/UI の手コピー
+    Hone.Sandbox.UI.asmdef  sandbox 専用（registry には置かない）。UI には asmdef を置かない規約なので、Gallery と PlayMode テストから参照できるよう、
+                      利用者が自分の asmdef に UI を乗せる形をここで再現する。Hone.Core を参照し（Issue #18 の指定。Button.cs は今は Core を使っていない）、autoReferenced は false（Assembly-CSharp の Experiments に Hone.Button を見せない）
+    Button/           Hone.Button（Button.cs、Button.uxml、Button.uss、README.md）
   Tokens.uss          registry/Tokens.uss の手コピー
-  HoneTheme.tss       registry/HoneTheme.tss の手コピー。差分は末尾の :root（--hone-font-body に Sandbox/Fonts/RobotoMono.asset を指定）だけ。
-                      利用者が雛形のコメントに従って自分で書く内容に当たる。registry 側を変えたら、この :root を残して同期する
+  HoneTheme.tss       registry/HoneTheme.tss の手コピー。差分は、`hone add` が挿入する各コンポーネントの USS の @import（Button）と、末尾の :root（--hone-font-body に Sandbox/Fonts/RobotoMono.asset を指定）だけ。
+                      利用者が雛形のコメントに従って自分で書く内容に当たる。registry 側を変えたら、この @import と :root を残して同期する
   Sandbox/            sandbox 固有のアセット。`hone add` がコピーする領域と混ぜない
     Sandbox.unity     PanelRenderer を 1 つ置いたシーン（EventSystem は置かない）
     Sandbox.uxml      空の UXML
@@ -37,9 +41,9 @@ Assets/Hone/
                       TokensExp/ は --hone-font-body（theme の :root）と .hone-text、.hone-focusable の ring の検証（Player の検証を含む）
                       ThemeExp/ は .tss の @import（絶対パス、相対パス）、既定テーマの Button の :focus、既定フォントの FontAsset と日本語の描画の検証
     Gallery/          多言語スクリーンショットの撮影基盤。TestStrings.json（スクリプトごとの短文・長文）、Gallery.unity / Gallery.uxml / Gallery.uss、GalleryController、
-                      GalleryHoneEntries（Core.uss のクラスを付けた列を登録する）、GalleryFocus（ring を写すため最初の .hone-focusable にフォーカスを当てる）、
-                      Hone.Sandbox.Gallery.asmdef（Tests/PlayMode が参照する）
-    Tests/PlayMode/   PlayMode テスト。BackStackTests、FocusScopeTests は PanelRenderer を GameObject で作って panel を得る（`UNITY_EDITOR` のときだけコンパイルされる。Editor で実行する）
+                      GalleryHoneEntries（Hone.Button と、Core.uss のクラスを付けた列を登録する）、GalleryFocus（ring を写すため最初の .hone-focusable にフォーカスを当てる）、
+                      Hone.Sandbox.Gallery.asmdef（Tests/PlayMode が参照する。Hone.Sandbox.UI を参照する）
+    Tests/PlayMode/   PlayMode テスト。BackStackTests、FocusScopeTests、ButtonTests の 1 件（NavigationSubmitEvent）は PanelRenderer を GameObject で作って panel を得る（`UNITY_EDITOR` のときだけコンパイルされる。Editor で実行する）
 ```
 
 `registry/` の内容は手でコピーしている。`hone add` ができたら CLI に置き換える。
@@ -87,7 +91,7 @@ unity command run_tests --mode playmode --filter Hone.Sandbox.Tests.SandboxSmoke
 
 見た目が変わる PR に添付するスクリーンショットを撮る基盤。`GalleryController.Register(name, factory)` で登録したコンポーネントを、`Gallery/TestStrings.json` の全スクリプト × 短文・長文で並べる。1 コンポーネントが 1 列で、列の中は 1 スクリプト 1 行。
 Unity 標準の `Label` と `Button` は `GalleryController` が自分で登録する（name は `"Label"` `"Button"`）。
-`GalleryHoneEntries` が `Label.hone-text`（`.hone-text` を付けた `Label`）と `Button.hone-focusable`（`.hone-focusable` を付けた `Button`）を登録し、素の列と並べる。
+`GalleryHoneEntries` が `Hone.Button`（1 つのセルに 4 variant を縦に積む。セルは縦並びで幅が決まるので、長文は省略記号になる）を最初に登録する。最初の `.hone-focusable` が `Hone.Button` になり、その ring が写る。続けて `Label.hone-text`（`.hone-text` を付けた `Label`）と `Button.hone-focusable`（`.hone-focusable` を付けた `Button`）を登録し、素の列と並べる。
 `GalleryFocus` が UI の読み込み後に最初の `.hone-focusable` へフォーカスを当てるので、Play Mode で撮れば ring が写る。
 背景と文字色は `Gallery.uss` が Hone のトークン（`--hone-color-background` `--hone-color-foreground`）で指定する。
 

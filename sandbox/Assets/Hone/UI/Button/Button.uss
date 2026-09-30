@@ -1,0 +1,59 @@
+/* 色・角丸・余白・フォントサイズ・枠の太さは Tokens.uss のトークン。opacity の割合と transparent（ghost）はトークンを持たない。
+ * 押下（:active）の opacity は outline / ghost では効かない（それらの :hover の opacity: 1 が同じ詳細度で後ろにあるため）。
+ * width は設定しない。min-width と、フォントとテキストに応じた内容の幅で決まる。
+ * flex-shrink: 0 なので、横並び（row）の親の中では内容より縮まず、長い文字列は省略記号にならず親からはみ出す。
+ * 省略記号が出るのは、親が縦並び（column、align-items: stretch）で幅が決まっているとき（sandbox の Gallery のセルで確認）。
+ * focus ring は border-width を変えるので、フォーカスで大きさが変わる（Core.uss の注記のとおり、測っていない）。 */
+.hone-button {
+    background-color: var(--hone-color-primary);
+    color: var(--hone-color-primary-foreground);
+    border-width: var(--hone-border-width);
+    border-color: var(--hone-color-primary);
+    border-radius: var(--hone-radius-md);
+    padding: var(--hone-space-2) var(--hone-space-4);
+    min-width: var(--hone-space-8);
+    flex-shrink: 0;
+    font-size: var(--hone-font-size-sm);
+    -unity-text-align: middle-center;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.hone-button:hover {
+    opacity: 0.9;
+}
+
+.hone-button:active {
+    opacity: 0.8;
+}
+
+.hone-button--outline {
+    background-color: var(--hone-color-background);
+    color: var(--hone-color-foreground);
+    border-color: var(--hone-color-border);
+}
+
+.hone-button--ghost {
+    background-color: transparent;
+    color: var(--hone-color-foreground);
+    border-color: transparent;
+}
+
+.hone-button--destructive {
+    background-color: var(--hone-color-destructive);
+    color: var(--hone-color-destructive-foreground);
+    border-color: var(--hone-color-destructive);
+}
+
+.hone-button--outline:hover,
+.hone-button--ghost:hover {
+    background-color: var(--hone-color-accent);
+    color: var(--hone-color-accent-foreground);
+    opacity: 1;
+}
+
+/* hover と重なっても disabled の見た目が残るよう、最後に書く */
+.hone-button:disabled {
+    opacity: 0.5;
+}
