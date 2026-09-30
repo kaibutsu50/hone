@@ -1,0 +1,4 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:hone="Hone">
+    <Style src="Gallery.uss" />
+    <ui:ScrollView name="gallery" class="gallery" mode="Vertical" />
+</ui:UXML>

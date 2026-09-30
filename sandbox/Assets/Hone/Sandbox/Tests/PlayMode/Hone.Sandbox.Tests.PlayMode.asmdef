@@ -2,7 +2,8 @@
     "name": "Hone.Sandbox.Tests.PlayMode",
     "references": [
         "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner"
+        "UnityEditor.TestRunner",
+        "Hone.Sandbox.Gallery"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

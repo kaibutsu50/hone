@@ -33,6 +33,7 @@ Assets/Hone/
                       Resources 配下なので sandbox のすべての Player ビルドに入る
                       FocusTrap/ は Dialog の focus trap 機構（IgnoreEvent の同 frame 順序、外側へのフォーカス漏れ、フォーカスが無いときの方向入力、EventSystem の有無）の検証
                       ThemeExp/ は .tss の @import（絶対パス、相対パス）、既定テーマの Button の :focus、既定フォントの FontAsset と日本語の描画の検証
+    Gallery/          多言語スクリーンショットの撮影基盤。TestStrings.json（スクリプトごとの短文・長文）、Gallery.unity / Gallery.uxml、GalleryController
     Tests/PlayMode/   PlayMode テスト
 ```
 
@@ -76,6 +77,26 @@ unity command run_tests --mode playmode --filter Hone.Sandbox.Tests.SandboxSmoke
    終了コードが 0 で、ログに `error CS` が無いこと。Unity.exe のパスは Hub 既定のインストール先の例。
 2. `unity open <sandbox の絶対パス> --editor-version 6000.7.0b2 --args "-automated"`。
    `-automated` が無いと、初回に URP のマテリアル更新ダイアログが出て、人が閉じるまで `unity command` が 503 を返す。
+
+## Gallery（多言語スクリーンショット）
+
+見た目が変わる PR に添付するスクリーンショットを撮る基盤。`GalleryController.Register(name, factory)` で登録したコンポーネントを、`Gallery/TestStrings.json` の全スクリプト（ja ko zh-hans zh-hant ar th emoji de-long en）× 短文・長文で並べる。1 コンポーネントが 1 列で、列の中は 1 スクリプト 1 行。
+Unity 標準の `Label` と `Button` は `GalleryController` が自分で登録する。Hone のコンポーネントは、各自のコードから `Register` を呼ぶ。
+
+撮影手順（Editor は「Editor の開き方」で開いておく）:
+
+```bash
+unity command open_scene --path Assets/Hone/Sandbox/Gallery/Gallery.unity --project-path <sandbox の絶対パス>
+unity command editor_play --project-path <sandbox の絶対パス>
+MSYS_NO_PATHCONV=1 unity command screenshot --view game --output <sandbox の絶対パス>/Screenshots/gallery.png --width 1920 --height 1080 --project-path <sandbox の絶対パス>
+unity command editor_stop --project-path <sandbox の絶対パス>
+gh attach --key <ブランチ名> <sandbox の絶対パス>/Screenshots/gallery.png
+```
+
+`Screenshots/` は gitignore 済み。`gh attach`（`pr-screenshot` スキル）が返す markdown を PR 本文に貼る。
+撮った画像で、文字列が読めるか、豆腐（□）になっていないか、行や列がはみ出していないかを人が見る。画像の自動比較はしない。
+
+フォントは同梱しない。既定フォントで未収録の文字（ar、th、emoji など）がどう描画されるかを見るのも、この画像の目的のひとつ。
 
 ## FontVar の Player 検証
 

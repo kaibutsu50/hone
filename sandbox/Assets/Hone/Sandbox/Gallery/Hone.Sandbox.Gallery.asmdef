@@ -1,0 +1,16 @@
+{
+    "name": "Hone.Sandbox.Gallery",
+    "rootNamespace": "Hone.Sandbox.Gallery",
+    "references": [
+        "Unity.Nuget.Newtonsoft-Json"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

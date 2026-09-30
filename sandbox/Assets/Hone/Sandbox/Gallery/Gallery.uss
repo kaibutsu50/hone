@@ -1,0 +1,37 @@
+.gallery {
+    flex-grow: 1;
+    padding: 8px;
+    background-color: rgb(32, 32, 36);
+}
+
+.gallery Label {
+    color: rgb(230, 230, 230);
+}
+
+.gallery .unity-scroll-view__content-container {
+    flex-direction: row;
+    align-items: flex-start;
+}
+
+.gallery-column {
+    flex-basis: 0;
+    flex-grow: 1;
+    margin-right: 8px;
+    overflow: hidden;
+}
+
+.gallery-heading {
+    -unity-font-style: bold;
+    margin-bottom: 4px;
+}
+
+.gallery-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 2px;
+}
+
+.gallery-tag {
+    min-width: 56px;
+    opacity: 0.6;
+}
