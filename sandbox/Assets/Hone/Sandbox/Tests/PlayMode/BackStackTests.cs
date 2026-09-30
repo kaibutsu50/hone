@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -34,9 +35,12 @@ namespace Hone.Sandbox.Tests
             m_Created.Clear();
         }
 
-        // PanelRenderer を 1 つ作り、UI が読み込まれたら root を返す。panelSettings ごとに別の panel になる
-        IEnumerator CreatePanel(PanelSettings panelSettings, Action<VisualElement> onReady)
+        // PanelRenderer を 1 つ作り、UI が読み込まれたら root を返す。
+        // PanelSettings の複製ごとに別の panel になる。同じ asset を共有すると panel と BackStack がテスト間で残る
+        IEnumerator CreatePanel(Action<VisualElement> onReady)
         {
+            var panelSettings = Object.Instantiate(AssetDatabase.LoadAssetAtPath<PanelSettings>(PanelSettingsPath));
+            m_Created.Add(panelSettings);
             var go = new GameObject("BackStackTests");
             m_Created.Add(go);
             // 有効化の前に callback を登録する（読み込み済みの後に登録して取りこぼすのを避ける）
@@ -58,19 +62,6 @@ namespace Hone.Sandbox.Tests
             onReady(root);
         }
 
-        PanelSettings LoadPanelSettings()
-        {
-            return AssetDatabase.LoadAssetAtPath<PanelSettings>(PanelSettingsPath);
-        }
-
-        // 同じ asset を共有すると同じ panel になるので、別 panel が要るときは複製を使う
-        PanelSettings ClonePanelSettings()
-        {
-            var clone = Object.Instantiate(LoadPanelSettings());
-            m_Created.Add(clone);
-            return clone;
-        }
-
         static void SendCancel(VisualElement target)
         {
             using (var evt = NavigationCancelEvent.GetPooled())
@@ -84,7 +75,7 @@ namespace Hone.Sandbox.Tests
         public IEnumerator Cancel_DismissesOnlyTopmostAndStopsEvent()
         {
             VisualElement root = null;
-            yield return CreatePanel(LoadPanelSettings(), r => root = r);
+            yield return CreatePanel(r => root = r);
             var below = new Dismissable();
             var top = new Dismissable();
             var stack = BackStack.For(root.panel);
@@ -100,14 +91,23 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual(1, top.Calls);
             Assert.AreEqual(0, below.Calls);
             Assert.AreEqual(0, reachedTarget, "the event must be stopped before reaching the target");
+
+            // HandleCancel は Remove しないので、Remove されるまで最前面は変わらない
+            SendCancel(child);
+
+            Assert.AreEqual(2, top.Calls);
+            Assert.AreEqual(0, below.Calls);
         }
 
         [UnityTest]
         public IEnumerator Cancel_EmptyStack_DoesNotStopEvent()
         {
             VisualElement root = null;
-            yield return CreatePanel(LoadPanelSettings(), r => root = r);
-            BackStack.For(root.panel);
+            yield return CreatePanel(r => root = r);
+            var stack = BackStack.For(root.panel);
+            var pushed = new Dismissable();
+            stack.Push(pushed);
+            stack.Remove(pushed);
             var child = new VisualElement();
             root.Add(child);
             var reachedRoot = 0;
@@ -116,13 +116,14 @@ namespace Hone.Sandbox.Tests
             SendCancel(child);
 
             Assert.AreEqual(1, reachedRoot);
+            Assert.AreEqual(0, pushed.Calls);
         }
 
         [UnityTest]
         public IEnumerator Remove_MiddleItem_CancelDismissesRemainingTopmost()
         {
             VisualElement root = null;
-            yield return CreatePanel(LoadPanelSettings(), r => root = r);
+            yield return CreatePanel(r => root = r);
             var bottom = new Dismissable();
             var middle = new Dismissable();
             var top = new Dismissable();
@@ -145,7 +146,7 @@ namespace Hone.Sandbox.Tests
         public IEnumerator Cancel_EditingTextField_DoesNotDismiss()
         {
             VisualElement root = null;
-            yield return CreatePanel(LoadPanelSettings(), r => root = r);
+            yield return CreatePanel(r => root = r);
             var item = new Dismissable();
             BackStack.For(root.panel).Push(item);
             var textField = new TextField();
@@ -163,18 +164,77 @@ namespace Hone.Sandbox.Tests
         }
 
         [UnityTest]
+        public IEnumerator Cancel_TargetInsideTextField_DoesNotDismiss()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var item = new Dismissable();
+            BackStack.For(root.panel).Push(item);
+            var textField = new TextField();
+            root.Add(textField);
+            yield return null;
+            var inner = textField.Q<TextElement>();
+            Assert.IsNotNull(inner);
+
+            SendCancel(inner);
+
+            Assert.AreEqual(0, item.Calls);
+        }
+
+        [UnityTest]
+        public IEnumerator Cancel_ReadOnlyTextField_Dismisses()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var item = new Dismissable();
+            BackStack.For(root.panel).Push(item);
+            var textField = new TextField { isReadOnly = true };
+            root.Add(textField);
+
+            SendCancel(textField);
+
+            Assert.AreEqual(1, item.Calls);
+        }
+
+        [UnityTest]
+        public IEnumerator Push_SameItemTwice_IsDismissedOnceAndMovesToTop()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var first = new Dismissable();
+            var second = new Dismissable();
+            var stack = BackStack.For(root.panel);
+            stack.Push(first);
+            stack.Push(second);
+            stack.Push(first);
+
+            stack.HandleCancel();
+            stack.Remove(first);
+            stack.HandleCancel();
+
+            Assert.AreEqual(1, first.Calls);
+            Assert.AreEqual(1, second.Calls);
+        }
+
+        [UnityTest]
         public IEnumerator For_SamePanelReturnsSameInstance_OtherPanelReturnsOther()
         {
             VisualElement rootA = null;
             VisualElement rootB = null;
-            yield return CreatePanel(LoadPanelSettings(), r => rootA = r);
-            yield return CreatePanel(ClonePanelSettings(), r => rootB = r);
-            Assume.That(rootA.panel, Is.Not.SameAs(rootB.panel), "the two PanelRenderers must not share a panel");
-
+            yield return CreatePanel(r => rootA = r);
+            yield return CreatePanel(r => rootB = r);
+            Assert.AreNotSame(rootA.panel, rootB.panel, "the two PanelRenderers must not share a panel");
             var a = BackStack.For(rootA.panel);
 
             Assert.AreSame(a, BackStack.For(rootA.panel));
             Assert.AreNotSame(a, BackStack.For(rootB.panel));
+
+            // 別 panel の Cancel では、a の item は呼ばれない
+            var item = new Dismissable();
+            a.Push(item);
+            SendCancel(rootB);
+            Assert.AreEqual(0, item.Calls);
         }
     }
 }
+#endif

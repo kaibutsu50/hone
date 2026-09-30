@@ -32,7 +32,7 @@ namespace Hone.Core
             return s_Instances.GetValue(panel, p => new BackStack(p));
         }
 
-        // 同じ item を二度積むと最前面へ移る（二重に Dismiss されないようにする）
+        // 同じ item を二度積むと最前面へ移る（同じ item が重複して積まれないようにする）
         public void Push(IDismissable item)
         {
             if (item == null)
@@ -64,8 +64,9 @@ namespace Hone.Core
             // 編集中の TextField の Cancel は編集のキャンセルであって、閉じる操作ではない
             if (IsEditingTextField(evt.target as VisualElement))
                 return;
-            HandleCancel();
+            // 先に止める。Dismiss が例外を投げても、Cancel を利用者側のハンドラへ流さない
             evt.StopPropagation();
+            HandleCancel();
         }
 
         static bool IsEditingTextField(VisualElement target)

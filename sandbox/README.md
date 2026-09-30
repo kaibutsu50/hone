@@ -38,7 +38,7 @@ Assets/Hone/
     Gallery/          多言語スクリーンショットの撮影基盤。TestStrings.json（スクリプトごとの短文・長文）、Gallery.unity / Gallery.uxml / Gallery.uss、GalleryController、
                       GalleryHoneEntries（Core.uss のクラスを付けた列を登録する）、GalleryFocus（ring を写すため最初の .hone-focusable にフォーカスを当てる）、
                       Hone.Sandbox.Gallery.asmdef（Tests/PlayMode が参照する）
-    Tests/PlayMode/   PlayMode テスト。BackStackTests は PanelRenderer を GameObject で作って panel を得る（Editor で実行する前提）
+    Tests/PlayMode/   PlayMode テスト。BackStackTests は PanelRenderer を GameObject で作って panel を得る（`UNITY_EDITOR` のときだけコンパイルされる。Editor で実行する）
 ```
 
 `registry/` の内容は手でコピーしている。`hone add` ができたら CLI に置き換える。
