@@ -11,11 +11,13 @@
       "files": [
         { "path": "Core/Runtime/Hone.Core.asmdef", "type": "registry:lib" },
         { "path": "Core/Runtime/Core.uss", "type": "registry:lib" },
+        { "path": "Core/Runtime/BackStack.cs", "type": "registry:lib" },
+        { "path": "Core/Runtime/IDismissable.cs", "type": "registry:lib" },
         { "path": "Core/Editor/Hone.Core.Editor.asmdef", "type": "registry:lib" }
       ],
       "registryDependencies": [],
       "dependencies": [],
-      "classes": []
+      "classes": ["Hone.Core.BackStack", "Hone.Core.IDismissable"]
     },
     {
       "name": "Default",

@@ -3,7 +3,8 @@
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "Hone.Sandbox.Gallery"
+        "Hone.Sandbox.Gallery",
+        "Hone.Core"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

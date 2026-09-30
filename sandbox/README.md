@@ -19,7 +19,7 @@ Hone の検証用 Unity プロジェクト。コンポーネントの動作確�
 ```
 Assets/Hone/
   Core/               registry/Core の手コピー
-    Runtime/          Hone.Core.asmdef、Core.uss
+    Runtime/          Hone.Core.asmdef、Core.uss、BackStack.cs（NavigationCancel で最前面の IDismissable を閉じる）、IDismissable.cs
     Editor/           Hone.Core.Editor.asmdef
   Tokens.uss          registry/Tokens.uss の手コピー
   HoneTheme.tss       registry/HoneTheme.tss の手コピー。差分は末尾の :root（--hone-font-body に Sandbox/Fonts/RobotoMono.asset を指定）だけ。
@@ -38,7 +38,7 @@ Assets/Hone/
     Gallery/          多言語スクリーンショットの撮影基盤。TestStrings.json（スクリプトごとの短文・長文）、Gallery.unity / Gallery.uxml / Gallery.uss、GalleryController、
                       GalleryHoneEntries（Core.uss のクラスを付けた列を登録する）、GalleryFocus（ring を写すため最初の .hone-focusable にフォーカスを当てる）、
                       Hone.Sandbox.Gallery.asmdef（Tests/PlayMode が参照する）
-    Tests/PlayMode/   PlayMode テスト
+    Tests/PlayMode/   PlayMode テスト。BackStackTests は PanelRenderer を GameObject で作って panel を得る（Editor で実行する前提）
 ```
 
 `registry/` の内容は手でコピーしている。`hone add` ができたら CLI に置き換える。
