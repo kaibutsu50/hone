@@ -292,9 +292,9 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual(0, closed);
         }
 
-        // (F) modal = true なら overlay を押すと閉じる。modal = false なら閉じない
+        // (F) dismissOnOverlay = true なら overlay を押すと閉じる。dismissOnOverlay = false なら閉じない
         [UnityTest]
-        public IEnumerator OverlayPointerDown_ClosesOnlyWhenModal()
+        public IEnumerator OverlayPointerDown_ClosesOnlyWhenDismissOnOverlay()
         {
             Fixture f = null;
             yield return BuildFixture(x => f = x);
@@ -304,28 +304,53 @@ namespace Hone.Sandbox.Tests
             yield return FocusAndWait(f, f.Outside1);
             var closed = 0;
             dialog.closed += () => closed++;
-            // PointerDown が overlay に届いたことを数える（届かなければ modal = false の検査が何もせずに通ってしまう）
+            // PointerDown が overlay に届いたことを数える（届かなければ dismissOnOverlay = false の検査が何もせずに通ってしまう）
             var reached = 0;
             overlay.RegisterCallback<PointerDownEvent>(evt => reached++);
 
-            dialog.modal = false;
+            dialog.dismissOnOverlay = false;
             dialog.Open();
             yield return WaitForLayout(overlay);
             Click(overlay);
             yield return null;
             Assert.AreEqual(1, reached, "the PointerDownEvent did not reach the overlay");
-            Assert.IsTrue(dialog.isOpen, "a non-modal dialog must not close on the overlay");
+            Assert.IsTrue(dialog.isOpen, "a dialog with dismissOnOverlay = false must not close on the overlay");
             Assert.AreEqual(0, closed);
 
-            dialog.modal = true;
+            dialog.dismissOnOverlay = true;
             Click(overlay);
             yield return null;
             Assert.AreEqual(2, reached, "the PointerDownEvent did not reach the overlay");
-            Assert.IsFalse(dialog.isOpen, "a modal dialog must close on the overlay");
+            Assert.IsFalse(dialog.isOpen, "a dialog with dismissOnOverlay = true must close on the overlay");
             Assert.AreEqual(1, closed);
             // PointerDown の既定の処理が、戻したフォーカスを後から上書きしないこと
             Assert.AreSame(f.Outside1, f.Focused, "closing by the overlay must restore the focus");
             Assert.IsFalse(BackStack.For(f.Panel).HandleCancel(), "the closed dialog must not remain in the BackStack");
+        }
+
+        // dismissOnOverlay = false で overlay を押しても、Dialog の中のフォーカスが外れない（PointerDown の既定のフォーカス処理を止める）
+        [UnityTest]
+        public IEnumerator OverlayPointerDown_NoDismissOnOverlay_KeepsFocusInside()
+        {
+            Fixture f = null;
+            yield return BuildFixture(x => f = x);
+            var dialog = AddDialog(f.Root);
+            var overlay = dialog.Q(className: "hone-dialog__overlay");
+            Assert.IsNotNull(overlay, "no element with class 'hone-dialog__overlay'");
+            yield return FocusAndWait(f, f.Outside1);
+            var reached = 0;
+            overlay.RegisterCallback<PointerDownEvent>(evt => reached++);
+
+            dialog.dismissOnOverlay = false;
+            dialog.Open();
+            yield return WaitForLayout(overlay);
+            Assert.AreSame(FirstButton(dialog), f.Focused);
+
+            Click(overlay);
+            yield return null;
+            Assert.AreEqual(1, reached, "the PointerDownEvent did not reach the overlay");
+            Assert.IsTrue(dialog.isOpen);
+            Assert.AreSame(FirstButton(dialog), f.Focused, "pressing the overlay must not take the focus out of the dialog");
         }
 
         // (G) 2 つ重ねて開き、Cancel を 1 回送ると上（後に開いた方）だけが閉じる

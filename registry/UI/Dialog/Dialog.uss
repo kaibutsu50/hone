@@ -1,6 +1,6 @@
-/* 色・角丸・余白・フォントサイズ・枠の太さは Tokens.uss のトークン。幅の割合（%）と、タイトルの太字（-unity-font-style: bold）はトークンを持たない。
+/* 色・角丸・余白・フォントサイズ・枠の太さ・content の最大幅は Tokens.uss のトークン。幅の割合（%）と、タイトルの太字（-unity-font-style: bold）はトークンを持たない。
  * Dialog は親の全面を覆う（position: absolute で上下左右 0）。panel 全体を覆うには、root の直下の最後の子に置く（後ろの兄弟は Dialog の上に描かれる）。
- * content は flex で中央に置く。幅は min-width と max-width の間で内容に従い、高さは内容に従う。
+ * content は flex で中央に置く。幅は親の 90% と --hone-size-dialog の小さい方（shadcn の w-full max-w-lg に相当。USS に calc() と min() は無いので、width と max-width を重ねる）。高さは内容に従う。
  * 開閉は Dialog.cs が inline の display で切り替える。ここでは display を書かない。 */
 .hone-dialog {
     position: absolute;
@@ -22,8 +22,8 @@
 }
 
 .hone-dialog__content {
-    min-width: 30%;
-    max-width: 90%;
+    width: 90%;
+    max-width: var(--hone-size-dialog);
     padding: var(--hone-space-6);
     background-color: var(--hone-color-background);
     border-width: var(--hone-border-width);

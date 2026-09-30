@@ -17,8 +17,8 @@
     --hone-color-border: #e4e4e7;
     /* ring は border で描くので、primary（#18181b）と同色だと Default variant で色が変わらず見えない。primary と白の両方に対して見える中間色にする */
     --hone-color-ring: #a1a1aa;
-    /* Dialog の overlay。background（#ffffff）の半透明版。rgba() の中に var() は書けないので、background を変えたら手で合わせる */
-    --hone-color-overlay: rgba(255, 255, 255, 0.8);
+    /* Dialog の overlay。shadcn と同じ黒の半透明 */
+    --hone-color-overlay: rgba(0, 0, 0, 0.5);
 
     --hone-radius-sm: 4px;
     --hone-radius-md: 6px;
@@ -38,6 +38,9 @@
     --hone-font-size-lg: 18px;
 
     --hone-border-width: 1px;
+
+    /* Dialog の content の最大幅。shadcn の max-w-lg（32rem） */
+    --hone-size-dialog: 512px;
 
     --hone-ring-width: 2px;
     /* 未使用。Core.uss の ring は border で描くので、offset を表現できない */

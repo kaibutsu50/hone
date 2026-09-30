@@ -44,7 +44,7 @@ UI Toolkit には z-index が無く、描画とポインタの判定は hierarch
 
 | 属性 | 既定 | 意味 |
 |---|---|---|
-| `modal` | `true` | overlay（背景）を押すと閉じる。閉じる時は PointerDown の既定のフォーカス処理を止め、`Close()` で戻したフォーカスを保つ。`false` なら押しても閉じない（overlay は表示され、背後への入力は止める） |
+| `dismissOnOverlay` | `true` | overlay（背景）を押すと閉じる。`false` なら押しても閉じない（overlay は表示され、背後への入力は止める）。どちらでも PointerDown の既定のフォーカス処理は止めるので、閉じる時は `Close()` で戻したフォーカスが、閉じない時は Dialog の中のフォーカスが保たれる |
 | `dismissOnCancel` | `true` | Cancel（ゲームパッドの B、Esc）で閉じる。`false` なら `BackStack` に積まない。`Open()` の時点の値で決まり、開いている間に変えても次に開くまで反映されない |
 
 ## USS クラス

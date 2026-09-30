@@ -64,7 +64,7 @@ block は必ず `registryDependencies` でプリミティブを宣言し、自�
 - UXML タグ名はクラス名そのままで、`xmlns:hone="Hone"` を宣言して `<hone:Button>` と書く。
 - `UnityEngine.UIElements` にも `Button` `Toggle` `Slider` 等の同名クラスがある。同じファイルで両方の namespace を `using` すると曖昧参照エラーになる。衝突したファイルでは `using Button = Hone.Button;` のエイリアスを書くか、Unity 側を完全修飾で書く。Hone のクラス定義自身は基底クラスを完全修飾で書く（例: `class Button : UnityEngine.UIElements.Button`）。
 - USS クラスは BEM 風。ブロックは `.hone-button`、variant は `.hone-button--outline`。状態は pseudo-class（`:focus` `:disabled` `:hover`）を優先し、pseudo-class で表せない状態のみ `.is-open` 形式のクラスを使う。
-- トークンは `--hone-color-*` `--hone-radius-*` `--hone-space-*` `--hone-font-*` `--hone-border-*` `--hone-ring-*`。prefix は利用者の変数との衝突回避のため。
+- トークンは `--hone-color-*` `--hone-radius-*` `--hone-space-*` `--hone-font-*` `--hone-border-*` `--hone-ring-*` `--hone-size-*` `--hone-backdrop-*`。prefix は利用者の変数との衝突回避のため。
 - ファイル名はクラス名と一致させる。1 コンポーネント 1 ディレクトリ。
 
 ## スタイルの規約
