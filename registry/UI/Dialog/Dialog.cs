@@ -12,11 +12,12 @@ namespace Hone
     [UxmlElement]
     public partial class Dialog : VisualElement, IDismissable
     {
-        // true のとき、overlay を押すと閉じる
+        // true のとき、overlay を押すと閉じる。false でも overlay は表示され、背後への入力を止める。変わるのは押して閉じるかだけ
         [UxmlAttribute]
         public bool modal { get; set; } = true;
 
-        // true のとき、Open() で BackStack に積み、Cancel（ゲームパッドの B、Esc）で閉じる
+        // true のとき、開いている間 BackStack に積み、Cancel（ゲームパッドの B、Esc）で閉じる。
+        // 積むのは Open() と attach の時点なので、開いている間に変えても次に開くまで反映されない
         [UxmlAttribute]
         public bool dismissOnCancel { get; set; } = true;
 
@@ -28,7 +29,7 @@ namespace Hone
         readonly VisualElement m_Overlay;
         readonly FocusScope m_Content;
 
-        // Open() で積んだ BackStack。閉じる時と panel から外れる時に、ここから外す
+        // Open() か attach で積んだ BackStack。閉じる時と panel から外れる時に、ここから外す
         BackStack m_Stack;
 
         public override VisualElement contentContainer => m_Content;
@@ -53,10 +54,11 @@ namespace Hone
             hierarchy.Add(m_Overlay);
             hierarchy.Add(m_Content);
 
+            RegisterCallback<AttachToPanelEvent>(OnAttachToPanel);
             RegisterCallback<DetachFromPanelEvent>(OnDetachFromPanel);
         }
 
-        // 開いている間は何もしない。panel に attach されていないときは BackStack に積まない（Cancel では閉じない）
+        // 開いている間は何もしない。panel に attach されていないときは、attach された時点で BackStack に積む
         public void Open()
         {
             if (isOpen)
@@ -66,11 +68,7 @@ namespace Hone
             // Activate() が今のフォーカスを「閉じた時に戻す先」として記憶する。フォーカスを移す前に呼ぶ
             m_Content.Activate();
             m_Content.FocusFirst();
-            if (dismissOnCancel && panel != null)
-            {
-                m_Stack = BackStack.For(panel);
-                m_Stack.Push(this);
-            }
+            PushToStack();
             opened?.Invoke();
         }
 
@@ -88,6 +86,14 @@ namespace Hone
 
         void IDismissable.Dismiss() => Close();
 
+        void PushToStack()
+        {
+            if (!dismissOnCancel || panel == null)
+                return;
+            m_Stack = BackStack.For(panel);
+            m_Stack.Push(this);
+        }
+
         void RemoveFromStack()
         {
             m_Stack?.Remove(this);
@@ -98,6 +104,13 @@ namespace Hone
         {
             if (modal)
                 Close();
+        }
+
+        // attach 前に Open() した場合と、開いたまま付け直した場合に、Cancel で閉じられるよう積む
+        void OnAttachToPanel(AttachToPanelEvent evt)
+        {
+            if (isOpen)
+                PushToStack();
         }
 
         // 開いたまま panel から外れても BackStack に残さない（残ると以後の Cancel が詰まる）。開閉の状態は変えない

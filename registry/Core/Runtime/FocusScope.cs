@@ -5,7 +5,8 @@ namespace Hone.Core
 {
     // 子孫へのフォーカス移動の限定（trap）と、初期フォーカス・復元。Dialog の open / close から Activate / Deactivate を呼ぶ。
     // autoFocus が true なら、panel に attach された時にも Activate が呼ばれる。Deactivate は自動では呼ばれないので、復元は利用側が呼ぶ。
-    // Dialog 以外（グルーピングだけ）で置くときは autoFocus を false にする。true のままだと attach のたびに最初の子孫へフォーカスを移す。
+    // 最初から表示されていない場所（閉じた Dialog の中など）や、グルーピングだけで置くときは autoFocus を false にする。
+    // true のままだと attach のたびに最初の子孫へフォーカスを移す（canGrabFocus は祖先の display を見ないので、隠れていても移る）。
     // UXML では C# の namespace を宣言して書く: xmlns:core="Hone.Core" のうえで <core:FocusScope trap="true" auto-focus="false">
     //
     // trap の方式: scope のルートで NavigationMoveEvent を TrickleDown で受け、IgnoreEvent で既定の移動を止め、同じ handler の中で次の要素に Focus() する。

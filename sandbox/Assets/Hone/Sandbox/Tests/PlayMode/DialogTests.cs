@@ -108,6 +108,7 @@ namespace Hone.Sandbox.Tests
             return added[0];
         }
 
+        static Button FirstButton(Dialog dialog) => dialog.Q<Button>();
         static Button CancelButton(Dialog dialog) => dialog.Q<Button>("cancel");
         static Button OkButton(Dialog dialog) => dialog.Q<Button>("ok");
 
@@ -137,7 +138,7 @@ namespace Hone.Sandbox.Tests
             }
         }
 
-        // overlay の左上の内側（content に重ならない位置）を押して離す。
+        // overlay を押して離す。配送先は target の指定で決まる（座標は、位置から拾い直されても overlay に当たるよう左上の内側にしてある）。
         // 押したままにすると、ポインタの押下状態が後のテストに残るので、PointerUp も送る
         static void Click(VisualElement target)
         {
@@ -185,7 +186,7 @@ namespace Hone.Sandbox.Tests
 
             Assert.IsTrue(dialog.isOpen);
             Assert.AreEqual(1, opened);
-            Assert.AreSame(CancelButton(dialog), f.Focused);
+            Assert.AreSame(FirstButton(dialog), f.Focused);
         }
 
         // (B) 開いている間、端の Button から外側へ動かしても content の中に留まる
@@ -195,14 +196,20 @@ namespace Hone.Sandbox.Tests
             Fixture f = null;
             yield return BuildFixture(x => f = x);
             var dialog = AddDialog(f.Root);
+            // Dialog の右下にも外側の focusable を置く（DFS 順でも Dialog の後ろ）。既定のナビなら Down / Right / Next でそちらへ出る
+            var outside3 = new Button { name = "outside-3", text = "outside-3" };
+            outside3.style.position = Position.Absolute;
+            outside3.style.right = 0;
+            outside3.style.bottom = 0;
+            f.Root.Add(outside3);
             yield return FocusAndWait(f, f.Outside2);
             dialog.Open();
             var cancel = CancelButton(dialog);
             var ok = OkButton(dialog);
-            yield return WaitForLayout(cancel, ok);
+            yield return WaitForLayout(cancel, ok, outside3);
             Assert.AreSame(cancel, f.Focused);
 
-            // outside-1 / outside-2 は Dialog の上（左上）にある。既定のナビなら Up と Previous でそちらへ出る
+            // outside-1 / outside-2 は Dialog の上にある。既定のナビなら Up と Previous でそちらへ出る
             foreach (var direction in new[] { NavigationMoveEvent.Direction.Up, NavigationMoveEvent.Direction.Left, NavigationMoveEvent.Direction.Previous })
             {
                 SendMove(cancel, direction);
@@ -240,6 +247,8 @@ namespace Hone.Sandbox.Tests
 
             Assert.IsFalse(dialog.isOpen);
             Assert.AreSame(f.Outside2, f.Focused);
+            // HandleCancel は積まれたものが無ければ false を返す。Cancel 以外で閉じても BackStack に残らない
+            Assert.IsFalse(BackStack.For(f.Panel).HandleCancel(), "the closed dialog must not remain in the BackStack");
         }
 
         // (D) dismissOnCancel = true なら、root への Cancel で閉じて closed が発火する
@@ -249,6 +258,7 @@ namespace Hone.Sandbox.Tests
             Fixture f = null;
             yield return BuildFixture(x => f = x);
             var dialog = AddDialog(f.Root);
+            yield return FocusAndWait(f, f.Outside1);
             var closed = 0;
             dialog.closed += () => closed++;
             dialog.Open();
@@ -259,6 +269,7 @@ namespace Hone.Sandbox.Tests
 
             Assert.IsFalse(dialog.isOpen);
             Assert.AreEqual(1, closed);
+            Assert.AreSame(f.Outside1, f.Focused, "closing by Cancel must restore the focus");
         }
 
         // (E) dismissOnCancel = false なら Cancel で閉じない
@@ -290,22 +301,31 @@ namespace Hone.Sandbox.Tests
             var dialog = AddDialog(f.Root);
             var overlay = dialog.Q(className: "hone-dialog__overlay");
             Assert.IsNotNull(overlay, "no element with class 'hone-dialog__overlay'");
+            yield return FocusAndWait(f, f.Outside1);
             var closed = 0;
             dialog.closed += () => closed++;
+            // PointerDown が overlay に届いたことを数える（届かなければ modal = false の検査が何もせずに通ってしまう）
+            var reached = 0;
+            overlay.RegisterCallback<PointerDownEvent>(evt => reached++);
 
             dialog.modal = false;
             dialog.Open();
             yield return WaitForLayout(overlay);
             Click(overlay);
             yield return null;
+            Assert.AreEqual(1, reached, "the PointerDownEvent did not reach the overlay");
             Assert.IsTrue(dialog.isOpen, "a non-modal dialog must not close on the overlay");
             Assert.AreEqual(0, closed);
 
             dialog.modal = true;
             Click(overlay);
             yield return null;
+            Assert.AreEqual(2, reached, "the PointerDownEvent did not reach the overlay");
             Assert.IsFalse(dialog.isOpen, "a modal dialog must close on the overlay");
             Assert.AreEqual(1, closed);
+            // PointerDown の既定の処理が、戻したフォーカスを後から上書きしないこと
+            Assert.AreSame(f.Outside1, f.Focused, "closing by the overlay must restore the focus");
+            Assert.IsFalse(BackStack.For(f.Panel).HandleCancel(), "the closed dialog must not remain in the BackStack");
         }
 
         // (G) 2 つ重ねて開き、Cancel を 1 回送ると上（後に開いた方）だけが閉じる
@@ -332,6 +352,16 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual(1, upperClosed);
             Assert.IsTrue(lower.isOpen);
             Assert.AreEqual(0, lowerClosed);
+            // 上の Dialog は、開いた時点のフォーカス（下の Dialog の最初の Button）へ戻す
+            Assert.AreSame(FirstButton(lower), f.Focused);
+
+            // 2 回目の Cancel は下の Dialog に届く
+            SendCancel(f.Root);
+            yield return null;
+
+            Assert.IsFalse(lower.isOpen);
+            Assert.AreEqual(1, lowerClosed);
+            Assert.AreEqual(1, upperClosed);
         }
 
         // (H) 開いたまま panel から外しても例外が出ず、BackStack に残らない
@@ -345,11 +375,75 @@ namespace Hone.Sandbox.Tests
             yield return null;
             var panel = f.Panel;
 
+            // DetachFromPanelEvent のコールバック内の例外は UI Toolkit が捕まえてログに出すので、この assert には届かないことがある。
+            // その場合は Test Framework が予期しないエラーログとしてテストを落とす
             Assert.DoesNotThrow(() => dialog.RemoveFromHierarchy());
             yield return null;
 
             // HandleCancel は積まれたものが無ければ false を返す
             Assert.IsFalse(BackStack.For(panel).HandleCancel(), "the detached dialog must not remain in the BackStack");
+        }
+
+        // 開いたまま付け直すと BackStack に積み直し、Cancel で閉じられる
+        [UnityTest]
+        public IEnumerator Reattach_WhileOpen_ClosesOnCancel()
+        {
+            Fixture f = null;
+            yield return BuildFixture(x => f = x);
+            var dialog = AddDialog(f.Root);
+            dialog.Open();
+            yield return null;
+
+            dialog.RemoveFromHierarchy();
+            f.Root.Add(dialog);
+            yield return null;
+            SendCancel(f.Root);
+            yield return null;
+
+            Assert.IsFalse(dialog.isOpen);
+        }
+
+        // attach 前に Open() しても例外にならず、attach された時点で BackStack に積まれて Cancel で閉じられる
+        [UnityTest]
+        public IEnumerator OpenBeforeAttach_ClosesOnCancelAfterAttach()
+        {
+            Fixture f = null;
+            yield return BuildFixture(x => f = x);
+            var dialog = new Dialog();
+            dialog.Add(new Button { name = "inner", text = "inner" });
+
+            Assert.DoesNotThrow(() => dialog.Open());
+            Assert.IsTrue(dialog.isOpen);
+            f.Root.Add(dialog);
+            yield return null;
+            SendCancel(f.Root);
+            yield return null;
+
+            Assert.IsFalse(dialog.isOpen);
+        }
+
+        // Open() と Close() は冪等。二度目は何もせず、イベントも発火しない
+        [UnityTest]
+        public IEnumerator OpenAndClose_CalledTwice_FireOnce()
+        {
+            Fixture f = null;
+            yield return BuildFixture(x => f = x);
+            var dialog = AddDialog(f.Root);
+            var opened = 0;
+            var closed = 0;
+            dialog.opened += () => opened++;
+            dialog.closed += () => closed++;
+
+            dialog.Open();
+            dialog.Open();
+            yield return null;
+            Assert.AreEqual(1, opened);
+
+            dialog.Close();
+            dialog.Close();
+            yield return null;
+            Assert.AreEqual(1, closed);
+            Assert.IsFalse(BackStack.For(f.Panel).HandleCancel(), "the closed dialog must not remain in the BackStack");
         }
     }
 }

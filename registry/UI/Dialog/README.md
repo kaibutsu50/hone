@@ -23,7 +23,8 @@ dialog.closed += OnDialogClosed;
 dialog.Open();
 ```
 
-Dialog は親の全面を覆う（`position: absolute` で上下左右 0）。panel 全体を覆うには root の直下に置く。
+Dialog は親の全面を覆う（`position: absolute` で上下左右 0）。panel 全体を覆うには root の直下の最後の子に置く。
+UI Toolkit には z-index が無く、描画とポインタの判定は hierarchy の順なので、Dialog より後ろの兄弟は overlay の上に描かれ、入力も受ける。
 
 ## Open / Close
 
@@ -33,16 +34,17 @@ Dialog は親の全面を覆う（`position: absolute` で上下左右 0）。pa
 | `Close()` | `BackStack` から外し、記憶した要素へフォーカスを戻し、隠す。`closed` を発火 |
 
 - 開いている間の `Open()`、閉じている間の `Close()` は何もしない（イベントも発火しない）。
-- `Open()` は panel に attach してから呼ぶ。attach 前に呼ぶと表示の状態だけ開き、`BackStack` に積まれないので Cancel では閉じない。
-- 開いたまま panel から外すと `BackStack` から外れる。開閉の状態（`isOpen`）は変わらない。
-- `Open()` 前にフォーカスが無かったときは、`Close()` で戻す先が無く、フォーカスは隠れた Dialog の中に残る。
+- `Open()` は panel に attach してから呼ぶ。attach 前に呼ぶと、表示の状態と、attach された時点での `BackStack` への積み込みだけが行われる。初期フォーカスは当たらず、戻す先も記憶しない。
+- 開いたまま panel から外すと `BackStack` から外れる。開閉の状態（`isOpen`）は変わらず、付け直すと `BackStack` に積み直す。
+- 戻す先が無いとき（`Open()` 前にフォーカスが無かった、記憶した要素が panel から外れた、または focusable でなくなった）は、`Close()` の後はどこにもフォーカスが無い状態になる（隠れた Dialog の中の要素からは外れる。6000.7.0b2 で確認）。
+  続けてゲームパッドで操作させるなら、`closed` で利用者がフォーカスを当てる。
 
 ## 属性
 
 | 属性 | 既定 | 意味 |
 |---|---|---|
 | `modal` | `true` | overlay（背景）を押すと閉じる。`false` なら押しても閉じない（overlay は表示され、背後への入力は止める） |
-| `dismissOnCancel` | `true` | Cancel（ゲームパッドの B、Esc）で閉じる。`false` なら `BackStack` に積まない |
+| `dismissOnCancel` | `true` | Cancel（ゲームパッドの B、Esc）で閉じる。`false` なら `BackStack` に積まない。`Open()` の時点の値で決まり、開いている間に変えても次に開くまで反映されない |
 
 ## USS クラス
 
@@ -56,10 +58,12 @@ Dialog は親の全面を覆う（`position: absolute` で上下左右 0）。pa
 | `hone-dialog--blur` | opt-in。overlay の背後をぼかす（`--hone-backdrop-blur`） |
 
 `hone-dialog--blur` は `backdrop-filter` を使う。URP のみ、Screen Space のみで、World Space では効かない。
+値はトークン `--hone-backdrop-blur`（`blur()` の完成形）で、`var()` 経由でも `resolvedStyle.backdropFilter` が `blur(8)` に解決されることを確認した（6000.7.0b2。描画結果は見ていない）。
 
 ## headless 層との関係
 
 - 中身の枠は `FocusScope`（`trap = true`、`autoFocus = false`）。方向入力と Tab は枠の中に留まる。
   `autoFocus` を `false` にしているのは、閉じた Dialog が panel に attach された時点でフォーカスを奪わないため。初期フォーカスは `Open()` が `FocusFirst()` で当てる。
 - Cancel は `BackStack` が処理する。Dialog は `IDismissable` を実装し、`Dismiss()` で `Close()` する。重ねて開いたときは、最後に開いたものだけが閉じる。
-- ボタン等の中身には何も要求しない。`Hone.Button` 以外の focusable でも同じように動く。
+- ボタン等の中身には何も要求しない。`Hone.Button` 以外の focusable でも同じように動く。registry の依存に `Button` があるのは、`Dialog.uxml` の使用例が使うため。
+- 中に focusable が無いと初期フォーカスは当たらず、開く前のフォーカスが overlay の背後に残る（trap は外のフォーカスを中へ引き込まない）。

@@ -1,5 +1,5 @@
-/* 色・角丸・余白・フォントサイズ・枠の太さは Tokens.uss のトークン。幅の割合（%）はトークンを持たない。
- * Dialog は親の全面を覆う（position: absolute で上下左右 0）。panel 全体を覆うには、root の直下など全面の親に置く。
+/* 色・角丸・余白・フォントサイズ・枠の太さは Tokens.uss のトークン。幅の割合（%）と、タイトルの太字（-unity-font-style: bold）はトークンを持たない。
+ * Dialog は親の全面を覆う（position: absolute で上下左右 0）。panel 全体を覆うには、root の直下の最後の子に置く（後ろの兄弟は Dialog の上に描かれる）。
  * content は flex で中央に置く。幅は min-width と max-width の間で内容に従い、高さは内容に従う。
  * 開閉は Dialog.cs が inline の display で切り替える。ここでは display を書かない。 */
 .hone-dialog {
@@ -46,7 +46,7 @@
     white-space: normal;
 }
 
-/* Button は縮まない（flex-shrink: 0）ので、幅が足りないときは折り返して次の行に並べる */
+/* Hone.Button は縮まない（Button.uss の flex-shrink: 0）ので、幅が足りないときは折り返して次の行に並べる */
 .hone-dialog__footer {
     flex-direction: row;
     flex-wrap: wrap;

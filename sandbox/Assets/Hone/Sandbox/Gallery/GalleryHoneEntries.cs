@@ -38,7 +38,9 @@ namespace Hone.Sandbox.Gallery
             });
             // 開いた状態の Hone.Dialog。文字列はタイトルと本文に入れ、ボタンは短い固定文字列にする（Button は縮まず折り返さないため）。
             // Dialog は親の全面を覆う absolute なので、セルの中では relative にして内容の高さで並べる。
-            // Open() は panel に attach されてから呼ぶ（attach 前だと BackStack に積まれない）
+            // Open() は panel に attach されてから呼ぶ（attach 前だと初期フォーカスが当たらない）。
+            // 開くたびにその Dialog の Cancel へフォーカスが移り、全セルの Dialog が BackStack に積まれる（Cancel を押すと 1 つずつ閉じる）。
+            // 撮影の ring は GalleryFocus が後から最初の .hone-focusable に当て直す
             GalleryController.Register("Hone.Dialog", text =>
             {
                 var dialog = new Dialog();

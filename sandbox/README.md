@@ -24,7 +24,7 @@ Assets/Hone/
     Editor/           Hone.Core.Editor.asmdef
   UI/                 registry/UI の手コピー
     Hone.Sandbox.UI.asmdef  sandbox 専用（registry には置かない）。UI には asmdef を置かない規約なので、Gallery と PlayMode テストから参照できるよう、
-                      利用者が自分の asmdef に UI を乗せる形をここで再現する。Hone.Core を参照し（Issue #18 の指定。Button.cs は今は Core を使っていない）、autoReferenced は false（Assembly-CSharp の Experiments に Hone.Button を見せない）
+                      利用者が自分の asmdef に UI を乗せる形をここで再現する。Hone.Core を参照し（Dialog.cs が FocusScope と BackStack を使う）、autoReferenced は false（Assembly-CSharp の Experiments に Hone.Button を見せない）
     Button/           Hone.Button（Button.cs、Button.uxml、Button.uss、README.md）
     Dialog/           Hone.Dialog（Dialog.cs、Dialog.uxml、Dialog.uss、README.md）
   Tokens.uss          registry/Tokens.uss の手コピー
@@ -95,7 +95,7 @@ Unity 標準の `Label` と `Button` は `GalleryController` が自分で登録�
 `GalleryHoneEntries` が `Hone.Button`（1 つのセルに 4 variant を縦に積む。セルは縦並びで幅が決まるので、長文は省略記号になる）を最初に登録する。最初の `.hone-focusable` が `Hone.Button` になり、その ring が写る。続けて `Label.hone-text`（`.hone-text` を付けた `Label`）と `Button.hone-focusable`（`.hone-focusable` を付けた `Button`）を登録し、素の列と並べる。
 最後に `Hone.Dialog`（開いた状態。文字列はタイトルと本文に入れ、ボタンは固定の `Cancel` と `OK`）を登録する。
 列には `gallery-column--<name の "." を "-" にして小文字>` のクラスが付く（例: `gallery-column--hone-dialog`）。`Gallery.uss` は Dialog の列だけこのクラスで固定幅にしている。
-Dialog の列は縦に長く 1 画面に収まらないので、全スクリプトを撮るときは `ScrollView`（name `gallery`）の `scrollOffset` を eval でずらしながら複数枚撮る。
+Dialog の列は縦に長く 1 画面に収まらないので、全スクリプトを撮るときは `ScrollView`（name `gallery`）の `scrollOffset` を `unity command eval_file` で書き換えながら、`capture_game_view` で複数枚撮る。
 `GalleryFocus` が UI の読み込み後に最初の `.hone-focusable` へフォーカスを当てるので、Play Mode で撮れば ring が写る。
 背景と文字色は `Gallery.uss` が Hone のトークン（`--hone-color-background` `--hone-color-foreground`）で指定する。
 
