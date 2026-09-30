@@ -12,6 +12,9 @@ sandbox/**/*.slnx
 sandbox/test-results*.xml
 sandbox/**/.vs/
 sandbox/**/.idea/
+# com.unity.pipeline のポート固定（手元の Editor ごとの設定）
+sandbox/Assets/Settings/Pipeline/
+sandbox/Assets/Settings/Pipeline.meta
 
 # Node (cli)
 node_modules/

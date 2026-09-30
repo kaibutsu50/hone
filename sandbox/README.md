@@ -29,9 +29,9 @@ Assets/Hone/
     PanelSettings.asset   Theme Style Sheet に HoneTheme.tss を割り当て済み
     Fonts/            検証用フォント。RobotoMono-Regular.ttf（Apache-2.0、Unity Editor 同梱）とその LICENSE、そこから作った Dynamic の FontAsset
     Experiments/<Name>/   Issue ごとの検証。FontVar/ は `-unity-font-definition` を USS 変数経由で差し替えられるかの検証
-                      FocusTrap/ は Dialog の focus trap 機構（IgnoreEvent の同 frame 順序、初期フォーカス、EventSystem の有無）の検証
                       FontVar/Resources/Fonts/ は case 3（`resource()`）用の Fonts/RobotoMono.asset の複製。元を作り直したら同期する。
                       Resources 配下なので sandbox のすべての Player ビルドに入る
+                      FocusTrap/ は Dialog の focus trap 機構（IgnoreEvent の同 frame 順序、外側へのフォーカス漏れ、フォーカスが無いときの方向入力、EventSystem の有無）の検証
     Tests/PlayMode/   PlayMode テスト
 ```
 
@@ -90,8 +90,9 @@ unity command build_status --project-path <sandbox の絶対パス>
 
 ## FocusTrap の Player 検証
 
-`FocusTrap.unity`（EventSystem なし）と `FocusTrapEventSystem.unity`（EventSystem + `InputSystemUIInputModule` あり）は Build Settings に入れていないので、ビルド時にシーンを指定する。
+`FocusTrap.unity`（EventSystem なし）と `FocusTrapEventSystem.unity`（EventSystem + `InputSystemUIInputModule` あり）は Build Settings に入れていないので、ビルド時にシーンを指定する。ビルドの待ち方は FontVar と同じ。
 `FocusTrapProbe` は Input System の合成デバイス（Gamepad、Keyboard）へ入力を積み、UI map の既定バインディングを通して全ステップを自動で回し、終了する。
+`Nav:*` のステップだけは `NavigationMoveEvent` を `SendEvent` で直接送り、入力層を通らない。
 
 ```bash
 unity command build --project-path <sandbox の絶対パス> --target StandaloneWindows64 --outputPath <sandbox の絶対パス>/Build/FocusTrap/FocusTrap.exe --scenes '["Assets/Hone/Sandbox/Experiments/FocusTrap/FocusTrap.unity"]' --confirm true
@@ -99,15 +100,38 @@ unity command build_status --project-path <sandbox の絶対パス>
 <sandbox の絶対パス>/Build/FocusTrap/FocusTrap.exe -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -logFile <ログの絶対パス>
 ```
 
-EventSystem あり側は `FocusTrapEventSystem` に読み替える。判定はログの `[FocusTrapProbe] RESULT` 行（1 ステップ 1 行）で行う。
-`start` が押す前のフォーカス、`final` が 8 frame 後のフォーカス、`settled=+N` が最終状態に落ち着いた frame（押した frame を +0）。
-`outsideAtFrameEnd` は frame 終端で外側の要素にフォーカスがあった frame の有無、`outsidePainted` は外側の要素がフォーカス色で描画された frame の有無。
+EventSystem あり側は、シーンのパス、`--outputPath`、exe 名の 3 箇所を `FocusTrapEventSystem` に読み替え、ログも別のパスにする。
+終了コードを見るときは bash から起動するか、PowerShell なら `Start-Process -Wait -PassThru` で待つ（GUI の exe は既定で待たない）。
+
+Probe は trap の成否を判定しない。測定の前提（開始フォーカス、外へ出る対照ステップで入力と描画検出が届いたか、シーンと EventSystem の有無の一致、Error / Exception のログ）が崩れたときだけ `[FocusTrapProbe] FAIL` を出し、終了コード 1 で終了する。
+`DONE steps=N failed=0` なら前提は崩れていない。結果はログの `[FocusTrapProbe] RESULT` 行（1 ステップ 1 行）を読む。
+
+| 項目 | 意味 |
+|---|---|
+| `eventSystem` | scene に `EventSystem` があるか |
+| `case` | Issue #12 の表のケース番号。`3-fresh` は起動直後（Probe が一度も `Focus()` を呼んでいない）のケース 3。ケース 4 は専用ステップを持たず、EventSystem あり側で同じステップを回す |
+| `mode` | trap の方式。値の意味は `FocusTrapProbe.cs` の `enum Mode` のコメント |
+| `start` | 押す前に `Focus()` した要素の指定。`(none)` は `Focus()` しない |
+| `input` | 押した入力。`Up` `Down` `Left` `Right` は Gamepad の D-pad、`Tab` `ShiftTab` は Keyboard の state + text event、`TabStateOnly` は state のみ、`Nav:*` は `SendEvent` |
+| `startFocused` | 押す直前に実際にフォーカスされていた要素 |
+| `final` | +8 の frame 終端のフォーカス |
+| `inTrap` | `final` の要素がコンテナ `trap` の中にあるか |
+| `firstEvent` | 入力が UI Toolkit のイベント（`NavigationMoveEvent` / `KeyDownEvent`）として最初に届いた frame。`n/a` は届かなかった |
+| `settled` | frame 終端の標本で `final` と同じ値が最後まで続き始めた最初の frame。`unchanged` は一度も `startFocused` から動かなかった |
+| `outsideSampled` | どれかの標本（`upd` か `eof`）で外側の要素にフォーカスがあったか |
+| `outsidePainted` | 外側の要素がフォーカス色で描画されたことが 1 回でもあったか（`generateVisualContent` での代理指標） |
+| `samples` | `+N[upd=…,eof=…]`。`upd` は Update 後のコルーチン再開時点（UI Toolkit の処理との前後は未確認）、`eof` は `WaitForEndOfFrame` 後。+0 は押した frame で、`upd` は `-` |
+| `notes` | `+N` 付きのイベント・handler・描画の記録 |
+
+frame は押した frame を +0 と数える。D-pad と Tab は入力が次の frame で UI Toolkit に届くので、最小は +1。`Nav:*` は +0 の中で処理される。
 
 ## 既知の事項
 
-- 複数の Editor を同時に開いていると、`com.unity.pipeline` のサーバーが同じポート（7800）を取り合い、`unity status` が `unreachable` のまま `unity command` が別プロジェクトの Editor に届く。
-  `Assets/Settings/Pipeline/EditorPipelineManager.asset`（`m_Port`）で空きポートを固定すると届く。このアセットはコミットしない。
-
+- 別プロジェクトの Editor を同時に開いていると、この Editor の `com.unity.pipeline` サーバーに `unity command` が届かないことがある（`com.unity.pipeline` 0.7.0-exp.1、6000.7.0b2）。
+  症状は、`unity status` のこの行が `unreachable` のまま、`unity command` が別プロジェクトの Editor（0.8.0-exp.1）に応答される。
+  そのときは `netstat` で、この Editor が `0.0.0.0:7800`、別の Editor が `127.0.0.1:7800` を同時に listen していた。原因は特定していない。
+  回避策は、Pipeline のポートを空いている番号に固定すること。`Window/Pipeline/Settings` で作られる `Assets/Settings/Pipeline/EditorPipelineManager.asset` の `m_Port` に番号を入れて Editor を開き直すと、そのポートで応答する。
+  このアセットは手元の設定なので `.gitignore` に入れてある。
 - `LegacyRuntime.ttf`（Unity 組み込み）からは `FontAsset` を作れない。`FontAsset.CreateFontAsset(font, ...)` が `null` を返し
   `Unable to load font face for [LegacyRuntime]. Make sure "Include Font Data" is enabled in the Font Import Settings.` の警告が出る（6000.7.0b2）。
   検証用の `FontAsset` は `Fonts/` の TTF から作る。

@@ -1,4 +1,4 @@
-/* #12 の実験用。:focus の背景色は FocusTrapProbe が「フォーカス色で描画されたか」を判定するのに使う。 */
+/* Issue #12（FocusScope の trap 機構の検証）の実験用レイアウト。 */
 .ft-root {
     flex-grow: 1;
     align-items: center;
@@ -23,6 +23,7 @@
     margin: 12px;
 }
 
+/* この背景色は FocusTrapProbe が「フォーカス色で描画されたか」を判定するのに使う。FocusTrapProbe.cs の FocusColor と同じ値を保つ。 */
 .ft-button:focus {
     background-color: rgb(59, 130, 246);
 }
