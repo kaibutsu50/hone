@@ -132,8 +132,19 @@ unity command build_status --project-path <sandbox の絶対パス>
 `TokensExpProbe` が Label の `resolvedStyle.unityFontDefinition` と、`.hone-focusable` の Button に `Focus()` した前後の border をログ（`[TokensExpProbe]`）に出し、最後に `RESULT OK|FAIL` を出す。
 `-tokensexp-shot <png>` を渡した Player は、スクリーンショットを保存して終了する（測定の前提が崩れたときは終了コード 1）。Editor の Play Mode では終了しない。
 
-`Sandbox/Fonts/RobotoMono.asset` の参照元は、`HoneTheme.tss` の `:root` の 1 箇所だけにしてある（`nofont` の 2 つの変数は、同名の Resources 側の複製 `FontVar/Resources/Fonts/RobotoMono.asset` を指す。
-Probe は `Resources.Load` で取った複製との同一性で区別する）。確認は `AssetDatabase.GetDependencies` で、シーンの依存に含まれる `RobotoMono.asset` を直接参照するのが `HoneTheme.tss` だけであること。
+`TokensExp.unity` の依存の中では、`Sandbox/Fonts/RobotoMono.asset` を直接参照するのは `HoneTheme.tss` の `:root` だけにしてある
+（プロジェクト全体では FontVar の USS からも参照されるが、このシーンの依存には入らない。`nofont` の 2 つの変数は、同名の Resources 側の複製 `FontVar/Resources/Fonts/RobotoMono.asset` を指す。
+Probe は `Resources.Load` で取った複製との同一性で区別する）。Player の検証はこの状態が前提なので、シーンや theme を変えたらビルド前に次で確かめる（`deps.cs` は任意の場所に置く）。
+
+```csharp
+// deps.cs。unity command eval_file --file <deps.cs の絶対パス> --project-path <sandbox の絶対パス>
+var font = "Assets/Hone/Sandbox/Fonts/RobotoMono.asset";
+var referrers = new System.Collections.Generic.List<string>();
+foreach (var dep in UnityEditor.AssetDatabase.GetDependencies("Assets/Hone/Sandbox/Experiments/TokensExp/TokensExp.unity", true))
+    if (dep != font && System.Array.IndexOf(UnityEditor.AssetDatabase.GetDependencies(dep, false), font) >= 0)
+        referrers.Add(dep);
+return string.Join(",", referrers); // Assets/Hone/HoneTheme.tss だけが返れば前提どおり
+```
 
 ```bash
 unity command build --project-path <sandbox の絶対パス> --target StandaloneWindows64 --outputPath <sandbox の絶対パス>/Build/TokensExp/TokensExp.exe --scenes '["Assets/Hone/Sandbox/Experiments/TokensExp/TokensExp.unity"]' --confirm true
@@ -141,7 +152,7 @@ unity command build_status --project-path <sandbox の絶対パス>
 timeout 120 <sandbox の絶対パス>/Build/TokensExp/TokensExp.exe -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -tokensexp-shot <png の絶対パス> -logFile <ログの絶対パス>
 ```
 
-結果（Unity 6000.7.0b2、Windows。Editor の Play Mode と Player で同じ）:
+結果（Unity 6000.7.0b2、Windows）。「一回限り」と書いた行以外は Probe が毎回判定している値で、Editor の Play Mode と Player で同じだった。「一回限り」の行は、実験用に一時的に書き換えて Editor で測ったもので、今のファイルでは再現しない:
 
 | 確認 | 結果 |
 |---|---|
@@ -149,8 +160,8 @@ timeout 120 <sandbox の絶対パス>/Build/TokensExp/TokensExp.exe -screen-full
 | `:root` の変数に `url("/Assets/…")`、`resource("…")` を書く | どちらも Editor と Player で通る（`nofont.path` `nofont.res`）。ただし指す先が Resources 側の複製で、Player ではビルドに必ず入るため、Player で「参照だけでビルドに含まれるか」は見ていない |
 | `--hone-font-body` が未定義のとき `.hone-text` | 祖先にフォント指定が無ければ `fontAsset=null`（Unity の既定）。祖先にフォント指定があれば、その値を継承する（`nofont.inherit`。null には戻らない）。警告は出ない |
 | `--hone-font-body` が定義済みで、祖先に別のフォント指定があるとき | `.hone-text` の指定が勝つ（`hone.inherit`） |
-| `.hone-focusable:focus`（クラス 1 つ + `:focus`）を `Core.uss` に書く | 既定テーマの Button の `:focus` の枠の色 `rgb(0,106,166)` が勝つ。幅（`--hone-ring-width`）だけ効く。`HoneTheme.tss` 自身に書いた同じ形の規則も負ける |
-| `.hone-focusable.hone-focusable:focus`（クラスを 2 回）を `Core.uss` に書く | `--hone-color-ring` の色 `rgb(24,24,27)` と幅 2 が効く。Player でも同じ |
+| （一回限り、Editor のみ）`.hone-focusable:focus`（クラス 1 つ + `:focus`）を `Core.uss` に書く | 既定テーマの Button の `:focus` の枠の色 `rgb(0,106,166)` が勝つ。幅（`--hone-ring-width`）だけ効く。`HoneTheme.tss` 自身に書いた同じ形の規則も負ける。`border-color` を 4 辺の個別指定にしても負ける。UXML の `<Style>` に書いた同じ形の規則は勝つ |
+| `.hone-focusable.hone-focusable:focus`（クラスを 2 回）を `Core.uss` に書く | `--hone-color-ring` の色 `rgb(24,24,27)` と幅 2 が効く |
 | `HoneTheme.tss` の `@import url("Tokens.uss")` `@import url("Core/Runtime/Core.uss")`（`HoneTheme.tss` 起点の相対パス） | 通る（`.hone-text` と `.hone-focusable` が効く） |
 
 未確認: 2 枚目の `PanelRenderer`（`nofont`）の Button は `Focus()` してもフォーカスを取れなかった（原因は調べていない）。ring の測定は `hone` の panel だけで行っている。

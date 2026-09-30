@@ -64,7 +64,7 @@ block は必ず `registryDependencies` でプリミティブを宣言し、自�
 - UXML タグ名はクラス名そのままで、`xmlns:hone="Hone"` を宣言して `<hone:Button>` と書く。
 - `UnityEngine.UIElements` にも `Button` `Toggle` `Slider` 等の同名クラスがある。同じファイルで両方の namespace を `using` すると曖昧参照エラーになる。衝突したファイルでは `using Button = Hone.Button;` のエイリアスを書くか、Unity 側を完全修飾で書く。Hone のクラス定義自身は基底クラスを完全修飾で書く（例: `class Button : UnityEngine.UIElements.Button`）。
 - USS クラスは BEM 風。ブロックは `.hone-button`、variant は `.hone-button--outline`。状態は pseudo-class（`:focus` `:disabled` `:hover`）を優先し、pseudo-class で表せない状態のみ `.is-open` 形式のクラスを使う。
-- トークンは `--hone-color-*` `--hone-radius-*` `--hone-space-*` `--hone-font-*`。prefix は利用者の変数との衝突回避のため。
+- トークンは `--hone-color-*` `--hone-radius-*` `--hone-space-*` `--hone-font-*` `--hone-ring-*`。prefix は利用者の変数との衝突回避のため。
 - ファイル名はクラス名と一致させる。1 コンポーネント 1 ディレクトリ。
 
 ## スタイルの規約
@@ -81,9 +81,12 @@ block は必ず `registryDependencies` でプリミティブを宣言し、自�
 ## フォントと多言語の規約
 
 - フォントを同梱しない。本文フォントは `Core.uss` の `.hone-text` が `-unity-font-definition: var(--hone-font-body)` で参照する。
+  コンポーネントは、テキストを持つ要素に `.hone-text` を付けて本文フォントに従わせる（コンポーネントの USS に `-unity-font-definition` を書かない）。
 - `--hone-font-body` は利用者の FontAsset を指す値なので、`Tokens.uss` に既定値を置かない。利用者が `HoneTheme.tss` の `:root` に `url("project://…")` の形で書く。
+  `url("/Assets/…")` と `resource("…")` も通るが、案内は最初に検証した `project://` の 1 形式に絞る。
   未定義のときは、`.hone-text` は祖先から継承したフォントに、祖先にも無ければ Unity の既定フォントになる。警告は出ず、黙って落ちる。
-- USS 変数経由のフォント指定は公式には未文書化だが、6000.7 系の Editor と Windows Player で動くことを sandbox で確認済み。これを唯一の経路とし、C# の注入口（`Theme.SetBodyFont` 等）は作らない。
+- USS 変数経由のフォント指定は公式には未文書化だが、sandbox で Editor と Windows Player で動くことを確認済み（確認したバージョンは sandbox/README.md）。これを既定の経路とする。
+  C# の注入口（`Theme.SetBodyFont` 等）は保有。今は作らず、USS 経路が通らない環境（未確認のプラットフォームやバージョン）が見つかったら作る。
   UI Builder の canvas は既定テーマのままだと theme の `:root` の変数を反映しないので、UI Builder で見た目を確認する利用者にはこの制限を README で案内する。
 - fallback が空の状態で未収録文字に当たると OS フォントの全列挙が走り、フリーズする報告がある。CJK を表示するプロジェクトでは `hone add font <lang>` で fallback を追加することを必須手順として案内する。
 - レイアウトの規約。テキストを含む要素の幅を固定しない。ボタンは min-width と flex で伸ばす。行高はスクリプトごとに変わる前提で余白を組む。切り詰めは省略記号。

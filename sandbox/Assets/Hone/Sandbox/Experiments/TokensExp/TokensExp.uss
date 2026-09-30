@@ -1,4 +1,4 @@
-/* #15 の実験用の見た目。コンポーネントの USS ではないので、トークン規約の対象外 */
+/* フォント変数と focus ring の検証（#15）の見た目。コンポーネントの USS ではないので、トークン規約の対象外 */
 .tokens-exp-root {
     width: 50%;
     padding: 16px;
@@ -16,7 +16,8 @@
     -unity-font-definition: resource("Fonts/RobotoMono");
 }
 
-/* --tokens-exp-path / --tokens-exp-res は TokensExpNoFont.tss の :root にだけある */
+/* --tokens-exp-path / --tokens-exp-res は TokensExpNoFont.tss の :root にだけある。
+ * hone の panel では未定義なので、hone.path / hone.res は未解決の var() の対照になる（fontAsset=null） */
 .tokens-exp-path {
     -unity-font-definition: var(--tokens-exp-path);
 }

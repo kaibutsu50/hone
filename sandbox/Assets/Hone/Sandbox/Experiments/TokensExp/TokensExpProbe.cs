@@ -8,23 +8,26 @@ using UnityEngine.UIElements;
 
 namespace Hone.Sandbox.Experiments
 {
-    // #15 の実験用。TokensExp.uxml の Label が解決した FontDefinition をログ（[TokensExpProbe]）に出す。判定はこのログを正とし、スクリーンショットは補助に使う。
-    //   hone:   Sandbox/PanelSettings.asset の theme（HoneTheme.tss。--hone-font-body を :root に project:// で定義）。Sandbox/Fonts/RobotoMono.asset の参照元はこの :root の 1 箇所だけ
+    // --hone-font-body（theme の :root）と .hone-text、.hone-focusable の focus ring の検証（#15）。
+    // TokensExp.uxml の Label が解決した FontDefinition と、ring の Button の border をログ（[TokensExpProbe]）に出す。判定はこのログを正とし、スクリーンショットは補助に使う。
+    //   hone:   Sandbox/PanelSettings.asset の theme（HoneTheme.tss。--hone-font-body を :root に project:// で定義）。
+    //           TokensExp.unity の依存の中では、Sandbox/Fonts/RobotoMono.asset を直接参照するのはこの :root だけ（FontVar の USS からも参照されるが、このシーンの依存には入らない）
     //   nofont: TokensExpNoFont.tss（--hone-font-body を定義しない。:root に url("/Assets/…") と resource("…") の変数を置く）
-    // Resources 側の複製（Fonts/RobotoMono）と Sandbox/Fonts 側は同名なので、Resources.Load で取った複製との同一性（kind=resources-copy）で区別する。
-    // ring: .hone-focusable の Button に Focus() し、border の色と幅を focus 前後と対照（ring-control）で記録する。focus 後も既定テーマの :focus の色のままなら FAIL。
+    // Label の kind: Resources 側の複製（Fonts/RobotoMono）と同一なら resources-copy、同名の別アセット（Sandbox/Fonts 側）なら sandbox-font、それ以外の非 null は other。
+    // ring: .hone-focusable の Button に Focus() し、border の色と幅を focus 前後と対照（ring-control）で記録する。focus 後の色と幅が --hone-color-ring / --hone-ring-width の値でなければ FAIL。
     // Player では -tokensexp-shot <path> を渡すとスクリーンショットを保存して終了する。Editor の Play Mode では Application.Quit が効かないので終了しない。
-    // 測定の前提が崩れたとき（root 未取得、Label の欠落、control が既定フォントでない、hone.body が :root の変数のフォントでない、
-    // nofont の path / res が Resources 側の複製でない、Error のログ、撮影失敗）は LogError にし、-tokensexp-shot 指定時は終了コード 1 で終了する。
+    // 測定の前提が崩れたとき（Fail と Expect を呼んでいる箇所。Error のログを含む）は LogError にし、-tokensexp-shot 指定時は終了コード 1 で終了する。
     // 最後に必ず "RESULT OK|FAIL" の行を出す。この行が無いログは、途中で止まったものとして扱う。
+    // Probe の Awake より前に出た Error は集計されない。Player のログファイルは Error 行も目で確かめる。
     public class TokensExpProbe : MonoBehaviour
     {
         const int MaxWaitFrames = 300;
         const float MaxWaitSeconds = 30f;
         const int SettleFrames = 10;
         const int MaxMessages = 20;
-        // 既定テーマの Button の :focus の枠の色（#13 の測定値）。Core.uss の ring がこれに負けたら FAIL にする
-        static readonly Color32 DefaultThemeFocusColor = new Color32(0, 106, 166, 255);
+        // Tokens.uss の --hone-color-ring（#18181b）と --hone-ring-width。トークンの値を変えたらここも変える
+        static readonly Color32 ExpectedRingColor = new Color32(24, 24, 27, 255);
+        const float ExpectedRingWidth = 2f;
         static readonly string[] LabelNames = { "control", "body", "plain-child", "inherit", "path", "res" };
 
         [SerializeField] PanelRenderer m_Hone;
@@ -55,6 +58,8 @@ namespace Hone.Sandbox.Experiments
                 var stage = root.Q("stage");
                 if (stage != null)
                     stage.style.marginLeft = Length.Percent(50);
+                else
+                    Fail("element 'stage' not found in nofont");
             });
         }
 
@@ -84,6 +89,8 @@ namespace Hone.Sandbox.Experiments
                 frames++;
                 yield return null;
             }
+            if (!m_Failed && !ExpectedResolved())
+                Fail($"timed out waiting for hone.body / nofont.path / nofont.res to resolve ({frames} frames)");
             // null のままのはずの Label が後から動く場合に備えて、少し待ってから読む
             for (var i = 0; i < SettleFrames; i++)
                 yield return null;
@@ -114,10 +121,11 @@ namespace Hone.Sandbox.Experiments
                     for (var i = 0; i < SettleFrames; i++)
                         yield return null;
                     LogBorder("hone", "ring-focused", ring);
+                    var style = ring.resolvedStyle;
                     if (ring.focusController?.focusedElement != ring)
                         Fail("premise broken: hone.ring did not get focus");
-                    else if (IsSameColor(ring.resolvedStyle.borderTopColor, DefaultThemeFocusColor))
-                        Fail("hone.ring kept the default theme's :focus border color (Core.uss .hone-focusable lost to it)");
+                    else if (!IsSameColor(style.borderTopColor, ExpectedRingColor) || !Mathf.Approximately(style.borderTopWidth, ExpectedRingWidth))
+                        Fail("hone.ring is not drawn with --hone-color-ring / --hone-ring-width (Core.uss .hone-focusable lost to another rule, or the tokens did not resolve)");
                 }
             }
 
@@ -127,16 +135,19 @@ namespace Hone.Sandbox.Experiments
                 deadline = Time.realtimeSinceStartup + MaxWaitSeconds;
                 while (!UnityEngine.Rendering.SplashScreen.isFinished && Time.realtimeSinceStartup < deadline)
                     yield return null;
+                if (!UnityEngine.Rendering.SplashScreen.isFinished)
+                    Fail($"splash screen did not finish within {MaxWaitSeconds} seconds");
 
                 yield return new WaitForEndOfFrame();
                 if (TryCapture(shot))
                 {
+                    // CaptureScreenshot は非同期に書く。前回のファイルは TryCapture が消してあるので、中身のあるファイルが現れるまで待つ
                     deadline = Time.realtimeSinceStartup + MaxWaitSeconds;
-                    while (!File.Exists(shot) && Time.realtimeSinceStartup < deadline)
+                    while (!HasContent(shot) && Time.realtimeSinceStartup < deadline)
                         yield return null;
                     for (var i = 0; i < 10; i++)
                         yield return null;
-                    if (!File.Exists(shot))
+                    if (!HasContent(shot))
                         Fail($"screenshot was not written: {shot}");
                 }
                 else
@@ -158,6 +169,12 @@ namespace Hone.Sandbox.Experiments
         {
             yield return ("hone", m_HoneRoot);
             yield return ("nofont", m_NoFontRoot);
+        }
+
+        static bool HasContent(string path)
+        {
+            var info = new FileInfo(path);
+            return info.Exists && info.Length > 0;
         }
 
         static bool IsSameColor(Color a, Color32 b)
@@ -210,7 +227,12 @@ namespace Hone.Sandbox.Experiments
                     }
                     else
                     {
-                        kind = ReferenceEquals(def.fontAsset, resourcesCopy) ? "resources-copy" : "other";
+                        if (ReferenceEquals(def.fontAsset, resourcesCopy))
+                            kind = "resources-copy";
+                        else if (def.fontAsset.name == resourcesCopy.name)
+                            kind = "sandbox-font";
+                        else
+                            kind = "other";
                         asset = $"{def.fontAsset.name}#{def.fontAsset.GetEntityId()}";
                     }
                     kinds[$"{panel}.{name}"] = kind;
@@ -223,11 +245,15 @@ namespace Hone.Sandbox.Experiments
             // 測定の前提。ここが崩れたら、上の値は読めない
             Expect(kinds, "hone.control", "null");
             Expect(kinds, "nofont.control", "null");
-            Expect(kinds, "hone.body", "other");
+            Expect(kinds, "hone.body", "sandbox-font");
             Expect(kinds, "nofont.path", "resources-copy");
             Expect(kinds, "nofont.res", "resources-copy");
             Expect(kinds, "hone.plain-child", "resources-copy");
             Expect(kinds, "nofont.plain-child", "resources-copy");
+            // README の結果の表に書いている値。変わったら README の表も直す
+            Expect(kinds, "hone.inherit", "sandbox-font");
+            Expect(kinds, "nofont.body", "null");
+            Expect(kinds, "nofont.inherit", "resources-copy");
         }
 
         void Expect(Dictionary<string, string> kinds, string key, string expected)
@@ -269,10 +295,13 @@ namespace Hone.Sandbox.Experiments
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path)));
+                // 前回のファイルが残っていると、今回の撮影が失敗しても存在確認が通ってしまう
+                if (File.Exists(path))
+                    File.Delete(path);
                 ScreenCapture.CaptureScreenshot(path);
                 return true;
             }
-            catch (Exception e) when (e is IOException || e is ArgumentException || e is UnauthorizedAccessException)
+            catch (Exception e)
             {
                 Debug.LogError($"[TokensExpProbe] failed to capture screenshot to '{path}': {e.Message}");
                 return false;
