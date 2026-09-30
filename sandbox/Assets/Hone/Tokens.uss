@@ -16,7 +16,7 @@
     --hone-color-destructive-foreground: #fafafa;
     --hone-color-border: #e4e4e7;
     /* ring は border で描くので、primary（#18181b）と同色だと Default variant で色が変わらず見えない。primary と白の両方に対して見える中間色にする */
-    --hone-color-ring: #71717a;
+    --hone-color-ring: #a1a1aa;
 
     --hone-radius-sm: 4px;
     --hone-radius-md: 6px;
