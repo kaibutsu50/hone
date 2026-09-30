@@ -25,8 +25,8 @@ namespace Hone.Sandbox.Experiments
         const float MaxWaitSeconds = 30f;
         const int SettleFrames = 10;
         const int MaxMessages = 20;
-        // Tokens.uss の --hone-color-ring（#18181b）と --hone-ring-width。トークンの値を変えたらここも変える
-        static readonly Color32 ExpectedRingColor = new Color32(24, 24, 27, 255);
+        // Tokens.uss の --hone-color-ring（#71717a）と --hone-ring-width。トークンの値を変えたらここも変える
+        static readonly Color32 ExpectedRingColor = new Color32(113, 113, 122, 255);
         const float ExpectedRingWidth = 2f;
         static readonly string[] LabelNames = { "control", "body", "plain-child", "inherit", "path", "res" };
 

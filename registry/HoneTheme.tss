@@ -1,7 +1,6 @@
 @import url("unity-theme://default");
 @import url("Tokens.uss");
 @import url("Core/Runtime/Core.uss");
-@import url("UI/Button/Button.uss");
 /* hone add は、この行の直前に各コンポーネントの USS の @import を挿入する。
  * @import は :root などの規則より前に置く（CSS と同じ規則に合わせている。規則の後ろに置いたときの Unity の挙動は確かめていない） */
 

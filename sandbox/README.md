@@ -27,8 +27,8 @@ Assets/Hone/
                       利用者が自分の asmdef に UI を乗せる形をここで再現する。Hone.Core を参照し（Issue #18 の指定。Button.cs は今は Core を使っていない）、autoReferenced は false（Assembly-CSharp の Experiments に Hone.Button を見せない）
     Button/           Hone.Button（Button.cs、Button.uxml、Button.uss、README.md）
   Tokens.uss          registry/Tokens.uss の手コピー
-  HoneTheme.tss       registry/HoneTheme.tss の手コピー。差分は末尾の :root（--hone-font-body に Sandbox/Fonts/RobotoMono.asset を指定）だけ。
-                      利用者が雛形のコメントに従って自分で書く内容に当たる。registry 側を変えたら、この :root を残して同期する
+  HoneTheme.tss       registry/HoneTheme.tss の手コピー。差分は、`hone add` が挿入する各コンポーネントの USS の @import（Button）と、末尾の :root（--hone-font-body に Sandbox/Fonts/RobotoMono.asset を指定）だけ。
+                      利用者が雛形のコメントに従って自分で書く内容に当たる。registry 側を変えたら、この @import と :root を残して同期する
   Sandbox/            sandbox 固有のアセット。`hone add` がコピーする領域と混ぜない
     Sandbox.unity     PanelRenderer を 1 つ置いたシーン（EventSystem は置かない）
     Sandbox.uxml      空の UXML

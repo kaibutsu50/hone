@@ -14,7 +14,7 @@
  * }
  */
 
-/* sandbox 固有: registry/HoneTheme.tss に対する差分はこの :root だけ（利用者が上のコメントに従って書く内容に当たる）。FontAsset は Sandbox/Fonts/RobotoMono.asset */
+/* sandbox 固有: registry/HoneTheme.tss に対する差分は、hone add が挿入する Button の @import と、この :root（利用者が上のコメントに従って書く内容に当たる）だけ。FontAsset は Sandbox/Fonts/RobotoMono.asset */
 :root {
     --hone-font-body: url("project://database/Assets/Hone/Sandbox/Fonts/RobotoMono.asset?fileID=11400000&guid=8e30fac64f691ac4693c1f510183ed2d&type=2#RobotoMono");
 }
