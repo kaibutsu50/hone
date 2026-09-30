@@ -19,10 +19,11 @@ Hone の検証用 Unity プロジェクト。コンポーネントの動作確�
 ```
 Assets/Hone/
   Core/               registry/Core の手コピー
-    Runtime/          Hone.Core.asmdef
+    Runtime/          Hone.Core.asmdef、Core.uss
     Editor/           Hone.Core.Editor.asmdef
   Tokens.uss          registry/Tokens.uss の手コピー
-  HoneTheme.tss       registry/HoneTheme.tss の手コピー
+  HoneTheme.tss       registry/HoneTheme.tss の手コピー。差分は末尾の :root（--hone-font-body に Sandbox/Fonts/RobotoMono.asset を指定）だけ。
+                      利用者が雛形のコメントに従って自分で書く内容に当たる。registry 側を変えたら、この :root を残して同期する
   Sandbox/            sandbox 固有のアセット。`hone add` がコピーする領域と混ぜない
     Sandbox.unity     PanelRenderer を 1 つ置いたシーン（EventSystem は置かない）
     Sandbox.uxml      空の UXML
@@ -32,8 +33,11 @@ Assets/Hone/
                       FontVar/Resources/Fonts/ は case 3（`resource()`）用の Fonts/RobotoMono.asset の複製。元を作り直したら同期する。
                       Resources 配下なので sandbox のすべての Player ビルドに入る
                       FocusTrap/ は Dialog の focus trap 機構（IgnoreEvent の同 frame 順序、外側へのフォーカス漏れ、フォーカスが無いときの方向入力、EventSystem の有無）の検証
+                      TokensExp/ は --hone-font-body（theme の :root）と .hone-text、.hone-focusable の ring の検証（Player の検証を含む）
                       ThemeExp/ は .tss の @import（絶対パス、相対パス）、既定テーマの Button の :focus、既定フォントの FontAsset と日本語の描画の検証
-    Gallery/          多言語スクリーンショットの撮影基盤。TestStrings.json（スクリプトごとの短文・長文）、Gallery.unity / Gallery.uxml / Gallery.uss、GalleryController、Hone.Sandbox.Gallery.asmdef（Tests/PlayMode が参照する）
+    Gallery/          多言語スクリーンショットの撮影基盤。TestStrings.json（スクリプトごとの短文・長文）、Gallery.unity / Gallery.uxml / Gallery.uss、GalleryController、
+                      GalleryHoneEntries（Core.uss のクラスを付けた列を登録する）、GalleryFocus（ring を写すため最初の .hone-focusable にフォーカスを当てる）、
+                      Hone.Sandbox.Gallery.asmdef（Tests/PlayMode が参照する）
     Tests/PlayMode/   PlayMode テスト
 ```
 
@@ -82,6 +86,9 @@ unity command run_tests --mode playmode --filter Hone.Sandbox.Tests.SandboxSmoke
 
 見た目が変わる PR に添付するスクリーンショットを撮る基盤。`GalleryController.Register(name, factory)` で登録したコンポーネントを、`Gallery/TestStrings.json` の全スクリプト × 短文・長文で並べる。1 コンポーネントが 1 列で、列の中は 1 スクリプト 1 行。
 Unity 標準の `Label` と `Button` は `GalleryController` が自分で登録する（name は `"Label"` `"Button"`）。
+`GalleryHoneEntries` が `Label.hone-text`（`.hone-text` を付けた `Label`）と `Button.hone-focusable`（`.hone-focusable` を付けた `Button`）を登録し、素の列と並べる。
+`GalleryFocus` が UI の読み込み後に最初の `.hone-focusable` へフォーカスを当てるので、Play Mode で撮れば ring が写る。
+背景と文字色は `Gallery.uss` が Hone のトークン（`--hone-color-background` `--hone-color-foreground`）で指定する。
 
 Hone のコンポーネントを載せるときは、`Register` を **sandbox 側のファイル**（例: `Sandbox/Gallery/` 配下）から呼ぶ。`registry/` 配下のコードには書かない（配布物が sandbox の asmdef に依存してしまう）。
 呼ぶ時点は `[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]`。`GalleryController` が列を作るのは UI が読み込まれた時点の 1 回だけで、それより後の `Register` は画面に出ず、ログも出ない。
@@ -118,6 +125,35 @@ unity command build_status --project-path <sandbox の絶対パス>
 ```
 
 判定はログの `[FontVarProbe]` 行（Label ごとの `fontAsset`）で行う。スクリーンショットは補助。Probe は失敗時に `LogError` を出し、終了コード 1 で終了する。
+
+## TokensExp の検証
+
+`TokensExp.unity` は `PanelRenderer` を 2 枚置く。`hone` は `Sandbox/PanelSettings.asset`（`HoneTheme.tss`）、`nofont` は `TokensExpNoFont.tss`（`--hone-font-body` を定義しない theme。`:root` に `url("/Assets/…")` と `resource("…")` の変数を置く）。
+`TokensExpProbe` が Label の `resolvedStyle.unityFontDefinition` と、`.hone-focusable` の Button に `Focus()` した前後の border をログ（`[TokensExpProbe]`）に出し、最後に `RESULT OK|FAIL` を出す。
+`-tokensexp-shot <png>` を渡した Player は、スクリーンショットを保存して終了する（測定の前提が崩れたときは終了コード 1）。Editor の Play Mode では終了しない。
+
+`Sandbox/Fonts/RobotoMono.asset` の参照元は、`HoneTheme.tss` の `:root` の 1 箇所だけにしてある（`nofont` の 2 つの変数は、同名の Resources 側の複製 `FontVar/Resources/Fonts/RobotoMono.asset` を指す。
+Probe は `Resources.Load` で取った複製との同一性で区別する）。確認は `AssetDatabase.GetDependencies` で、シーンの依存に含まれる `RobotoMono.asset` を直接参照するのが `HoneTheme.tss` だけであること。
+
+```bash
+unity command build --project-path <sandbox の絶対パス> --target StandaloneWindows64 --outputPath <sandbox の絶対パス>/Build/TokensExp/TokensExp.exe --scenes '["Assets/Hone/Sandbox/Experiments/TokensExp/TokensExp.unity"]' --confirm true
+unity command build_status --project-path <sandbox の絶対パス>
+timeout 120 <sandbox の絶対パス>/Build/TokensExp/TokensExp.exe -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -tokensexp-shot <png の絶対パス> -logFile <ログの絶対パス>
+```
+
+結果（Unity 6000.7.0b2、Windows。Editor の Play Mode と Player で同じ）:
+
+| 確認 | 結果 |
+|---|---|
+| `HoneTheme.tss` の `:root` の `--hone-font-body: url("project://…")` を `.hone-text` が使う | 通る。`hone.body` が `Sandbox/Fonts` の FontAsset になる。Player でも、この `:root` の変数が唯一の参照元の状態で通る |
+| `:root` の変数に `url("/Assets/…")`、`resource("…")` を書く | どちらも Editor と Player で通る（`nofont.path` `nofont.res`）。ただし指す先が Resources 側の複製で、Player ではビルドに必ず入るため、Player で「参照だけでビルドに含まれるか」は見ていない |
+| `--hone-font-body` が未定義のとき `.hone-text` | 祖先にフォント指定が無ければ `fontAsset=null`（Unity の既定）。祖先にフォント指定があれば、その値を継承する（`nofont.inherit`。null には戻らない）。警告は出ない |
+| `--hone-font-body` が定義済みで、祖先に別のフォント指定があるとき | `.hone-text` の指定が勝つ（`hone.inherit`） |
+| `.hone-focusable:focus`（クラス 1 つ + `:focus`）を `Core.uss` に書く | 既定テーマの Button の `:focus` の枠の色 `rgb(0,106,166)` が勝つ。幅（`--hone-ring-width`）だけ効く。`HoneTheme.tss` 自身に書いた同じ形の規則も負ける |
+| `.hone-focusable.hone-focusable:focus`（クラスを 2 回）を `Core.uss` に書く | `--hone-color-ring` の色 `rgb(24,24,27)` と幅 2 が効く。Player でも同じ |
+| `HoneTheme.tss` の `@import url("Tokens.uss")` `@import url("Core/Runtime/Core.uss")`（`HoneTheme.tss` 起点の相対パス） | 通る（`.hone-text` と `.hone-focusable` が効く） |
+
+未確認: 2 枚目の `PanelRenderer`（`nofont`）の Button は `Focus()` してもフォーカスを取れなかった（原因は調べていない）。ring の測定は `hone` の panel だけで行っている。
 
 ## FocusTrap の Player 検証
 

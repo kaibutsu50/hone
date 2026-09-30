@@ -1,2 +1,38 @@
+/* 値は shadcn の zinc（light）を Unity の px に置き換えたもの。テーマ切替は無く、1 セットのみ。
+ * フォントの --hone-font-body は同梱しないのでここには書かない。HoneTheme.tss の :root に利用者が書く。 */
 :root {
+    --hone-color-background: #ffffff;
+    --hone-color-foreground: #09090b;
+    --hone-color-primary: #18181b;
+    --hone-color-primary-foreground: #fafafa;
+    --hone-color-secondary: #f4f4f5;
+    --hone-color-secondary-foreground: #18181b;
+    --hone-color-muted: #f4f4f5;
+    --hone-color-muted-foreground: #71717a;
+    --hone-color-accent: #f4f4f5;
+    --hone-color-accent-foreground: #18181b;
+    --hone-color-destructive: #ef4444;
+    --hone-color-destructive-foreground: #fafafa;
+    --hone-color-border: #e4e4e7;
+    --hone-color-ring: #18181b;
+
+    --hone-radius-sm: 4px;
+    --hone-radius-md: 6px;
+    --hone-radius-lg: 8px;
+
+    --hone-space-1: 4px;
+    --hone-space-2: 8px;
+    --hone-space-3: 12px;
+    --hone-space-4: 16px;
+    --hone-space-5: 20px;
+    --hone-space-6: 24px;
+    --hone-space-7: 28px;
+    --hone-space-8: 32px;
+
+    --hone-font-size-sm: 14px;
+    --hone-font-size-md: 16px;
+    --hone-font-size-lg: 18px;
+
+    --hone-ring-width: 2px;
+    --hone-ring-offset: 2px;
 }

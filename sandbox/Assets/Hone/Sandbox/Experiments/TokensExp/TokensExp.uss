@@ -1,0 +1,27 @@
+/* #15 の実験用の見た目。コンポーネントの USS ではないので、トークン規約の対象外 */
+.tokens-exp-root {
+    width: 50%;
+    padding: 16px;
+    background-color: rgb(250, 250, 250);
+}
+
+.tokens-exp-root Label {
+    color: rgb(9, 9, 11);
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+
+/* 祖先に直接指定したフォント（Resources 側の複製）。.hone-text の var() が未解決のとき、子がこれを継承するかを見る */
+.tokens-exp-parent {
+    -unity-font-definition: resource("Fonts/RobotoMono");
+}
+
+/* --tokens-exp-path / --tokens-exp-res は TokensExpNoFont.tss の :root にだけある */
+.tokens-exp-path {
+    -unity-font-definition: var(--tokens-exp-path);
+}
+
+.tokens-exp-res {
+    -unity-font-definition: var(--tokens-exp-res);
+}
+

@@ -1,3 +1,18 @@
 @import url("unity-theme://default");
-@import url("/Assets/Hone/Tokens.uss");
-/* hone add がここに各コンポーネントの USS の @import を追記する */
+@import url("Tokens.uss");
+@import url("Core/Runtime/Core.uss");
+/* hone add がここに各コンポーネントの USS の @import を追記する。@import は :root などの規則より前に置く */
+
+/* フォントは同梱しない。使う FontAsset を指す --hone-font-body を、このファイルの :root に書く（Tokens.uss には書かない）。
+ * 値は url("project://database/<FontAsset のパス>?fileID=11400000&guid=<FontAsset の .meta の guid>&type=2#<FontAsset の名前>") の形。
+ * 書かなければ .hone-text は Unity の既定フォントのまま。
+ *
+ * :root {
+ *     --hone-font-body: url("project://database/Assets/Fonts/MyFont.asset?fileID=11400000&guid=00000000000000000000000000000000&type=2#MyFont");
+ * }
+ */
+
+/* sandbox 固有: registry/HoneTheme.tss に対する差分はこの :root だけ（利用者が上のコメントに従って書く内容に当たる）。FontAsset は Sandbox/Fonts/RobotoMono.asset */
+:root {
+    --hone-font-body: url("project://database/Assets/Hone/Sandbox/Fonts/RobotoMono.asset?fileID=11400000&guid=8e30fac64f691ac4693c1f510183ed2d&type=2#RobotoMono");
+}

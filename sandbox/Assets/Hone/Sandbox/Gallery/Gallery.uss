@@ -1,12 +1,13 @@
-/* sandbox の撮影用の見た目。コンポーネントの USS ではないので、トークン規約（実値を書かない）の対象外 */
+/* sandbox の撮影用の見た目。コンポーネントの USS ではないので、トークン規約（実値を書かない）の対象外。
+ * 背景と文字色は Hone のトークン（light の 1 セット）に合わせる。暗い背景だと、ring（近い暗色）が写らない。 */
 .gallery {
     flex-grow: 1;
     padding: 8px;
-    background-color: rgb(32, 32, 36);
+    background-color: var(--hone-color-background);
 }
 
 .gallery Label {
-    color: rgb(230, 230, 230);
+    color: var(--hone-color-foreground);
 }
 
 .gallery .unity-scroll-view__content-container {

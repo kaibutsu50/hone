@@ -1,3 +1,13 @@
 @import url("unity-theme://default");
-@import url("/Assets/Hone/Tokens.uss");
-/* hone add がここに各コンポーネントの USS の @import を追記する */
+@import url("Tokens.uss");
+@import url("Core/Runtime/Core.uss");
+/* hone add がここに各コンポーネントの USS の @import を追記する。@import は :root などの規則より前に置く */
+
+/* フォントは同梱しない。使う FontAsset を指す --hone-font-body を、このファイルの :root に書く（Tokens.uss には書かない）。
+ * 値は url("project://database/<FontAsset のパス>?fileID=11400000&guid=<FontAsset の .meta の guid>&type=2#<FontAsset の名前>") の形。
+ * 書かなければ .hone-text は Unity の既定フォントのまま。
+ *
+ * :root {
+ *     --hone-font-body: url("project://database/Assets/Fonts/MyFont.asset?fileID=11400000&guid=00000000000000000000000000000000&type=2#MyFont");
+ * }
+ */
