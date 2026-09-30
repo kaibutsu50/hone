@@ -34,6 +34,8 @@
     --hone-font-size-md: 16px;
     --hone-font-size-lg: 18px;
 
+    --hone-border-width: 1px;
+
     --hone-ring-width: 2px;
     /* 未使用。Core.uss の ring は border で描くので、offset を表現できない */
     --hone-ring-offset: 2px;

@@ -21,6 +21,21 @@
       "classes": ["Hone.Core.BackStack", "Hone.Core.IDismissable", "Hone.Core.FocusScope"]
     },
     {
+      "name": "Button",
+      "type": "registry:ui",
+      "title": "Button",
+      "description": "variant（default / outline / ghost / destructive）を持つボタン",
+      "files": [
+        { "path": "UI/Button/Button.cs", "type": "registry:ui" },
+        { "path": "UI/Button/Button.uxml", "type": "registry:ui" },
+        { "path": "UI/Button/Button.uss", "type": "registry:ui" },
+        { "path": "UI/Button/README.md", "type": "registry:ui" }
+      ],
+      "registryDependencies": ["Core"],
+      "dependencies": [],
+      "classes": ["Hone.Button"]
+    },
+    {
       "name": "Default",
       "type": "registry:theme",
       "title": "Default",
