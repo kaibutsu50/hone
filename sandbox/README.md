@@ -29,6 +29,7 @@ Assets/Hone/
     PanelSettings.asset   Theme Style Sheet に HoneTheme.tss を割り当て済み
     Fonts/            検証用フォント。RobotoMono-Regular.ttf（Apache-2.0、Unity Editor 同梱）とその LICENSE、そこから作った Dynamic の FontAsset
     Experiments/<Name>/   Issue ごとの検証。FontVar/ は `-unity-font-definition` を USS 変数経由で差し替えられるかの検証
+                      FocusTrap/ は Dialog の focus trap 機構（IgnoreEvent の同 frame 順序、初期フォーカス、EventSystem の有無）の検証
                       FontVar/Resources/Fonts/ は case 3（`resource()`）用の Fonts/RobotoMono.asset の複製。元を作り直したら同期する。
                       Resources 配下なので sandbox のすべての Player ビルドに入る
     Tests/PlayMode/   PlayMode テスト
@@ -87,7 +88,25 @@ unity command build_status --project-path <sandbox の絶対パス>
 
 判定はログの `[FontVarProbe]` 行（Label ごとの `fontAsset`）で行う。スクリーンショットは補助。Probe は失敗時に `LogError` を出し、終了コード 1 で終了する。
 
+## FocusTrap の Player 検証
+
+`FocusTrap.unity`（EventSystem なし）と `FocusTrapEventSystem.unity`（EventSystem + `InputSystemUIInputModule` あり）は Build Settings に入れていないので、ビルド時にシーンを指定する。
+`FocusTrapProbe` は Input System の合成デバイス（Gamepad、Keyboard）へ入力を積み、UI map の既定バインディングを通して全ステップを自動で回し、終了する。
+
+```bash
+unity command build --project-path <sandbox の絶対パス> --target StandaloneWindows64 --outputPath <sandbox の絶対パス>/Build/FocusTrap/FocusTrap.exe --scenes '["Assets/Hone/Sandbox/Experiments/FocusTrap/FocusTrap.unity"]' --confirm true
+unity command build_status --project-path <sandbox の絶対パス>
+<sandbox の絶対パス>/Build/FocusTrap/FocusTrap.exe -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -logFile <ログの絶対パス>
+```
+
+EventSystem あり側は `FocusTrapEventSystem` に読み替える。判定はログの `[FocusTrapProbe] RESULT` 行（1 ステップ 1 行）で行う。
+`start` が押す前のフォーカス、`final` が 8 frame 後のフォーカス、`settled=+N` が最終状態に落ち着いた frame（押した frame を +0）。
+`outsideAtFrameEnd` は frame 終端で外側の要素にフォーカスがあった frame の有無、`outsidePainted` は外側の要素がフォーカス色で描画された frame の有無。
+
 ## 既知の事項
+
+- 複数の Editor を同時に開いていると、`com.unity.pipeline` のサーバーが同じポート（7800）を取り合い、`unity status` が `unreachable` のまま `unity command` が別プロジェクトの Editor に届く。
+  `Assets/Settings/Pipeline/EditorPipelineManager.asset`（`m_Port`）で空きポートを固定すると届く。このアセットはコミットしない。
 
 - `LegacyRuntime.ttf`（Unity 組み込み）からは `FontAsset` を作れない。`FontAsset.CreateFontAsset(font, ...)` が `null` を返し
   `Unable to load font face for [LegacyRuntime]. Make sure "Include Font Data" is enabled in the Font Import Settings.` の警告が出る（6000.7.0b2）。
