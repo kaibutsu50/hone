@@ -1,0 +1,14 @@
+/* Issue #13 case 1 の実験用。tss とは別ディレクトリに置いたコンポーネント USS の代役。
+   .exp-probe の赤は「変数が解決されなかった」目印。var() が解決できなければ宣言が捨てられて赤が残る想定。 */
+.exp-probe {
+    background-color: rgb(220, 38, 38);
+}
+
+.exp-probe--themed {
+    background-color: var(--exp-bg);
+}
+
+/* 対照: どこにも定義していない変数。未解決の var() が resolvedStyle でどう見えるかを記録する。 */
+.exp-probe--undefined {
+    background-color: var(--exp-undefined);
+}

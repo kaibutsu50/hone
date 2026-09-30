@@ -32,6 +32,7 @@ Assets/Hone/
                       FontVar/Resources/Fonts/ は case 3（`resource()`）用の Fonts/RobotoMono.asset の複製。元を作り直したら同期する。
                       Resources 配下なので sandbox のすべての Player ビルドに入る
                       FocusTrap/ は Dialog の focus trap 機構（IgnoreEvent の同 frame 順序、外側へのフォーカス漏れ、フォーカスが無いときの方向入力、EventSystem の有無）の検証
+                      ThemeExp/ は .tss の @import（絶対パス、相対パス）、既定テーマの Button の :focus、既定フォントの FontAsset と日本語の描画の検証
     Tests/PlayMode/   PlayMode テスト
 ```
 
@@ -124,6 +125,21 @@ Probe は trap の成否を判定しない。測定の前提（開始フォー�
 | `notes` | `+N` 付きのイベント・handler・描画の記録 |
 
 frame は押した frame を +0 と数える。D-pad と Tab は入力が次の frame で UI Toolkit に届くので、最小は +1。`Nav:*` は +0 の中で処理される。
+
+## ThemeExp の Player 検証
+
+`ThemeExp.unity`（`PanelRenderer` 3 枚: 絶対パス import の theme、相対パス import の theme、`unity-theme://default` のみの theme）は Build Settings に入れていないので、ビルド時にシーンを指定する。ビルドの待ち方は FontVar と同じ。
+`ThemeExpProbe` が case 1〜4 を自動で回し、ログの `[ThemeExpProbe]` 行に値を出す。`-themeexp-out <dir>` を渡すと、スクリーンショット（`case2-unfocused.png` `case2-focused.png` `case4-full.png`）を `<dir>` に保存して終了する。
+
+```bash
+unity command build --project-path <sandbox の絶対パス> --target StandaloneWindows64 --outputPath <sandbox の絶対パス>/Build/ThemeExp/ThemeExp.exe --scenes '["Assets/Hone/Sandbox/Experiments/ThemeExp/ThemeExp.unity"]' --confirm true
+unity command build_status --project-path <sandbox の絶対パス>
+timeout 120 <sandbox の絶対パス>/Build/ThemeExp/ThemeExp.exe -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -themeexp-out <dir の絶対パス> -logFile <ログの絶対パス>
+```
+
+- `ThemeExpMissing.tss` はどのシーンからも使わない。存在しないパスを `@import` したときの症状を見るためのもので、`.tss` を再インポートすると Editor.log に `warning: Invalid asset path: '<解決後のパス>'` が出る。Console には出ない。
+- Player の Profiler マーカーは開発ビルドでないと取れない（`ProfilerRecorderHandle.GetAvailable` が 82 件で、UI Toolkit のマーカーが 0 件）。マーカーが要るときは Editor の Play Mode で回す。
+- `CASE3` は `TextSettings` の内部 API を reflection で読む（実験用）。Player では FontAsset の `name` が空になるので、fallback は `faceInfo.familyName` で出している。
 
 ## 既知の事項
 

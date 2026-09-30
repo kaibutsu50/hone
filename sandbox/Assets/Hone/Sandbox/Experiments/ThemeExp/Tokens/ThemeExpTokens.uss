@@ -1,0 +1,4 @@
+/* Issue #13 case 1 の実験用。tss とは別ディレクトリに置いた Tokens.uss の代役。 */
+:root {
+    --exp-bg: rgb(0, 160, 80);
+}
