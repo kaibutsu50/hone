@@ -42,6 +42,7 @@ CLI が行うこと。
 
 - `hone.json` を作る。出力先（既定 `Assets/Hone`）と registry の URL を記録する
 - `Assets/Hone/Core/` に headless 層をコピーする。asmdef はここにだけ入る（Runtime 用の `Hone.Core` と Editor 用の `Hone.Core.Editor`）
+- `Assets/Hone/Tokens.uss` にトークン定義をコピーする
 - `Assets/Hone/HoneTheme.tss` を作る。Unity 既定テーマを `@import` し、その後に Hone のトークンと Core の USS を `@import` する
 - `Assets/Hone/hone.manifest.json` を作る。Unity 側の Sync が読む台帳
 
@@ -64,7 +65,7 @@ CLI が行うこと。
 
 - `Assets/Hone/UI/Button/` に `Button.cs` `Button.uxml` `Button.uss` `README.md` をコピーする
 - `registryDependencies` を解決し、依存先も一緒にコピーする
-- `HoneTheme.tss` に `@import url("/Assets/Hone/UI/Button/Button.uss");` を追記する。これで USS はプロジェクト全体に効く
+- `HoneTheme.tss` に `@import url("UI/Button/Button.uss");` を挿入する。位置は既存の `@import` の並びの末尾（`hone add` の目印のコメントの直前）で、利用者が書いた `:root` などの規則より前になる。パスは `HoneTheme.tss` からの相対で書く（出力先を変えても壊れない）。これで USS はプロジェクト全体に効く
 
 Unity に戻ってコンパイルが終われば使える。ここで Sync は不要。
 
@@ -117,6 +118,15 @@ Unity に戻り、`Hone > Sync` を実行する。Sync が行うこと。
 
 `ko` `zh-hans` `zh-hant` `ar` `th` も同じ手順。複数を足すとフォールバック連鎖になる。
 
+### 5. 本文フォントの指定
+
+Hone はフォントを同梱しない。`.hone-text` クラスを付けた要素は `--hone-font-body` のフォントで描かれる。
+使う `FontAsset` は、`HoneTheme.tss` の `:root` に `url("project://…")` の形で書く（`HoneTheme.tss` のコメントに雛形がある）。
+書かなければ、`.hone-text` は祖先のフォント指定を継承し、祖先にも無ければ Unity の既定フォントになる。警告は出ない。
+
+- UI Builder の canvas は、既定テーマのままだと `HoneTheme.tss` の `:root` の変数を反映しない。UI Builder ではフォントが変わって見えないので、Play Mode で確認する
+- `FontAsset` は TTF から作る。Unity 組み込みの `LegacyRuntime.ttf` からは作れない
+
 ### Web との対応表
 
 | Web (shadcn) | Unity (Hone) |
@@ -130,7 +140,4 @@ Unity に戻り、`Hone > Sync` を実行する。Sync が行うこと。
 
 ### 未検証の点
 
-- `.tss` からの `@import` でプロジェクト絶対パスの USS を読めること
-- `--hone-font-body` に FontAsset を入れ、`-unity-font-definition: var(--hone-font-body)` で参照できること。
-  動作報告はあるが公式ドキュメントにない。通らない場合は C# 側の注入口を既定にする
 - Sync を Editor のメニューではなく CLI から起動できるか（Unity の batchmode 経由）

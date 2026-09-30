@@ -1,0 +1,8 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement name="root" style="position: absolute; left: 0; top: 200px; width: 600px; padding: 8px;">
+        <ui:Button name="btn" text="Button" style="margin-bottom: 8px;" />
+        <ui:Button name="btn2" text="Button (control)" style="margin-bottom: 8px;" />
+        <ui:Label name="plain" text="The quick brown fox 0123" style="color: rgb(250, 250, 250); font-size: 24px;" />
+        <ui:VisualElement name="jp-host" />
+    </ui:VisualElement>
+</ui:UXML>

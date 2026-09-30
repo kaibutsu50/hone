@@ -1,0 +1,8 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement name="root" style="position: absolute; left: 200px; top: 0; width: 200px; padding: 8px;">
+        <ui:Label name="title" text="rel" style="color: rgb(250, 250, 250);" />
+        <ui:VisualElement name="themed" class="exp-probe exp-probe--themed" style="height: 40px; margin-bottom: 8px;" />
+        <ui:VisualElement name="applied" class="exp-probe" style="height: 40px; margin-bottom: 8px;" />
+        <ui:VisualElement name="undefined" class="exp-probe exp-probe--undefined" style="height: 40px;" />
+    </ui:VisualElement>
+</ui:UXML>

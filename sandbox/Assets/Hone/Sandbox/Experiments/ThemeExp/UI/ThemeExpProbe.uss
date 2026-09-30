@@ -1,0 +1,14 @@
+/* Issue #13 case 1 の実験用。tss とは別ディレクトリに置いたコンポーネント USS の代役（実配置は UI/<Name>/）。
+   .exp-probe の赤は、変数を使わない対照。component USS が当たっていれば applied がこの色になる。 */
+.exp-probe {
+    background-color: rgb(220, 38, 38);
+}
+
+.exp-probe--themed {
+    background-color: var(--exp-bg);
+}
+
+/* 対照: どこにも定義していない変数。6000.7.0b2 では、未解決の var() は前の規則の値（赤）に戻らず、プロパティが初期値（transparent）になった。 */
+.exp-probe--undefined {
+    background-color: var(--exp-undefined);
+}

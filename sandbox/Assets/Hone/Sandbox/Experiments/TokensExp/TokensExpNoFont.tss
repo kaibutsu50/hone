@@ -1,0 +1,11 @@
+@import url("unity-theme://default");
+@import url("/Assets/Hone/Tokens.uss");
+@import url("/Assets/Hone/Core/Runtime/Core.uss");
+/* --hone-font-body を定義しない theme。HoneTheme.tss に対して、フォントの :root だけが無い。
+ * @import が絶対パスなのは、実験用のファイルで置き場所が動かないため（配布物の HoneTheme.tss は相対パス）。
+ * path / res は :root に置いた url("/Assets/…") と resource("…") の確認用で、どちらも Resources 側の複製を指す
+ * （TokensExp.unity の依存の中で、Sandbox/Fonts/RobotoMono.asset の参照元を HoneTheme.tss の :root だけにしておくため。Player 検証の前提）。 */
+:root {
+    --tokens-exp-path: url("/Assets/Hone/Sandbox/Experiments/FontVar/Resources/Fonts/RobotoMono.asset");
+    --tokens-exp-res: resource("Fonts/RobotoMono");
+}

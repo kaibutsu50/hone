@@ -1,0 +1,4 @@
+.case1 {
+    --f: url("project://database/Assets/Hone/Sandbox/Fonts/RobotoMono.asset?fileID=11400000&guid=8e30fac64f691ac4693c1f510183ed2d&type=2#RobotoMono");
+    -unity-font-definition: var(--f);
+}

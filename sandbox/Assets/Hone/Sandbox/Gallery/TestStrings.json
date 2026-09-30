@@ -1,0 +1,11 @@
+{
+  "ja": { "short": "保存する", "long": "変更内容を保存して、この画面を閉じてもよろしいですか？" },
+  "ko": { "short": "저장", "long": "변경 사항을 저장하고 이 화면을 닫으시겠습니까?" },
+  "zh-hans": { "short": "保存", "long": "是否保存更改并关闭此页面？" },
+  "zh-hant": { "short": "儲存", "long": "是否儲存變更並關閉此頁面？" },
+  "ar": { "short": "حفظ", "long": "هل تريد حفظ التغييرات وإغلاق هذه الصفحة؟" },
+  "th": { "short": "บันทึก", "long": "คุณต้องการบันทึกการเปลี่ยนแปลงและปิดหน้านี้หรือไม่" },
+  "emoji": { "short": "👍 OK", "long": "🎮 Save your progress? 🚀🔥 👨‍👩‍👧‍👦 🇯🇵" },
+  "de-long": { "short": "Speichern", "long": "Donaudampfschifffahrtsgesellschaftskapitänsmützenverwaltung und Geschwindigkeitsbegrenzungsschilder" },
+  "en": { "short": "Save", "long": "Save your changes and close this screen?" }
+}

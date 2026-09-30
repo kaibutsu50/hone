@@ -1,0 +1,3 @@
+.case4 {
+    -unity-font-definition: var(--f4);
+}

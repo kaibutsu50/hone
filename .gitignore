@@ -8,8 +8,13 @@ sandbox/**/[Ll]ogs/
 sandbox/**/[Uu]ser[Ss]ettings/
 sandbox/**/*.csproj
 sandbox/**/*.sln
+sandbox/**/*.slnx
+sandbox/test-results*.xml
 sandbox/**/.vs/
 sandbox/**/.idea/
+# com.unity.pipeline のポート固定（手元の Editor ごとの設定）
+sandbox/Assets/Settings/Pipeline/
+sandbox/Assets/Settings/Pipeline.meta
 
 # Node (cli)
 node_modules/
@@ -21,3 +26,6 @@ Thumbs.db
 
 # Claude Code worktrees
 .claude/worktrees/
+
+# スクリーンショットの置き場（sandbox/README.md の Gallery。Assets/ の外に置く）
+sandbox/Screenshots/

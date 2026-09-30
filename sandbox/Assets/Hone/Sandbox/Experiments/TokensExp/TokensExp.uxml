@@ -1,0 +1,15 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="TokensExp.uss" />
+    <ui:VisualElement name="stage" class="tokens-exp-root">
+        <ui:Label name="control" text="control ABC あいう" />
+        <ui:Label name="body" class="hone-text" text="hone-text ABC" />
+        <ui:VisualElement class="tokens-exp-parent">
+            <ui:Label name="plain-child" text="plain-child ABC" />
+            <ui:Label name="inherit" class="hone-text" text="inherit hone-text ABC" />
+        </ui:VisualElement>
+        <ui:Label name="path" class="tokens-exp-path" text="path ABC" />
+        <ui:Label name="res" class="tokens-exp-res" text="res ABC" />
+        <ui:Button name="ring" class="hone-focusable" text="ring" />
+        <ui:Button name="ring-control" text="ring-control" />
+    </ui:VisualElement>
+</ui:UXML>

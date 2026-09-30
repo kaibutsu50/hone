@@ -1,0 +1,16 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Style src="FocusTrap.uss" />
+    <ui:VisualElement class="ft-root">
+        <ui:Button name="out-top" class="ft-button" text="out-top" />
+        <ui:VisualElement class="ft-middle">
+            <ui:Button name="out-left" class="ft-button" text="out-left" />
+            <ui:VisualElement name="trap" class="ft-trap">
+                <ui:Button name="in-1" class="ft-button" text="in-1" />
+                <ui:Button name="in-2" class="ft-button" text="in-2" />
+                <ui:Button name="in-3" class="ft-button" text="in-3" />
+            </ui:VisualElement>
+            <ui:Button name="out-right" class="ft-button" text="out-right" />
+        </ui:VisualElement>
+        <ui:Button name="out-bottom" class="ft-button" text="out-bottom" />
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,14 @@
+/* focus ring。USS には outline も box-shadow も無いので、要素自身の border で描く。
+ * フォーカスで border-width が変わるので、幅や高さを固定していない要素は border の差分だけ大きさが変わる（測っていない）。
+ * --hone-ring-offset は、この方式では表現できないので参照しない。
+ * クラスを 2 回書いているのは詳細度を上げるため。クラス 1 つ + :focus の規則は、テーマ内のどこに書いても既定テーマの Button の :focus（枠の色）に負けた。
+ * 確認したのは Button に Focus() しただけの状態。Button 以外のコントロールと、hover / active / disabled と重なった状態は未検証。 */
+.hone-focusable.hone-focusable:focus {
+    border-color: var(--hone-color-ring);
+    border-width: var(--hone-ring-width);
+}
+
+/* 本文フォント。--hone-font-body は利用者が HoneTheme.tss の :root に定義する（同梱しない）。 */
+.hone-text {
+    -unity-font-definition: var(--hone-font-body);
+}

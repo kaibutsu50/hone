@@ -10,11 +10,15 @@
       "description": "全コンポーネントが依存する headless 層（フォーカス・ナビゲーション・dismiss）",
       "files": [
         { "path": "Core/Runtime/Hone.Core.asmdef", "type": "registry:lib" },
+        { "path": "Core/Runtime/Core.uss", "type": "registry:lib" },
+        { "path": "Core/Runtime/BackStack.cs", "type": "registry:lib" },
+        { "path": "Core/Runtime/IDismissable.cs", "type": "registry:lib" },
+        { "path": "Core/Runtime/FocusScope.cs", "type": "registry:lib" },
         { "path": "Core/Editor/Hone.Core.Editor.asmdef", "type": "registry:lib" }
       ],
       "registryDependencies": [],
       "dependencies": [],
-      "classes": []
+      "classes": ["Hone.Core.BackStack", "Hone.Core.IDismissable", "Hone.Core.FocusScope"]
     },
     {
       "name": "Default",
@@ -25,7 +29,7 @@
         { "path": "Tokens.uss", "type": "registry:theme" },
         { "path": "HoneTheme.tss", "type": "registry:theme" }
       ],
-      "registryDependencies": [],
+      "registryDependencies": ["Core"],
       "dependencies": [],
       "classes": []
     }

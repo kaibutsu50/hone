@@ -1,0 +1,29 @@
+/* Issue #12（FocusScope の trap 機構の検証）の実験用レイアウト。 */
+.ft-root {
+    flex-grow: 1;
+    align-items: center;
+    justify-content: center;
+    background-color: rgb(24, 24, 27);
+}
+
+.ft-middle {
+    flex-direction: row;
+    align-items: center;
+}
+
+.ft-trap {
+    margin: 0 24px;
+    padding: 12px;
+    border-width: 2px;
+    border-color: rgb(113, 113, 122);
+}
+
+.ft-button {
+    min-width: 160px;
+    margin: 12px;
+}
+
+/* この背景色は FocusTrapProbe が「フォーカス色で描画されたか」を判定するのに使う。FocusTrapProbe.cs の FocusColor と同じ値を保つ。 */
+.ft-button:focus {
+    background-color: rgb(59, 130, 246);
+}
