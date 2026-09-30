@@ -1,4 +1,4 @@
-/* Issue #13 case 1 の実験用。tss とは別ディレクトリに置いた Tokens.uss の代役。 */
+/* Issue #13 case 1 の実験用。実物の Tokens.uss と同様に :root で変数を定義する別ファイル（実物は HoneTheme.tss と同じディレクトリ。これは tss の下位ディレクトリに置いている）。 */
 :root {
     --exp-bg: rgb(0, 160, 80);
 }

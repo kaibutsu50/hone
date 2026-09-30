@@ -129,7 +129,9 @@ frame は押した frame を +0 と数える。D-pad と Tab は入力が次の 
 ## ThemeExp の Player 検証
 
 `ThemeExp.unity`（`PanelRenderer` 3 枚: 絶対パス import の theme、相対パス import の theme、`unity-theme://default` のみの theme）は Build Settings に入れていないので、ビルド時にシーンを指定する。ビルドの待ち方は FontVar と同じ。
-`ThemeExpProbe` が case 1〜4 を自動で回し、ログの `[ThemeExpProbe]` 行に値を出す。`-themeexp-out <dir>` を渡すと、スクリーンショット（`case2-unfocused.png` `case2-focused.png` `case4-full.png`）を `<dir>` に保存して終了する。
+`ThemeExpProbe` が case 1〜4 を自動で回し、ログの `[ThemeExpProbe]` 行に値を出す。最後に `RESULT OK` か `RESULT FAIL` の行を出すので、この行が無いログは途中で止まったものとして扱う。
+`-themeexp-out <dir>` を渡すと、スクリーンショット（`case2-unfocused.png` `case2-focused.png` `case4-full.png`）を `<dir>` に保存して終了する。測定の前提が崩れたとき（`RESULT FAIL`、120 秒の超過を含む）は終了コード 1。Editor の Play Mode では `Application.Quit` が効かないので、フラグを付けても終了しない。
+フラグを付けないとスクリーンショットは保存されず、自動で終了もしない。
 
 ```bash
 unity command build --project-path <sandbox の絶対パス> --target StandaloneWindows64 --outputPath <sandbox の絶対パス>/Build/ThemeExp/ThemeExp.exe --scenes '["Assets/Hone/Sandbox/Experiments/ThemeExp/ThemeExp.unity"]' --confirm true
@@ -137,9 +139,13 @@ unity command build_status --project-path <sandbox の絶対パス>
 timeout 120 <sandbox の絶対パス>/Build/ThemeExp/ThemeExp.exe -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -themeexp-out <dir の絶対パス> -logFile <ログの絶対パス>
 ```
 
-- `ThemeExpMissing.tss` はどのシーンからも使わない。存在しないパスを `@import` したときの症状を見るためのもので、`.tss` を再インポートすると Editor.log に `warning: Invalid asset path: '<解決後のパス>'` が出る。Console には出ない。
-- Player の Profiler マーカーは開発ビルドでないと取れない（`ProfilerRecorderHandle.GetAvailable` が 82 件で、UI Toolkit のマーカーが 0 件）。マーカーが要るときは Editor の Play Mode で回す。
-- `CASE3` は `TextSettings` の内部 API を reflection で読む（実験用）。Player では FontAsset の `name` が空になるので、fallback は `faceInfo.familyName` で出している。
+`timeout 120` は、Probe 自身の 120 秒のウォッチドッグが効かない固まり方（主スレッドが戻らない）に備えた外側の保険。ログの `CASE4 add` の `+1` は、ラベルを追加した frame の処理時間（`+0` は無い）。
+
+- `ThemeExpMissing.tss` はどのシーンからも使わない。存在しないパスを `@import` したときの症状を見るためのもので、絶対パスと相対パスの 2 行はどちらも同じ `.../ThemeExp/Tokens/Missing.uss` に解決される。`.tss` を再インポートすると Editor.log に `warning: Invalid asset path: '<解決後のパス>'` が 2 行出る。Console には出ない（6000.7.0b2）。`.tss` は Assets 内にあるので、プロジェクトの再インポートのたびに Editor.log に出る。
+- Player の Profiler マーカーは、開発ビルドでない Player では取れなかった（6000.7.0b2、Windows。`ProfilerRecorderHandle.GetAvailable` が 82 件で、Probe が対象にするマーカー（カテゴリが `UI` で始まり、名前が `Layout|Font|Text|Glyph|UIR|UIElements|Atlas` に合うもの）が 0 件）。ログでは `CASE4 profiler markers matched=0`。開発ビルドで取れるかは未確認。マーカーが要るときは Editor の Play Mode で回す。ただし Editor の値には、Inspector や Game view など Editor 自身の UI Toolkit パネルの分が同じ frame に合算される。Probe が拾うのは起動時点で登録済みのマーカーだけで、初回ロードで初めて通るコードのマーカーは拾えない可能性がある。
+- Editor の Play Mode では、動的に作られた FontAsset と atlas が前回の Play Mode から残ることがあり、case 4 の「初回」の時間にならない。時間は Player の値を読む。
+- `CASE3` は `TextSettings` の内部 API を reflection で読む（実験用）。Player では runtime 生成の FontAsset の `name` が空になる（6000.7.0b2）。Editor では `Arial - Regular SDF`。fallback は `faceInfo.familyName` で出している。
+- `CASE4` は、日本語が豆腐になっていないかをコードでは判定しない。`case4-full.png` を人が見る。
 
 ## 既知の事項
 
@@ -148,6 +154,7 @@ timeout 120 <sandbox の絶対パス>/Build/ThemeExp/ThemeExp.exe -screen-fullsc
   そのときは `netstat` で、この Editor が `0.0.0.0:7800`、別の Editor が `127.0.0.1:7800` を同時に listen していた。原因は特定していない。
   回避策は、Pipeline のポートを空いている番号に固定すること。`Window/Pipeline/Settings` で作られる `Assets/Settings/Pipeline/EditorPipelineManager.asset` の `m_Port` に番号を入れて Editor を開き直すと、そのポートで応答する。
   このアセットは手元の設定なので `.gitignore` に入れてある。
+  このアセットを新規に置いた最初の Editor の起動では読まれない（アセットのインポートが Pipeline の起動より後になる）。もう一度開き直す。
 - `LegacyRuntime.ttf`（Unity 組み込み）からは `FontAsset` を作れない。`FontAsset.CreateFontAsset(font, ...)` が `null` を返し
   `Unable to load font face for [LegacyRuntime]. Make sure "Include Font Data" is enabled in the Font Import Settings.` の警告が出る（6000.7.0b2）。
   検証用の `FontAsset` は `Fonts/` の TTF から作る。
