@@ -24,7 +24,7 @@ Assets/Hone/
     Editor/           Hone.Core.Editor.asmdef
   UI/                 registry/UI の手コピー
     Hone.Sandbox.UI.asmdef  sandbox 専用（registry には置かない）。UI には asmdef を置かない規約なので、Gallery と PlayMode テストから参照できるよう、
-                      利用者が自分の asmdef に UI を乗せる形をここで再現する。Hone.Core を参照し、autoReferenced は false（Assembly-CSharp の Experiments に Hone.Button を見せない）
+                      利用者が自分の asmdef に UI を乗せる形をここで再現する。Hone.Core を参照し（Issue #18 の指定。Button.cs は今は Core を使っていない）、autoReferenced は false（Assembly-CSharp の Experiments に Hone.Button を見せない）
     Button/           Hone.Button（Button.cs、Button.uxml、Button.uss、README.md）
   Tokens.uss          registry/Tokens.uss の手コピー
   HoneTheme.tss       registry/HoneTheme.tss の手コピー。差分は末尾の :root（--hone-font-body に Sandbox/Fonts/RobotoMono.asset を指定）だけ。
@@ -43,7 +43,7 @@ Assets/Hone/
     Gallery/          多言語スクリーンショットの撮影基盤。TestStrings.json（スクリプトごとの短文・長文）、Gallery.unity / Gallery.uxml / Gallery.uss、GalleryController、
                       GalleryHoneEntries（Hone.Button と、Core.uss のクラスを付けた列を登録する）、GalleryFocus（ring を写すため最初の .hone-focusable にフォーカスを当てる）、
                       Hone.Sandbox.Gallery.asmdef（Tests/PlayMode が参照する。Hone.Sandbox.UI を参照する）
-    Tests/PlayMode/   PlayMode テスト。ButtonTests、BackStackTests、FocusScopeTests は PanelRenderer を GameObject で作って panel を得る（`UNITY_EDITOR` のときだけコンパイルされる。Editor で実行する）
+    Tests/PlayMode/   PlayMode テスト。BackStackTests、FocusScopeTests、ButtonTests の 1 件（NavigationSubmitEvent）は PanelRenderer を GameObject で作って panel を得る（`UNITY_EDITOR` のときだけコンパイルされる。Editor で実行する）
 ```
 
 `registry/` の内容は手でコピーしている。`hone add` ができたら CLI に置き換える。

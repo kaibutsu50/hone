@@ -1,7 +1,9 @@
-/* 値は全て Tokens.uss のトークン。不透明度は opacity の割合で、トークンを持たない。
+/* 色・角丸・余白・フォントサイズ・枠の太さは Tokens.uss のトークン。opacity の割合と transparent（ghost）はトークンを持たない。
+ * 押下（:active）の opacity は outline / ghost では効かない（それらの :hover の opacity: 1 が同じ詳細度で後ろにあるため）。
  * width は設定しない。min-width と、フォントとテキストに応じた内容の幅で決まる。
  * flex-shrink: 0 なので、横並び（row）の親の中では内容より縮まず、長い文字列は省略記号にならず親からはみ出す。
- * 省略記号が出るのは、親が縦並び（column、align-items: stretch）で幅が決まっているとき。 */
+ * 省略記号が出るのは、親が縦並び（column、align-items: stretch）で幅が決まっているとき（sandbox の Gallery のセルで確認）。
+ * focus ring は border-width を変えるので、フォーカスで大きさが変わる（Core.uss の注記のとおり、測っていない）。 */
 .hone-button {
     background-color: var(--hone-color-primary);
     color: var(--hone-color-primary-foreground);

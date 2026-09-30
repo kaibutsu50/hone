@@ -12,7 +12,7 @@ using Object = UnityEngine.Object;
 namespace Hone.Sandbox.Tests
 {
     // Editor で実行する前提（UXML と PanelSettings を AssetDatabase から読む）。
-    // このファイルの Button は Hone.Button を指す（namespace Hone の中なので、using UnityEngine.UIElements; があっても Hone.Button が勝つ）。
+    // このファイルの Button は Hone.Button を指す（Hone の入れ子の namespace なので、using UnityEngine.UIElements; があっても Hone.Button が勝つ）。
     public class ButtonTests
     {
         const string ButtonUxmlPath = "Assets/Hone/UI/Button/Button.uxml";

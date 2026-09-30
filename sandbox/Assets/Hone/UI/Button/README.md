@@ -33,6 +33,8 @@ using UnityEngine.UIElements;
 using Button = Hone.Button;
 ```
 
+`variant` のクラスは `variant` プロパティで管理する。UXML の `class` 属性やクラスリストの直接操作で `hone-button--*` を付けると、`variant` と見た目が食い違う。
+
 ## headless 層との関係
 
 - `hone-focusable`（`Core.uss`）を付けてあり、フォーカス時の ring は `Core.uss` が描く。Button 側では何も書かない。

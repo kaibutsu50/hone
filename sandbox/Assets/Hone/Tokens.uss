@@ -1,4 +1,4 @@
-/* 色は shadcn の zinc（light）、角丸は shadcn の --radius（0.5rem）を px にしたもの。余白とフォントサイズは Tailwind の既定（4px 刻み、text-sm / base / lg）。
+/* 色は shadcn の zinc（light）、角丸は shadcn の --radius（0.5rem）を px にしたもの。余白とフォントサイズは Tailwind の既定（4px 刻み、text-sm / base / lg）、枠の太さ（--hone-border-width）は 1px。
  * テーマ切替は無く、1 セットのみ。
  * フォントの --hone-font-body は同梱しないのでここには書かない。HoneTheme.tss の :root に利用者が書く。 */
 :root {
