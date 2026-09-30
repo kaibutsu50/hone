@@ -49,3 +49,22 @@
 .gallery-cell > * {
     margin-bottom: 2px;
 }
+
+/* Hone.Dialog の列。Dialog は画面を覆う大きさを前提にしているので、他の列より広い固定幅にする。
+ * 幅は .gallery-tag の min-width（56）+ 2 つの .gallery-dialog（width + margin-right）に余白を足した値。どちらかを変えたら合わせる */
+.gallery-column--hone-dialog {
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: auto;
+    width: 380px;
+}
+
+/* Hone.Dialog のセル。幅は px で確定させる。割合の幅（flex-basis: 0 から伸ばす幅、width: 40% のどちらも）だと、
+ * 中央寄せの content が min-width まで潰れて 1 文字ずつ折り返した（6000.7.0b2）。全面を覆う実際の配置（position: absolute で上下左右 0）では起きない。
+ * 広げるほど他の列が狭くなる。overlay が content の周りに見えるよう余白を空ける */
+.gallery-dialog {
+    width: 160px;
+    flex-shrink: 0;
+    margin-right: 4px;
+    padding: 4px;
+}

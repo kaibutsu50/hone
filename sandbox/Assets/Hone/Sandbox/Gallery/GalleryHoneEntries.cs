@@ -7,7 +7,7 @@ namespace Hone.Sandbox.Gallery
     // Hone.Sandbox.UI を参照すると、namespace Hone の中の Button は Hone.Button を指す。ここの Button は Unity 標準のもの
     using Button = UnityEngine.UIElements.Button;
 
-    // Hone.Button と、Core.uss の .hone-text と .hone-focusable を Gallery に載せる。素の "Label" "Button" の列と並べて、見た目の差を見る。
+    // Hone.Button、Hone.Dialog と、Core.uss の .hone-text と .hone-focusable を Gallery に載せる。素の "Label" "Button" の列と並べて、見た目の差を見る。
     // Register は sandbox 側から呼ぶ（registry/ 配下のコードには書かない）。呼ぶ時点は README の Gallery の節を参照。
     static class GalleryHoneEntries
     {
@@ -35,6 +35,32 @@ namespace Hone.Sandbox.Gallery
                 var button = new Button { text = text };
                 button.AddToClassList("hone-focusable");
                 return button;
+            });
+            // 開いた状態の Hone.Dialog。文字列はタイトルと本文に入れ、ボタンは短い固定文字列にする（Button は縮まず折り返さないため）。
+            // Dialog は親の全面を覆う absolute なので、セルの中では relative にして内容の高さで並べる。
+            // Open() は panel に attach されてから呼ぶ（attach 前だと初期フォーカスが当たらない）。
+            // 開くたびにその Dialog の Cancel へフォーカスが移り、全セルの Dialog が BackStack に積まれる（Cancel を押すと 1 つずつ閉じる）。
+            // 撮影の ring は GalleryFocus が後から最初の .hone-focusable に当て直す
+            GalleryController.Register("Hone.Dialog", text =>
+            {
+                var dialog = new Dialog();
+                dialog.AddToClassList("gallery-dialog");
+                dialog.style.position = Position.Relative;
+                var title = new Label(text);
+                title.AddToClassList("hone-dialog__title");
+                title.AddToClassList("hone-text");
+                dialog.Add(title);
+                var description = new Label(text);
+                description.AddToClassList("hone-dialog__description");
+                description.AddToClassList("hone-text");
+                dialog.Add(description);
+                var footer = new VisualElement();
+                footer.AddToClassList("hone-dialog__footer");
+                footer.Add(new Hone.Button { text = "Cancel", variant = Hone.Button.Variant.Outline });
+                footer.Add(new Hone.Button { text = "OK" });
+                dialog.Add(footer);
+                dialog.RegisterCallbackOnce<AttachToPanelEvent>(evt => dialog.Open());
+                return dialog;
             });
         }
     }

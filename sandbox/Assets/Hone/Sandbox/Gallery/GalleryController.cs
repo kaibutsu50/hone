@@ -86,6 +86,8 @@ namespace Hone.Sandbox.Gallery
             {
                 var column = new VisualElement();
                 column.AddToClassList("gallery-column");
+                // 列ごとに幅を変えるためのクラス。name の "." を "-" にして小文字にする（例: Hone.Dialog → gallery-column--hone-dialog）
+                column.AddToClassList(ColumnClass(entry.Name));
 
                 var heading = new Label(entry.Name);
                 heading.AddToClassList("gallery-heading");
@@ -108,6 +110,8 @@ namespace Hone.Sandbox.Gallery
                 container.Add(column);
             }
         }
+
+        public static string ColumnClass(string name) => "gallery-column--" + name.Replace('.', '-').ToLowerInvariant();
 
         static VisualElement Create(Entry entry, string text)
         {

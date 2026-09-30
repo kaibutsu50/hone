@@ -156,6 +156,52 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual(0, focusOuts, "the focus must not move at all");
         }
 
+        // scope を contentContainer にした要素。Add() した子の parent（論理上の親）はこの要素になり、scope を飛ばす
+        class ScopeHost : VisualElement
+        {
+            public readonly FocusScope Scope = new FocusScope { name = "hosted-scope", trap = true, autoFocus = false };
+            public override VisualElement contentContainer => Scope;
+            public ScopeHost() => hierarchy.Add(Scope);
+        }
+
+        // scope が他の要素の contentContainer でも、その要素に Add() した子から外側へ押して scope の中に留まる
+        [UnityTest]
+        public IEnumerator Trap_AsContentContainer_StaysInScope()
+        {
+            Fixture f = null;
+            yield return BuildFixture(x => f = x);
+            var host = new ScopeHost();
+            var inner1 = new Button { name = "hosted-1", text = "hosted-1" };
+            var inner2 = new Button { name = "hosted-2", text = "hosted-2" };
+            host.Add(inner1);
+            host.Add(inner2);
+            // out-top の下、scope の上に置く。既定のナビなら hosted-1 から Up / Previous で out-top へ、hosted-2 から Down / Next で scope の in-1 へ出る
+            f.Root.Insert(1, host);
+            yield return WaitForLayout(inner1, inner2);
+            Assert.AreSame(host, inner1.parent, "the logical parent must skip the scope for this test to mean anything");
+
+            yield return FocusAndWait(f, inner1);
+            foreach (var direction in new[] { NavigationMoveEvent.Direction.Up, NavigationMoveEvent.Direction.Previous })
+            {
+                SendMove(inner1, direction);
+                yield return null;
+                Assert.AreSame(inner1, f.Focused, $"{direction} from the first element must not leave the scope");
+            }
+
+            yield return FocusAndWait(f, inner2);
+            foreach (var direction in new[] { NavigationMoveEvent.Direction.Down, NavigationMoveEvent.Direction.Next })
+            {
+                SendMove(inner2, direction);
+                yield return null;
+                Assert.AreSame(inner2, f.Focused, $"{direction} from the last element must not leave the scope");
+            }
+
+            // handler が生きていて、中では動くこと
+            SendMove(inner2, NavigationMoveEvent.Direction.Up);
+            yield return null;
+            Assert.AreSame(inner1, f.Focused);
+        }
+
         [UnityTest]
         public IEnumerator Trap_WithNeighbor_MovesToNeighbor()
         {

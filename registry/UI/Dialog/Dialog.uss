@@ -1,0 +1,65 @@
+/* 色・角丸・余白・フォントサイズ・枠の太さ・content の最大幅は Tokens.uss のトークン。幅の割合（%）と、タイトルの太字（-unity-font-style: bold）はトークンを持たない。
+ * Dialog は親の全面を覆う（position: absolute で上下左右 0）。panel 全体を覆うには、root の直下の最後の子に置く（後ろの兄弟は Dialog の上に描かれる）。
+ * content は flex で中央に置く。幅は親の 90% と --hone-size-dialog の小さい方（shadcn の w-full max-w-lg に相当。USS に calc() と min() は無いので、width と max-width を重ねる）。高さは内容に従う。
+ * 開閉は Dialog.cs が inline の display で切り替える。ここでは display を書かない。 */
+.hone-dialog {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    justify-content: center;
+    align-items: center;
+}
+
+.hone-dialog__overlay {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background-color: var(--hone-color-overlay);
+}
+
+.hone-dialog__content {
+    width: 90%;
+    max-width: var(--hone-size-dialog);
+    padding: var(--hone-space-6);
+    background-color: var(--hone-color-background);
+    border-width: var(--hone-border-width);
+    border-color: var(--hone-color-border);
+    border-radius: var(--hone-radius-lg);
+}
+
+/* 既定の Label は折り返さない（white-space: nowrap）。長文で横にはみ出さないよう折り返す */
+.hone-dialog__title {
+    font-size: var(--hone-font-size-lg);
+    -unity-font-style: bold;
+    color: var(--hone-color-foreground);
+    white-space: normal;
+    margin-bottom: var(--hone-space-2);
+}
+
+.hone-dialog__description {
+    font-size: var(--hone-font-size-sm);
+    color: var(--hone-color-muted-foreground);
+    white-space: normal;
+}
+
+/* Hone.Button は縮まない（Button.uss の flex-shrink: 0）ので、幅が足りないときは折り返して次の行に並べる */
+.hone-dialog__footer {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    margin-top: var(--hone-space-4);
+}
+
+.hone-dialog__footer > * {
+    margin-left: var(--hone-space-2);
+}
+
+/* opt-in。backdrop-filter は URP のみ、Screen Space のみで、World Space では効かない。既定の見た目には使わない。
+ * USS の var() は blur() の中に書けないので、トークンに blur() の完成形を置く */
+.hone-dialog--blur > .hone-dialog__overlay {
+    backdrop-filter: var(--hone-backdrop-blur);
+}

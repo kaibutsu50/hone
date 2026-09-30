@@ -5,7 +5,8 @@ namespace Hone.Core
 {
     // 子孫へのフォーカス移動の限定（trap）と、初期フォーカス・復元。Dialog の open / close から Activate / Deactivate を呼ぶ。
     // autoFocus が true なら、panel に attach された時にも Activate が呼ばれる。Deactivate は自動では呼ばれないので、復元は利用側が呼ぶ。
-    // Dialog 以外（グルーピングだけ）で置くときは autoFocus を false にする。true のままだと attach のたびに最初の子孫へフォーカスを移す。
+    // 最初から表示されていない場所（閉じた Dialog の中など）や、グルーピングだけで置くときは autoFocus を false にする。
+    // true のままだと attach のたびに最初の子孫へフォーカスを移す（canGrabFocus は祖先の display を見ないので、隠れていても移る）。
     // UXML では C# の namespace を宣言して書く: xmlns:core="Hone.Core" のうえで <core:FocusScope trap="true" auto-focus="false">
     //
     // trap の方式: scope のルートで NavigationMoveEvent を TrickleDown で受け、IgnoreEvent で既定の移動を止め、同じ handler の中で次の要素に Focus() する。
@@ -86,10 +87,11 @@ namespace Hone.Core
             FindNext(target, evt.direction)?.Focus();
         }
 
-        // target を含む trap の scope のうち、最も内側が this か。入れ子のとき外側が先に動かさないため
+        // target を含む trap の scope のうち、最も内側が this か。入れ子のとき外側が先に動かさないため。
+        // 祖先は hierarchy.parent で辿る。parent は論理上の親で、scope を contentContainer にした要素（Dialog など）の子からは scope を飛ばす
         bool IsInnermostTrap(VisualElement target)
         {
-            for (var e = target; e != null; e = e.parent)
+            for (var e = target; e != null; e = e.hierarchy.parent)
             {
                 if (e is FocusScope scope && scope.trap)
                     return scope == this;
@@ -101,10 +103,10 @@ namespace Hone.Core
         VisualElement FindNext(VisualElement target, NavigationMoveEvent.Direction direction)
         {
             var candidates = CollectCandidates();
-            // target が候補の内側（TextField の入力部分など）のとき、その候補を現在地とみなす
+            // target が候補の内側（TextField の入力部分など）のとき、その候補を現在地とみなす。祖先は IsInnermostTrap と同じく hierarchy.parent で辿る
             var current = target;
             while (current != null && current != this && !candidates.Contains(current))
-                current = current.parent;
+                current = current.hierarchy.parent;
             var index = current == null || current == this ? -1 : candidates.IndexOf(current);
 
             if (direction == NavigationMoveEvent.Direction.Next || direction == NavigationMoveEvent.Direction.Previous)

@@ -1,0 +1,10 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:hone="Hone">
+    <hone:Dialog name="dialog">
+        <ui:Label class="hone-dialog__title hone-text" text="Delete this item?" />
+        <ui:Label class="hone-dialog__description hone-text" text="This action cannot be undone." />
+        <ui:VisualElement class="hone-dialog__footer">
+            <hone:Button name="cancel" variant="outline" text="Cancel" />
+            <hone:Button name="ok" text="OK" />
+        </ui:VisualElement>
+    </hone:Dialog>
+</ui:UXML>

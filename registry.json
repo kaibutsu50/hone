@@ -36,6 +36,21 @@
       "classes": ["Hone.Button"]
     },
     {
+      "name": "Dialog",
+      "type": "registry:ui",
+      "title": "Dialog",
+      "description": "フォーカスの trap と復元、Cancel で閉じる動作を FocusScope と BackStack に委ねたダイアログ",
+      "files": [
+        { "path": "UI/Dialog/Dialog.cs", "type": "registry:ui" },
+        { "path": "UI/Dialog/Dialog.uxml", "type": "registry:ui" },
+        { "path": "UI/Dialog/Dialog.uss", "type": "registry:ui" },
+        { "path": "UI/Dialog/README.md", "type": "registry:ui" }
+      ],
+      "registryDependencies": ["Core", "Button"],
+      "dependencies": [],
+      "classes": ["Hone.Dialog"]
+    },
+    {
       "name": "Default",
       "type": "registry:theme",
       "title": "Default",
