@@ -1,15 +1,13 @@
-import { mkdtemp, mkdir, readFile, readdir, rm, stat, utimes, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { pathToFileURL } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { HoneError } from "../src/errors.js";
 import { runInit } from "../src/init.js";
+import { listFiles, makeUnityProject as makeProject, repoRoot } from "./helpers.js";
 
 // テスト名の (A)〜(D) は Issue #20 の受け入れ条件の記号
-
-// リポジトリのルート（registry.json と registry/ がある階層）。ローカル registry として使う
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 let tmp: string;
 
@@ -21,20 +19,7 @@ afterEach(async () => {
   await rm(tmp, { recursive: true, force: true, maxRetries: 3 });
 });
 
-async function makeUnityProject(): Promise<string> {
-  const root = path.join(tmp, "project");
-  await mkdir(path.join(root, "Assets"), { recursive: true });
-  await mkdir(path.join(root, "ProjectSettings"), { recursive: true });
-  return root;
-}
-
-async function listFiles(dir: string): Promise<string[]> {
-  const entries = await readdir(dir, { recursive: true, withFileTypes: true });
-  return entries
-    .filter((e) => e.isFile())
-    .map((e) => path.relative(dir, path.join(e.parentPath, e.name)).split(path.sep).join("/"))
-    .sort();
-}
+const makeUnityProject = () => makeProject(tmp);
 
 // registry.json と registry/ を持つ最小のローカル registry を作る
 async function makeRegistry(
