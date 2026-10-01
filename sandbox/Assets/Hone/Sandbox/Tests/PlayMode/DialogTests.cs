@@ -21,6 +21,7 @@ namespace Hone.Sandbox.Tests
     {
         const string DialogUxmlPath = "Assets/Hone/UI/Dialog/Dialog.uxml";
         const string PanelSettingsPath = "Assets/Hone/Sandbox/PanelSettings.asset";
+        const string WorldSpacePanelSettingsPath = "Assets/Hone/Sandbox/WorldSpacePanelSettings.asset";
         const string SandboxUxmlPath = "Assets/Hone/Sandbox/Sandbox.uxml";
         const int MaxWaitFrames = 60;
 
@@ -45,18 +46,36 @@ namespace Hone.Sandbox.Tests
             m_Created.Clear();
         }
 
+        // Screen Space の panel（PanelSettings.asset）
+        IEnumerator CreatePanel(Action<VisualElement> onReady) => CreatePanel(PanelSettingsPath, false, onReady);
+
+        // World Space の panel（WorldSpacePanelSettings.asset、worldSpaceSizeMode = Fixed の 1920×1080）。
+        // SendEvent で送るので入力経路（PanelInputConfiguration、EventSystem）は通らない。要素の生成・表示・イベント配送が World Space の panel 上で動くことだけを確かめる
+        IEnumerator CreateWorldSpacePanel(Action<VisualElement> onReady) => CreatePanel(WorldSpacePanelSettingsPath, true, onReady);
+
         // PanelRenderer を 1 つ作り、UI が読み込まれたら root を返す。
-        // PanelSettings の複製ごとに別の panel になる。同じ asset を共有すると panel とそのフォーカス・BackStack の状態がテスト間で残る
-        IEnumerator CreatePanel(Action<VisualElement> onReady)
+        // PanelSettings の複製ごとに別の panel になる。同じ asset を共有すると panel とそのフォーカス・BackStack の状態がテスト間で残る。
+        // asset の Render Mode が worldSpace と食い違っていたら落とす（World Space のテストが Screen Space の panel で黙って通らないように）
+        IEnumerator CreatePanel(string panelSettingsPath, bool worldSpace, Action<VisualElement> onReady)
         {
-            var panelSettings = Object.Instantiate(AssetDatabase.LoadAssetAtPath<PanelSettings>(PanelSettingsPath));
+            var source = AssetDatabase.LoadAssetAtPath<PanelSettings>(panelSettingsPath);
+            Assert.IsNotNull(source, $"{panelSettingsPath} was not found");
+            Assert.AreEqual(worldSpace ? PanelRenderMode.WorldSpace : PanelRenderMode.ScreenSpaceOverlay, source.renderMode, $"{panelSettingsPath} has an unexpected render mode");
+            var uxml = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(SandboxUxmlPath);
+            Assert.IsNotNull(uxml, $"{SandboxUxmlPath} was not found");
+            var panelSettings = Object.Instantiate(source);
             m_Created.Add(panelSettings);
             var go = new GameObject("DialogTests");
             m_Created.Add(go);
             go.SetActive(false);
             var panelRenderer = go.AddComponent<PanelRenderer>();
             panelRenderer.panelSettings = panelSettings;
-            panelRenderer.visualTreeAsset = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(SandboxUxmlPath);
+            panelRenderer.visualTreeAsset = uxml;
+            if (worldSpace)
+            {
+                panelRenderer.worldSpaceSizeMode = WorldSpaceSizeMode.Fixed;
+                panelRenderer.worldSpaceSize = new Vector2(1920, 1080);
+            }
             VisualElement root = null;
             panelRenderer.RegisterUIReloadCallback((renderer, element, version) => root = element);
             go.SetActive(true);
@@ -84,15 +103,19 @@ namespace Hone.Sandbox.Tests
                 Assert.Greater(e.worldBound.height, 0f, $"{e.name} was not laid out within {MaxWaitFrames} frames");
         }
 
-        IEnumerator BuildFixture(Action<Fixture> onReady)
+        IEnumerator BuildFixture(Action<Fixture> onReady, bool worldSpace = false)
         {
             var f = new Fixture();
-            yield return CreatePanel(r => f.Root = r);
+            yield return worldSpace ? CreateWorldSpacePanel(r => f.Root = r) : CreatePanel(r => f.Root = r);
             f.Outside1 = new Button { name = "outside-1", text = "outside-1" };
             f.Outside2 = new Button { name = "outside-2", text = "outside-2" };
             f.Root.Add(f.Outside1);
             f.Root.Add(f.Outside2);
             yield return WaitForLayout(f.Outside1, f.Outside2);
+            // Fixed の size が効いていること（効いていなければ root が中身の大きさに縮み、overlay の大きさが変わる）。
+            // World Space では panel の visualTree の layout は 0×0 のままで、PanelRenderer の root が worldSpaceSize になる（6000.7.0b2 の実測）
+            if (worldSpace)
+                Assert.AreEqual(new Vector2(1920, 1080), f.Root.layout.size, "the World Space root is not 1920x1080");
             onReady(f);
         }
 
@@ -139,6 +162,7 @@ namespace Hone.Sandbox.Tests
         }
 
         // overlay を押して離す。配送先は target の指定で決まる（座標は、位置から拾い直されても overlay に当たるよう左上の内側にしてある）。
+        // World Space の panel では worldBound が world 単位なので、+2 は約 200 px 内側になる。overlay は panel 全面なので、それでも overlay の内側に収まる。
         // 押したままにすると、ポインタの押下状態が後のテストに残るので、PointerUp も送る
         static void Click(VisualElement target)
         {
@@ -172,10 +196,16 @@ namespace Hone.Sandbox.Tests
 
         // (A) Open() すると content 内の最初の Button にフォーカスが当たる
         [UnityTest]
-        public IEnumerator Open_FocusesFirstButton()
+        public IEnumerator Open_FocusesFirstButton() => OpenFocusesFirstButton(false);
+
+        // (A) を World Space の panel で回す
+        [UnityTest]
+        public IEnumerator Open_FocusesFirstButton_WorldSpace() => OpenFocusesFirstButton(true);
+
+        IEnumerator OpenFocusesFirstButton(bool worldSpace)
         {
             Fixture f = null;
-            yield return BuildFixture(x => f = x);
+            yield return BuildFixture(x => f = x, worldSpace);
             var dialog = AddDialog(f.Root);
             yield return FocusAndWait(f, f.Outside1);
             var opened = 0;
@@ -294,10 +324,16 @@ namespace Hone.Sandbox.Tests
 
         // (F) dismissOnOverlay = true なら overlay を押すと閉じる。dismissOnOverlay = false なら閉じない
         [UnityTest]
-        public IEnumerator OverlayPointerDown_ClosesOnlyWhenDismissOnOverlay()
+        public IEnumerator OverlayPointerDown_ClosesOnlyWhenDismissOnOverlay() => OverlayPointerDownClosesOnlyWhenDismissOnOverlay(false);
+
+        // (F) を World Space の panel で回す
+        [UnityTest]
+        public IEnumerator OverlayPointerDown_ClosesOnlyWhenDismissOnOverlay_WorldSpace() => OverlayPointerDownClosesOnlyWhenDismissOnOverlay(true);
+
+        IEnumerator OverlayPointerDownClosesOnlyWhenDismissOnOverlay(bool worldSpace)
         {
             Fixture f = null;
-            yield return BuildFixture(x => f = x);
+            yield return BuildFixture(x => f = x, worldSpace);
             var dialog = AddDialog(f.Root);
             var overlay = dialog.Q(className: "hone-dialog__overlay");
             Assert.IsNotNull(overlay, "no element with class 'hone-dialog__overlay'");

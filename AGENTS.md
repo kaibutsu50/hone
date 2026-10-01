@@ -10,7 +10,8 @@ Unity UI Toolkit 向けの、shadcn/ui 方式の UI コンポーネント集。
 
 - UI Toolkit のみ。uGUI は対象外。
 - 基準バージョンは Unity 6.7 LTS。6.7 LTS が出るまでは 6000.7 系の最新 alpha で検証する。Unity 7 は 6.7 の直接の継続と公式に宣言されているため、6.7 対応が Unity 7 対応を意味する。
-- 平面のランタイム UI を対象とする。Editor 拡張は対象外。XR 固有の対応は後回しだが、World Space で壊れる設計は禁止する（後述の DO NOT を参照）。
+- 平面のランタイム UI を対象とする。Editor 拡張は対象外。
+  World Space の panel を第一級の検証対象にする。World Space では panel が画面全体ではなく、1 つのダイアログや部品の大きさで置かれることが多い。コンポーネントは sandbox の World Space の Gallery とテストを通してから出す。XR 固有の入力（レイ、ハンド）は扱わないが、入力経路は World Space でも `PanelInputConfiguration` + EventSystem の同じ経路なので、マウスで通れば同じに扱う。
 - Advanced Text Generator がランタイム既定である前提で組む。static な FontAsset は存在しないものとして扱う。
 
 ## リポジトリ構成
@@ -113,6 +114,8 @@ UI Toolkit のランタイムが既定でやらないことが、そのまま `H
 - `UxmlTraits` `UxmlFactory` を使わない。6.6 で削除済み。`[UxmlElement]` と `[UxmlAttribute]` のみ。
 - コンポーネントの USS に実値を書かない。トークン参照のみ。
 - block に振る舞いを実装しない。必要なら振る舞いをプリミティブに切り出す。
+- Screen Space でしか成立しない構造（panel 全面の overlay、panel 中央への配置、`backdrop-filter`）をコンポーネントの既定にしない。World Space では panel 自体が部品の大きさになる。必要なら opt-in の variant にする。
+- 特定のプロジェクトの見た目や画面構成に合わせた既定を作らない。既定の見た目は shadcn の既定に準じる。どの部品を作るかの優先順位を実プロジェクトの需要で決めるのはよいが、部品の構造・variant・トークンをそのプロジェクトに寄せない。寄せるのは利用者がコピーした後に自分のファイルで行う。
 - 「便利そうだから」で API を増やさない。shadcn と同じく、利用者がコピーして自分で書き換える前提なので、薄いほど価値がある。
 
 ## 各コンポーネントに同梱するもの
@@ -126,3 +129,4 @@ UI Toolkit のランタイムが既定でやらないことが、そのまま `H
 
 - 未検証の Unity 挙動を前提に設計しない。ドキュメントが沈黙している事項は sandbox で実験し、結果を Issue か PR に記録する。
 - Unity のバージョン差で挙動が変わる。調査結果には対象バージョンを必ず添える。
+- 見た目の変更を伴う PR は、Screen Space と World Space の両方の Gallery のスクリーンショットを添付する。
