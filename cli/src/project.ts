@@ -102,3 +102,65 @@ export async function createFile(
     );
   }
 }
+
+export function shownPath(cwd: string, file: string): string {
+  return path.relative(cwd, file).split(path.sep).join("/");
+}
+
+// init が作るファイル。無ければ init が済んでいない
+export async function readInitFile(file: string, cwd: string): Promise<string> {
+  try {
+    return await readFile(file, "utf8");
+  } catch (e) {
+    const shown = shownPath(cwd, file);
+    if (errorCode(e) === "ENOENT") {
+      throw new HoneError(`${shown} がありません。先に \`hone init\` を実行してください`, {
+        cause: e,
+      });
+    }
+    throw new HoneError(`${shown} を読めませんでした（${reason(e)}）`, { cause: e });
+  }
+}
+
+export function parseManifest(
+  text: string,
+  shown: string,
+): { json: Record<string, unknown>; components: string[]; fonts: unknown[] } {
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch (e) {
+    throw new HoneError(`${shown} を JSON として読めませんでした（${reason(e)}）`, { cause: e });
+  }
+  if (typeof json !== "object" || json === null || Array.isArray(json)) {
+    throw new HoneError(`${shown} は JSON のオブジェクトである必要があります`);
+  }
+  const { components = [], fonts = [] } = json as { components?: unknown; fonts?: unknown };
+  if (!Array.isArray(components) || !components.every((c) => typeof c === "string")) {
+    throw new HoneError(`${shown} の components は文字列の配列である必要があります`);
+  }
+  if (!Array.isArray(fonts)) {
+    throw new HoneError(`${shown} の fonts は配列である必要があります`);
+  }
+  return { json: json as Record<string, unknown>, components, fonts };
+}
+
+// 既存ファイルの更新（theme と manifest。内容が変わるときだけ呼ぶ）。非原子的な書き込みで、
+// 失敗したときはファイルが途中までの内容になっている可能性がある
+export async function overwrite(
+  file: string,
+  text: string,
+  log: (message: string) => void,
+  cwd: string,
+): Promise<void> {
+  const shown = shownPath(cwd, file);
+  try {
+    await writeFile(file, text);
+  } catch (e) {
+    throw new HoneError(
+      `書き込みに失敗しました（${reason(e)}）: ${shown}。ここまでに作成・更新したファイルは残っています。このファイルの内容を確認してから、もう一度実行してください`,
+      { cause: e },
+    );
+  }
+  log(`更新: ${shown}`);
+}

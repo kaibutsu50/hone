@@ -106,7 +106,7 @@ UI Builder からは、Library の Project タブに `Hone` 配下として現�
 
 ### 4. フォントの追加
 
-日本語を表示するプロジェクトでは必須の手順。Unity 6.5 以降の Advanced Text Generator は、
+日本語・中国語・韓国語（CJK）を表示するプロジェクトでは必須の手順。Unity 6.5 以降の Advanced Text Generator は、
 fallback が空のまま未収録文字に当たると OS フォントの全列挙が走り、フリーズする報告がある。
 
 ```bash
@@ -115,15 +115,16 @@ npx @kaibutsu50/hone add font ja
 
 CLI が行うこと。
 
-- Noto Sans JP（OFL）を取得し、`Assets/Hone/Fonts/NotoSansJP/` にライセンスごと置く
-- `hone.manifest.json` にフォントの項目を追記する
+- Noto Sans JP（OFL）を GitHub のリリース（タグ固定）から取得し、`Assets/Hone/Fonts/NotoSansJP/` に Regular と Bold の `.otf` とライセンス（`LICENSE.txt`）を置く
+- `hone.manifest.json` の `fonts` に項目を追記する
+- 取得したファイルは `~/.cache/hone/fonts/` に残す。キャッシュがあればネットワークなしで置ける。配置先に 3 ファイル（Regular、Bold、`LICENSE.txt`）が名前で全部揃っていれば取得しない（内容は比べない。既にあるファイルは上書きしない）
 
 Unity に戻り、`Hone > Sync` を実行する。Sync が行うこと。
 
 - 置かれたフォントから Dynamic モードの `FontAsset` を生成する
 - `PanelTextSettings` の Fallback Font Assets に追加する
 
-`ko` `zh-hans` `zh-hant` `ar` `th` も同じ手順。複数を足すとフォールバック連鎖になる。
+`ko`（Noto Sans KR）`zh-hans`（Noto Sans SC）`zh-hant`（Noto Sans TC）`ar`（Noto Sans Arabic）`th`（Noto Sans Thai）も同じ手順。`lang` の大文字小文字は区別しない。`add font ja ko` のように複数を一度に指定できる。複数を足すとフォールバック連鎖になる。
 
 ### 5. 本文フォントの指定
 
