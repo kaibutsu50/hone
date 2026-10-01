@@ -1,13 +1,18 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { errorCode, HoneError, reason } from "./errors.js";
+import { HoneError, reason } from "./errors.js";
+import { runAddFont } from "./font.js";
 import {
   assertSafeRelativePath,
   createFile,
   isDirectory,
   isFile,
+  overwrite,
+  parseManifest,
   readHoneJson,
+  readInitFile,
   resolveOutput,
+  shownPath,
   toJson,
 } from "./project.js";
 import {
@@ -26,12 +31,20 @@ export interface AddOptions {
   cwd: string;
   names: string[];
   fetch?: FetchLike;
+  // add font のダウンロードのキャッシュ先。省略すると ~/.cache/hone/fonts
+  cacheDir?: string;
   log?: (message: string) => void;
 }
 
 export async function runAdd(options: AddOptions): Promise<void> {
   const { cwd, names } = options;
   const log = options.log ?? console.log;
+
+  // `add font <lang...>` は registry の項目ではない。registry の照合より前に分ける
+  if (names[0]?.toLowerCase() === "font") {
+    await runAddFont({ ...options, langs: names.slice(1) });
+    return;
+  }
 
   const config = await readHoneJson(path.join(cwd, "hone.json"));
   if (!config) {
@@ -125,45 +138,6 @@ function resolveItems(registry: Registry, requested: Set<RegistryItem>): Registr
   return ordered;
 }
 
-function shownPath(cwd: string, file: string): string {
-  return path.relative(cwd, file).split(path.sep).join("/");
-}
-
-// init が作るファイル。無ければ init が済んでいない
-async function readInitFile(file: string, cwd: string): Promise<string> {
-  try {
-    return await readFile(file, "utf8");
-  } catch (e) {
-    const shown = shownPath(cwd, file);
-    if (errorCode(e) === "ENOENT") {
-      throw new HoneError(`${shown} がありません。先に \`hone init\` を実行してください`, {
-        cause: e,
-      });
-    }
-    throw new HoneError(`${shown} を読めませんでした（${reason(e)}）`, { cause: e });
-  }
-}
-
-function parseManifest(
-  text: string,
-  shown: string,
-): { json: Record<string, unknown>; components: string[] } {
-  let json: unknown;
-  try {
-    json = JSON.parse(text);
-  } catch (e) {
-    throw new HoneError(`${shown} を JSON として読めませんでした（${reason(e)}）`, { cause: e });
-  }
-  if (typeof json !== "object" || json === null || Array.isArray(json)) {
-    throw new HoneError(`${shown} は JSON のオブジェクトである必要があります`);
-  }
-  const components = (json as { components?: unknown }).components ?? [];
-  if (!Array.isArray(components) || !components.every((c) => typeof c === "string")) {
-    throw new HoneError(`${shown} の components は文字列の配列である必要があります`);
-  }
-  return { json: json as Record<string, unknown>, components };
-}
-
 // theme の最後の @import 行の直後に、まだ無い @import url("<path>"); を挿入した全文を返す。既存の行は書き換えない。
 // 同じ USS を指す @import が既にあれば（引用符や空白の違いを問わず）挿入しない。
 // @import は :root などの規則より前に置く（CSS と同じ規則に合わせる。Unity の挙動は確かめていない）ので、末尾には足さない。
@@ -201,26 +175,6 @@ function insertImports(theme: string, paths: string[]): string {
   const eol = theme.includes("\r\n") ? "\r\n" : "\n";
   const lines = fresh.map((p) => `${eol}@import url("${p}");`).join("");
   return theme.slice(0, lastEnd) + lines + theme.slice(lastEnd);
-}
-
-// 既存ファイルの更新（theme と manifest。内容が変わるときだけ呼ぶ）。非原子的な書き込みで、
-// 失敗したときはファイルが途中までの内容になっている可能性がある
-async function overwrite(
-  file: string,
-  text: string,
-  log: (message: string) => void,
-  cwd: string,
-): Promise<void> {
-  const shown = shownPath(cwd, file);
-  try {
-    await writeFile(file, text);
-  } catch (e) {
-    throw new HoneError(
-      `書き込みに失敗しました（${reason(e)}）: ${shown}。ここまでに作成・更新したファイルは残っています。このファイルの内容を確認してから、もう一度実行してください`,
-      { cause: e },
-    );
-  }
-  log(`更新: ${shown}`);
 }
 
 // UPM のパッケージは入れない。Packages/manifest.json の dependencies（直接の依存）に無ければ警告するだけ

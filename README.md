@@ -115,15 +115,16 @@ npx @kaibutsu50/hone add font ja
 
 CLI が行うこと。
 
-- Noto Sans JP（OFL）を取得し、`Assets/Hone/Fonts/NotoSansJP/` にライセンスごと置く
-- `hone.manifest.json` にフォントの項目を追記する
+- Noto Sans JP（OFL）を GitHub のリリース（タグ固定）から取得し、`Assets/Hone/Fonts/NotoSansJP/` に Regular と Bold の `.otf` とライセンス（`LICENSE.txt`）を置く
+- `hone.manifest.json` の `fonts` に項目を追記する
+- 取得したファイルは `~/.cache/hone/fonts/` に残す。キャッシュがあればネットワークなしで置ける。配置先に同じファイルが全部あれば取得しない（既にあるファイルは上書きしない）
 
 Unity に戻り、`Hone > Sync` を実行する。Sync が行うこと。
 
 - 置かれたフォントから Dynamic モードの `FontAsset` を生成する
 - `PanelTextSettings` の Fallback Font Assets に追加する
 
-`ko` `zh-hans` `zh-hant` `ar` `th` も同じ手順。複数を足すとフォールバック連鎖になる。
+`ko`（Noto Sans KR）`zh-hans`（SC）`zh-hant`（TC）`ar`（Arabic）`th`（Thai）も同じ手順。`add font ja ko` のように複数を一度に指定できる。複数を足すとフォールバック連鎖になる。
 
 ### 5. 本文フォントの指定
 
