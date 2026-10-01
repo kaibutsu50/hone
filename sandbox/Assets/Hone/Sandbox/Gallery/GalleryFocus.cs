@@ -8,6 +8,7 @@ namespace Hone.Sandbox.Gallery
     // 待ち時間は経験値で、これより短くて足りるかは確かめていない（読み込み時と言語の切り替え時の両方で、Build と Dialog の Open() がこの間に終わる前提）。
     // 対象が無い、またはフォーカスが移らなかったときは LogError を出す（ring が写っていない画像を黙って撮らないため）。
     [RequireComponent(typeof(PanelRenderer))]
+    [RequireComponent(typeof(GalleryController))]
     public class GalleryFocus : MonoBehaviour
     {
         const long DelayMilliseconds = 200;
@@ -38,6 +39,9 @@ namespace Hone.Sandbox.Gallery
             // フォーカス変更は非同期なので、確かめるのも後回しにする
             root.schedule.Execute(() =>
             {
+                // 待つ間に言語が切り替わると、target は作り直しで panel から外れる。次の FocusFirst が当て直すので、ここでは確かめない
+                if (target.panel == null)
+                    return;
                 if (target.focusController?.focusedElement != target)
                     Debug.LogError("Gallery: the first '.hone-focusable' did not get focus", this);
             }).ExecuteLater(DelayMilliseconds);

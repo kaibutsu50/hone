@@ -155,7 +155,23 @@ namespace Hone.Sandbox.Tests
         [TestCase("{\"ja\": {\"name\": 1, \"short\": \"a\", \"long\": \"b\"}}")]
         public void ParseTestStrings_MissingOrNonStringValue_ThrowsFormatException(string json)
         {
-            Assert.Throws<FormatException>(() => GalleryController.ParseTestStrings(json));
+            var e = Assert.Throws<FormatException>(() => GalleryController.ParseTestStrings(json));
+            StringAssert.Contains("'ja'", e.Message);
+        }
+
+        [Test]
+        public void Build_WithPick_PutsBaseRowThenSelectedRow()
+        {
+            const string name = "GalleryControllerTests.Pick";
+            Register(name, text => new Label(text));
+            var container = new VisualElement();
+
+            GalleryController.Build(container, GalleryController.Pick(LoadTestStrings(), "ko"));
+
+            // 他の登録（Label、Button、Hone の列）も static に残っているので、この name の列だけを見る
+            var column = container.Q(className: GalleryController.ColumnClass(name));
+            var tags = column.Query<Label>(className: "gallery-tag").ToList().Select(l => l.text).ToList();
+            CollectionAssert.AreEqual(new[] { "en", "ko" }, tags);
         }
 
         [Test]
