@@ -112,6 +112,7 @@ Hone のコンポーネントを載せるときは、`Register` を **sandbox �
 
 ```bash
 unity command open_scene --path Assets/Hone/Sandbox/Gallery/Gallery.unity --project-path <sandbox の絶対パス>
+unity command set_active --target '{"hierarchyPath":"PanelRendererWorldSpace"}' --active false --project-path <sandbox の絶対パス>
 unity command editor_play --project-path <sandbox の絶対パス>
 MSYS_NO_PATHCONV=1 unity command capture_game_view --source screen --width 1920 --height 1080 --format json --project-path <sandbox の絶対パス> > <json の絶対パス>
 python -c "import json,base64; t=open(r'<json の絶対パス>',encoding='utf-8').read(); d=json.loads(t[t.index('{'):]); open(r'<sandbox の絶対パス>/Screenshots/gallery.png','wb').write(base64.b64decode(d['data']['result']['base64']))"
@@ -126,8 +127,8 @@ gh attach --key <ブランチ名> <sandbox の絶対パス>/Screenshots/gallery.
 
 `Gallery.unity` の `PanelRenderer`（Screen Space）と `PanelRendererWorldSpace`（World Space）は、同じ `Gallery.uxml`、`GalleryController`、`GalleryFocus` を持つ。
 World Space 側は `WorldSpacePanelSettings.asset`、`worldSpaceSizeMode = Fixed`、size 1920×1080、位置 (0, 1, 0)（Main Camera の (0, 1, -10) の正面。距離 10 で Game view にほぼ全面で写る）。
-両方有効だと重なるので、撮るのは片方だけにする。もう一方を `unity command set_active` で無効化してから Play Mode に入る（`GalleryController` に切り替えのフィールドは足していない）。
-無効化はシーンに保存しない（保存すると `.unity` に残る）。撮り終えたら有効に戻し、Gallery を保存せずに別のシーンを開いて変更を捨てる。
+両方有効だと重なるので、撮るのは片方だけにする。もう一方を `unity command set_active` で無効化してから Play Mode に入る（上の Screen Space の手順の `set_active` の行がこれ。`GalleryController` に切り替えのフィールドは足していない）。
+無効化はシーンに保存しない（保存すると `.unity` に残る）。撮り終えたら、Gallery を保存せずに別のシーンを開いて変更を捨てる（`unity command eval_file` で `EditorSceneManager.OpenScene("Assets/Hone/Sandbox/Sandbox.unity", OpenSceneMode.Single)` を呼ぶと、保存ダイアログは出ずに未保存の変更が捨てられた。6000.7.0b2）。
 
 ```bash
 unity command open_scene --path Assets/Hone/Sandbox/Gallery/Gallery.unity --project-path <sandbox の絶対パス>
@@ -137,8 +138,9 @@ MSYS_NO_PATHCONV=1 unity command screenshot --view game --output <sandbox の絶
 unity command editor_stop --project-path <sandbox の絶対パス>
 ```
 
-- World Space は `screenshot --view game` で写る（カメラ経由で描画されるため）。Screen Space を撮るときは `PanelRendererWorldSpace`（`--target` の `hierarchyPath` が `PanelRendererWorldSpace`）を無効化し、上の `capture_game_view` の手順で撮る。
-- `set_active` の `--target` に `hierarchyPath` で指定した名前は完全一致で、`PanelRenderer` は `PanelRendererWorldSpace` を巻き込まない。
+- World Space は `screenshot --view game` で写る（カメラ経由で描画されるため）。
+- `set_active` の `--target` に `hierarchyPath` で指定した名前は完全一致で、`PanelRenderer` は `PanelRendererWorldSpace` を巻き込まない（6000.7.0b2 で、`PanelRenderer` だけを無効化して World Space 側が写ることを確認）。
+- 全スクリプトを撮るときは、Screen Space と同じく `ScrollView`（name `gallery`）の `scrollOffset` を書き換えながら複数枚撮る。
 - 同じ Gallery でも、World Space は論理サイズが 1920×1080 の panel なので、Screen Space と列の幅が違い、省略記号になる位置も違う（6000.7.0b2。原因は調べていない）。
 
 撮った画像で、文字列が読めるか、豆腐（□）になっていないか、行や列がはみ出していないかを人が見る。画像の自動比較はしない。
@@ -267,8 +269,17 @@ unity command build_status --project-path <sandbox の絶対パス>
 timeout 120 <sandbox の絶対パス>/Build/WorldSpace/WorldSpace.exe -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -logFile <ログの絶対パス>
 ```
 
-ログの `[WorldSpaceProbe]` 行を読む。`RESULT clicked=true` と `DONE failed=0` が出て終了コード 0 なら、合成 Mouse のクリックが World Space の panel 上の `Hone.Button` の `clicked` に届いている。
-Probe は `HEADER`（renderMode、EventSystem、`PanelInputConfiguration` の有無）と `POINTER`（screen 座標と深度）も出す。測定の前提（panel の準備、Button の `worldBound`、PanelSettings が World Space であること、シーンの構成、Error / Exception のログ）が崩れたとき、または `clicked` が届かなかったときは `[WorldSpaceProbe] FAIL` を出し、終了コード 1 で終了する。
+ログの `[WorldSpaceProbe]` 行を読む。`RESULT clicked=true count=1` と `DONE failed=0` が出て終了コード 0 なら、合成 Mouse のクリックが World Space の panel 上の `Hone.Button` の `clicked` に 1 回届いている。
+Probe は `HEADER`（renderMode、size mode、EventSystem、`PanelInputConfiguration` の有無、Main Camera が event camera か、Button の型）と `POINTER`（screen 座標と深度）も出す。
+失敗はすべて `[WorldSpaceProbe] FAIL <理由>` の行で出し、最後に `[WorldSpaceProbe] FAIL total=<件数> first=<最初の理由>` を出して終了コード 1 で終了する（`DONE` は出さない）。失敗に数えるのは次のとおり:
+
+- panel が 300 frame 以内に準備できない、または 60 秒以内に終わらない
+- 測定の前提（Button が `Hone.Button` で `worldBound` を持つ、PanelSettings が World Space、`worldSpaceSizeMode = Fixed`、EventSystem + `InputSystemUIInputModule`、`processWorldSpaceInput = true` の `PanelInputConfiguration`、Main Camera が event camera、panel がカメラの前）が崩れている。このときはクリックせず、`RESULT` 行も出さない
+- `clicked` が 0 回、または 2 回以上（1 回の press / release に対して）
+- Probe 自身以外の Error / Exception / Assert のログ（Probe の `Awake` から終了まで）
+
+`DONE` も `FAIL total=` も無いログは、Probe が動かなかった（シーン違い、コンポーネント欠落）か途中で止まったものとして扱う。外側の `timeout 120` はそのときの保険。
+合成 Mouse のほかに実マウスがつながっていると、実マウスの動きでポインタがずれてクリックが外れる可能性がある（未確認。起きても `clicked` が 0 回で FAIL になる側に倒れる）。
 Editor の Play Mode では `Application.Quit` が効かないので終了しないが、ログは同じものが出る。
 
 結果（Unity 6000.7.0b2、Windows。Editor の Play Mode と Player で同じ）:
