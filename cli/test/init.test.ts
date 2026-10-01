@@ -58,6 +58,7 @@ describe("hone init", () => {
 
     expect(await listFiles(root)).toEqual([
       "Assets/Hone/Core/Editor/Hone.Core.Editor.asmdef",
+      "Assets/Hone/Core/Editor/HoneSync.cs",
       "Assets/Hone/Core/Runtime/BackStack.cs",
       "Assets/Hone/Core/Runtime/Core.uss",
       "Assets/Hone/Core/Runtime/FocusScope.cs",

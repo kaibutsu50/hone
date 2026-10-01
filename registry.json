@@ -14,11 +14,12 @@
         { "path": "Core/Runtime/BackStack.cs", "type": "registry:lib" },
         { "path": "Core/Runtime/IDismissable.cs", "type": "registry:lib" },
         { "path": "Core/Runtime/FocusScope.cs", "type": "registry:lib" },
-        { "path": "Core/Editor/Hone.Core.Editor.asmdef", "type": "registry:lib" }
+        { "path": "Core/Editor/Hone.Core.Editor.asmdef", "type": "registry:lib" },
+        { "path": "Core/Editor/HoneSync.cs", "type": "registry:lib" }
       ],
       "registryDependencies": [],
       "dependencies": [],
-      "classes": ["Hone.Core.BackStack", "Hone.Core.IDismissable", "Hone.Core.FocusScope"]
+      "classes": ["Hone.Core.BackStack", "Hone.Core.IDismissable", "Hone.Core.FocusScope", "Hone.Core.Editor.HoneSync"]
     },
     {
       "name": "Button",

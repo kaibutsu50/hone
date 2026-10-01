@@ -51,10 +51,12 @@ Unity Editor に戻ると import とコンパイルが走る。その後、メ�
 
 Sync が行うこと。
 
-- `PanelTextSettings` アセットを `Assets/Hone/` に作り、プロジェクトの `PanelSettings` に割り当てる
+- `Assets/Hone/hone.manifest.json` を読む。無ければ `init` を案内して何もしない（`hone.json` の `output` を変えても、Sync が読むのはこの場所）
+- `PanelTextSettings` アセットを `Assets/Hone/HonePanelTextSettings.asset` に作り、プロジェクトの `PanelSettings` の Text Settings に割り当てる
 - `HoneTheme.tss` を同じ `PanelSettings` の Theme Style Sheet に割り当てる
+- `PanelSettings` の他の設定（scale mode、sort order など）は変えない。既に設定済みの項目は飛ばすので、何度実行してもよい
 
-`PanelSettings` が複数ある場合は Sync が一覧を出し、どれに適用するか選ぶ。
+`PanelSettings` が複数ある場合は Sync が一覧を出し、どれに適用するかチェックボックスで選ぶ（既定はどれも選ばれていない）。
 
 ### 2. コンポーネントの追加
 
@@ -121,8 +123,8 @@ CLI が行うこと。
 
 Unity に戻り、`Hone > Sync` を実行する。Sync が行うこと。
 
-- 置かれたフォントから Dynamic モードの `FontAsset` を生成する
-- `PanelTextSettings` の Fallback Font Assets に追加する
+- 置かれたフォントから Dynamic モードの `FontAsset` を、フォントと同じディレクトリに `<フォントのファイル名> SDF.asset` として生成する（既にあれば作らない）
+- `HonePanelTextSettings.asset` の Fallback Font Assets に、`hone.manifest.json` の `fonts` の順で追加する（既定フォントは変えない）
 
 `ko`（Noto Sans KR）`zh-hans`（Noto Sans SC）`zh-hant`（Noto Sans TC）`ar`（Noto Sans Arabic）`th`（Noto Sans Thai）も同じ手順。`lang` の大文字小文字は区別しない。`add font ja ko` のように複数を一度に指定できる。複数を足すとフォールバック連鎖になる。
 
