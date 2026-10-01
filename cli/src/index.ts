@@ -8,8 +8,8 @@ program.name("hone").description("Unity UI Toolkit 向けの UI コンポーネ�
 
 program
   .command("init")
-  .description("hone.json を作り、Core と theme を出力先にコピーする")
-  .option("--registry <URL|パス>", "registry のベース（リポジトリのルートを指す URL かローカルパス）")
+  .description("hone.json と hone.manifest.json を作り、Core と theme を出力先にコピーする（既存のファイルは上書きしない）")
+  .option("--registry <URL|パス>", "registry のベース（リポジトリのルートを指す URL かローカルパス）。hone.json が既にあればその registry を使う")
   .action(async (opts: { registry?: string }) => {
     await runInit({ cwd: process.cwd(), registry: opts.registry });
   });

@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { HoneError } from "./errors.js";
+import { HoneError, reason } from "./errors.js";
 
 export type FetchLike = (url: string | URL) => Promise<Response>;
 
@@ -21,7 +21,8 @@ export interface Registry {
 }
 
 // registry の取得元。base はリポジトリのルート（URL かローカルパス）で、
-// <base>/registry.json と <base>/registry/<files[].path> を読む
+// <base>/registry.json と <base>/registry/<files[].path> を読む。
+// ローカルは絶対パスか file: URL（file: は絶対のみ）。相対パスは cwd 基準で解決する
 export class RegistrySource {
   constructor(
     private readonly base: string,
@@ -34,14 +35,18 @@ export class RegistrySource {
     let json: unknown;
     try {
       json = JSON.parse(bytes.toString("utf8"));
-    } catch {
-      throw new HoneError(`registry.json を JSON として読めませんでした: ${this.base}`);
+    } catch (e) {
+      throw new HoneError(`registry.json を JSON として読めませんでした（${reason(e)}）: ${this.base}`, {
+        cause: e,
+      });
     }
-    const items = (json as { items?: unknown }).items;
-    if (!Array.isArray(items)) {
-      throw new HoneError(`registry.json に items がありません: ${this.base}`);
+    const items = (json as { items?: unknown } | null)?.items;
+    if (!Array.isArray(items) || !items.every(isItem)) {
+      throw new HoneError(
+        `registry.json の形式が不正です（items[].name と items[].files[].path は文字列）: ${this.base}`,
+      );
     }
-    return { items: items as RegistryItem[] };
+    return { items };
   }
 
   readFile(filePath: string): Promise<Buffer> {
@@ -50,26 +55,56 @@ export class RegistrySource {
 
   private async read(relative: string): Promise<Buffer> {
     if (/^https?:\/\//i.test(this.base)) {
-      const url = new URL(relative, this.base.endsWith("/") ? this.base : `${this.base}/`);
-      const res = await this.fetchFn(url);
-      if (!res.ok) {
-        throw new HoneError(`取得に失敗しました（${res.status}）: ${url.href}`);
-      }
-      return Buffer.from(await res.arrayBuffer());
+      return this.fetchBytes(relative);
     }
-    const baseDir = this.base.startsWith("file:")
-      ? fileURLToPath(this.base)
-      : path.resolve(this.cwd, this.base);
+    let baseDir: string;
+    try {
+      baseDir = this.base.startsWith("file:")
+        ? fileURLToPath(this.base)
+        : path.resolve(this.cwd, this.base);
+    } catch (e) {
+      throw new HoneError(`file: URL は絶対パスで指定してください: ${this.base}`, { cause: e });
+    }
     const file = path.join(baseDir, relative);
     try {
       return await readFile(file);
-    } catch {
-      throw new HoneError(`ファイルを読めませんでした: ${file}`);
+    } catch (e) {
+      throw new HoneError(`ファイルを読めませんでした（${reason(e)}）: ${file}`, { cause: e });
     }
+  }
+
+  private async fetchBytes(relative: string): Promise<Buffer> {
+    const url = new URL(relative, this.base.endsWith("/") ? this.base : `${this.base}/`);
+    let status: number | undefined;
+    let body: Buffer | undefined;
+    try {
+      const res = await this.fetchFn(url);
+      status = res.status;
+      if (res.ok) body = Buffer.from(await res.arrayBuffer());
+    } catch (e) {
+      throw new HoneError(`取得に失敗しました（${reason(e)}）: ${url.href}`, { cause: e });
+    }
+    if (!body) {
+      throw new HoneError(
+        `取得に失敗しました（${status}）: ${url.href}。--registry か hone.json の registry を確認してください`,
+      );
+    }
+    return body;
   }
 }
 
-// 項目名の照合は大文字小文字を区別しない
+function isItem(value: unknown): value is RegistryItem {
+  const item = value as Partial<RegistryItem> | null;
+  return (
+    typeof item === "object" &&
+    item !== null &&
+    typeof item.name === "string" &&
+    Array.isArray(item.files) &&
+    item.files.every((f) => typeof (f as Partial<RegistryFile> | null)?.path === "string")
+  );
+}
+
+// registry の name は PascalCase だが、CLI の引数は button でも Button でも引けるようにする
 export function findItem(registry: Registry, name: string): RegistryItem {
   const item = registry.items.find((i) => i.name.toLowerCase() === name.toLowerCase());
   if (!item) {

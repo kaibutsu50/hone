@@ -28,11 +28,11 @@ Unity で同じ体験を作るとき、構造的に違う点が二つある。
 - Unity 6.7 LTS 以降のプロジェクト
 - UI を表示する `PanelSettings` アセットと、シーン上の `PanelRenderer`（6.5 以降。旧 `UIDocument` でも動く）
 - Input System パッケージ（ゲームパッド入力のため。6.7 では標準同梱）
-- Node.js（CLI 実行のため。生成物には残らない）
+- Node.js 20.12 以上（CLI 実行のため。生成物には残らない）
 
 ### 1. 初期化
 
-Unity プロジェクトのルート（`Assets/` がある階層）で実行する。
+Unity プロジェクトのルート（`Assets/` と `ProjectSettings/` がある階層）で実行する。
 
 ```bash
 npx @kaibutsu50/hone init
@@ -40,11 +40,12 @@ npx @kaibutsu50/hone init
 
 CLI が行うこと。
 
-- `hone.json` を作る。出力先（既定 `Assets/Hone`）と registry の URL を記録する
+- `hone.json` を作る。出力先（既定 `Assets/Hone`）と registry の取得元（URL かローカルパス。`--registry <URL|パス>` で指定する）を記録する。`hone.json` が既にあれば書き換えず、その内容を使う
 - `Assets/Hone/Core/` に headless 層をコピーする。asmdef はここにだけ入る（Runtime 用の `Hone.Core` と Editor 用の `Hone.Core.Editor`）
 - `Assets/Hone/Tokens.uss` にトークン定義をコピーする
-- `Assets/Hone/HoneTheme.tss` を作る。Unity 既定テーマを `@import` し、その後に Hone のトークンと Core の USS を `@import` する
+- `Assets/Hone/HoneTheme.tss` をコピーする。Unity 既定テーマを `@import` し、その後に Hone のトークンと Core の USS を `@import` する
 - `Assets/Hone/hone.manifest.json` を作る。Unity 側の Sync が読む台帳
+- 既にあるファイルは上書きしない。`init` は何度実行しても何も壊れない
 
 Unity Editor に戻ると import とコンパイルが走る。その後、メニューの `Hone > Sync` を一度実行する。
 
