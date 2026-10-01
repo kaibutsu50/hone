@@ -51,6 +51,7 @@ async function makeRegistry(
   const json = {
     items: all.map((i) => ({
       ...i,
+      type: i.type ?? "registry:ui",
       files: i.files.map((p) => ({ path: p, type: i.type ?? "registry:ui" })),
     })),
   };
@@ -172,24 +173,50 @@ describe("hone add", () => {
     const root = await makeInitializedProject();
     const before = await snapshot(root);
 
-    await expect(runAdd({ cwd: root, names: ["button", "nope"], ...silent })).rejects.toThrow(
-      "nope",
-    );
+    const result = runAdd({ cwd: root, names: ["button", "nope"], ...silent });
+
+    await expect(result).rejects.toBeInstanceOf(HoneError);
+    await expect(result).rejects.toThrow("nope");
 
     expect(await snapshot(root)).toEqual(before);
   });
 
-  it("(F) 引数なしなら ui と block の一覧を表示し、何も書かない", async () => {
-    const root = await makeInitializedProject();
+  it("(F) 引数なしなら ui と block の一覧を表示し（lib と theme は出さない）、何も書かない", async () => {
+    const registry = await makeRegistry([
+      { name: "Button", type: "registry:ui", description: "ボタン", files: ["UI/Button/Button.cs"] },
+      { name: "PauseMenu", type: "registry:block", description: "ポーズ画面", files: ["Blocks/PauseMenu/PauseMenu.cs"] },
+    ]);
+    const root = await makeInitializedProject(registry);
     const before = await snapshot(root);
     const lines: string[] = [];
 
     await runAdd({ cwd: root, names: [], log: (m) => lines.push(m) });
 
-    expect(lines).toHaveLength(2);
-    expect(lines[0]).toMatch(/^Button \(ui\) /);
-    expect(lines[1]).toMatch(/^Dialog \(ui\) /);
+    expect(lines).toEqual(["Button (ui) ボタン", "PauseMenu (block) ポーズ画面"]);
     expect(await snapshot(root)).toEqual(before);
+  });
+
+  it("(F) 実際の registry の一覧にも Button と Dialog が出る", async () => {
+    const root = await makeInitializedProject();
+    const lines: string[] = [];
+
+    await runAdd({ cwd: root, names: [], log: (m) => lines.push(m) });
+
+    expect(lines).toEqual(
+      expect.arrayContaining([expect.stringMatching(/^Button \(ui\) /), expect.stringMatching(/^Dialog \(ui\) /)]),
+    );
+  });
+
+  it("registry:block の項目は manifest の components に載る", async () => {
+    const registry = await makeRegistry([
+      { name: "Dep", files: ["UI/Dep/Dep.cs"], registryDependencies: ["Core"] },
+      { name: "PauseMenu", type: "registry:block", files: ["Blocks/PauseMenu/PauseMenu.cs"], registryDependencies: ["Core", "Dep"] },
+    ]);
+    const root = await makeInitializedProject(registry);
+
+    await runAdd({ cwd: root, names: ["pausemenu"], ...silent });
+
+    expect((await readManifest(root)).components).toEqual(["Dep", "PauseMenu"]);
   });
 
   it("完了時に Unity Editor に戻る案内を表示する", async () => {
@@ -204,9 +231,10 @@ describe("hone add", () => {
   it("hone.json が無ければ、先に init を実行するよう案内してエラー終了する", async () => {
     const root = await makeProject(tmp);
 
-    await expect(runAdd({ cwd: root, names: ["button"], ...silent })).rejects.toThrow(
-      "hone init",
-    );
+    const result = runAdd({ cwd: root, names: ["button"], ...silent });
+
+    await expect(result).rejects.toBeInstanceOf(HoneError);
+    await expect(result).rejects.toThrow("hone init");
     expect(await listFiles(root)).toEqual([]);
   });
 
@@ -277,9 +305,31 @@ describe("hone add", () => {
     const root = await makeInitializedProject();
     await mkdir(path.join(root, "Assets/Hone/UI/Button/Button.cs"), { recursive: true });
 
-    await expect(runAdd({ cwd: root, names: ["button"], ...silent })).rejects.toBeInstanceOf(
-      HoneError,
-    );
+    const before = await snapshot(root);
+
+    const result = runAdd({ cwd: root, names: ["button"], ...silent });
+
+    await expect(result).rejects.toBeInstanceOf(HoneError);
+    await expect(result).rejects.toThrow("ディレクトリ");
+    // 他のファイルを書く前に検出する
+    expect(await snapshot(root)).toEqual(before);
+  });
+
+  it("前回の add が theme と manifest の更新の前に止まっていても、再実行で依存先の @import と components が補われる", async () => {
+    const root = await makeInitializedProject();
+    // 止まった状態: Button のファイルは全部あるが、theme の @import も manifest の components も無い
+    for (const f of BUTTON_FILES) {
+      const dest = path.join(root, f);
+      await mkdir(path.dirname(dest), { recursive: true });
+      await writeFile(dest, await readFile(path.join(repoRoot, f.replace("Assets/Hone", "registry"))));
+    }
+
+    await runAdd({ cwd: root, names: ["dialog"], ...silent });
+
+    const theme = await read(root, "Assets/Hone/HoneTheme.tss");
+    expect(theme).toContain('@import url("UI/Button/Button.uss");');
+    expect(theme).toContain('@import url("UI/Dialog/Dialog.uss");');
+    expect((await readManifest(root)).components).toEqual(["Button", "Dialog"]);
   });
 });
 
@@ -324,7 +374,7 @@ describe("hone add の registry の解釈", () => {
     expect(await snapshot(root)).toEqual(before);
   });
 
-  it("依頼されていない依存先は、ファイルが全部あれば表示も記録もせず飛ばす。一部欠けていれば欠けたファイルだけコピーする", async () => {
+  it("依頼されていない依存先は、ファイルが全部あれば表示せず飛ばす。一部欠けていれば欠けたファイルだけコピーする", async () => {
     const registry = await makeRegistry([
       { name: "Dep", files: ["UI/Dep/Dep.cs", "UI/Dep/Dep.uss"] },
       { name: "A", files: ["UI/A/A.cs"], registryDependencies: ["Core", "Dep"] },
@@ -359,6 +409,25 @@ describe("hone add の registry の解釈", () => {
       expect.stringContaining("com.example.pkg"),
     ]);
     expect(await listFiles(root)).toContain("Assets/Hone/UI/A/A.cs");
+    // インストールはしない
+    expect(JSON.parse(await read(root, "Packages/manifest.json"))).toEqual({ dependencies: {} });
+  });
+
+  it("依存先の項目の dependencies も確認し、同じパッケージを使う項目は 1 行にまとめる。dependencies キーが無ければ空として扱う", async () => {
+    const registry = await makeRegistry([
+      { name: "B", files: ["UI/B/B.cs"], registryDependencies: ["Core"], dependencies: ["com.example.pkg"] },
+      { name: "A", files: ["UI/A/A.cs"], registryDependencies: ["Core", "B"], dependencies: ["com.example.pkg"] },
+    ]);
+    const root = await makeInitializedProject(registry);
+    await mkdir(path.join(root, "Packages"), { recursive: true });
+    await writeFile(path.join(root, "Packages/manifest.json"), "{}");
+    const lines: string[] = [];
+
+    await runAdd({ cwd: root, names: ["A"], log: (m) => lines.push(m) });
+
+    expect(lines.filter((l) => l.startsWith("警告: "))).toEqual([
+      expect.stringMatching(/B, A .*com\.example\.pkg/),
+    ]);
   });
 
   it("dependencies のパッケージが入っていれば警告しない", async () => {
@@ -388,7 +457,7 @@ describe("hone add の registry の解釈", () => {
     await runAdd({ cwd: root, names: ["A"], log: (m) => lines.push(m) });
 
     expect(lines.filter((l) => l.startsWith("警告: "))).toEqual([
-      expect.stringContaining("確認できません"),
+      expect.stringMatching(/ENOENT.*確認できません/),
     ]);
     expect(await listFiles(root)).toContain("Assets/Hone/UI/A/A.cs");
   });
@@ -430,7 +499,9 @@ describe("hone add の registry の解釈", () => {
 
     await runAdd({ cwd: root, names: ["core", "default"], ...silent });
 
-    expect((await readManifest(root)).components).toBeUndefined();
+    const components: string[] = (await readManifest(root)).components ?? [];
+    expect(components).not.toContain("Core");
+    expect(components).not.toContain("Default");
   });
 });
 
@@ -487,6 +558,32 @@ describe("hone add の HoneTheme.tss への挿入", () => {
         ':root { --x: 1; }',
         "",
       ].join("\n"),
+    );
+  });
+
+  it.each([
+    ["シングルクォート", "@import url('UI/A/A.uss');"],
+    ["括弧の内側の空白", '@import url( "UI/A/A.uss" );'],
+    ["引用符なし", "@import url(UI/A/A.uss);"],
+  ])("同じ USS を指す既存の @import（%s）があれば挿入しない", async (_label, line) => {
+    const theme = `@import url("Tokens.uss");\n${line}\n:root {}\n`;
+    const registry = await makeRegistry([{ name: "A", files: ["UI/A/A.uss"], registryDependencies: ["Core"] }], { theme });
+    const root = await makeInitializedProject(registry);
+
+    await runAdd({ cwd: root, names: ["A"], ...silent });
+
+    expect(await read(root, "Assets/Hone/HoneTheme.tss")).toBe(theme);
+  });
+
+  it("最後の @import の行末から複数行のコメントが始まっていても、コメントの外に挿入する", async () => {
+    const theme = '@import url("Tokens.uss"); /* メモ\n続き */\n:root {}\n';
+    const registry = await makeRegistry([{ name: "A", files: ["UI/A/A.uss"], registryDependencies: ["Core"] }], { theme });
+    const root = await makeInitializedProject(registry);
+
+    await runAdd({ cwd: root, names: ["A"], ...silent });
+
+    expect(await read(root, "Assets/Hone/HoneTheme.tss")).toBe(
+      '@import url("Tokens.uss"); /* メモ\n続き */\n@import url("UI/A/A.uss");\n:root {}\n',
     );
   });
 

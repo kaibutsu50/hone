@@ -4,6 +4,7 @@ import { errorCode, HoneError, reason } from "./errors.js";
 import {
   assertSafeRelativePath,
   createFile,
+  isDirectory,
   isFile,
   readHoneJson,
   resolveOutput,
@@ -17,8 +18,9 @@ import {
   type RegistryItem,
 } from "./registry.js";
 
-// hone add の対象（hone add を引数なしで実行したときの一覧、hone.manifest.json の components に載るもの）
+// 引数なしの hone add の一覧と、hone.manifest.json の components に載せる種別。add 自体はどの項目名でも受け付ける
 const COMPONENT_TYPES = ["registry:ui", "registry:block"];
+const isComponent = (item: RegistryItem): boolean => COMPONENT_TYPES.includes(item.type);
 
 export interface AddOptions {
   cwd: string;
@@ -50,34 +52,38 @@ export async function runAdd(options: AddOptions): Promise<void> {
   for (const item of items) {
     for (const file of item.files) assertSafeRelativePath(file.path);
   }
-  // 依頼されていない依存先は、ファイルが全部あれば何もしない（init 済みの Core、追加済みのプリミティブ）
-  const toAdd: RegistryItem[] = [];
-  for (const item of items) {
-    const installed = (
-      await Promise.all(item.files.map((f) => isFile(path.join(outputDir, f.path))))
-    ).every(Boolean);
-    if (requested.has(item) || !installed) toAdd.push(item);
-  }
-
+  // 依頼されていない依存先は、ファイルが全部あればコピーも表示もしない（init 済みの Core、追加済みのプリミティブ）。
+  // @import と components の確認は ui / block の依存先にも行う（前回の実行が途中で止まっていても、再実行で補える）
   const files: [dest: string, bytes: Buffer][] = [];
-  for (const item of toAdd) {
-    for (const file of item.files) {
-      files.push([path.join(outputDir, file.path), await source.readFile(file.path)]);
+  const active: RegistryItem[] = [];
+  for (const item of items) {
+    const dests = item.files.map((f) => path.join(outputDir, f.path));
+    for (const dest of dests) {
+      if (await isDirectory(dest)) {
+        throw new HoneError(`書き込み先がディレクトリです: ${shownPath(cwd, dest)}`);
+      }
     }
+    const installed = (await Promise.all(dests.map(isFile))).every(Boolean);
+    if (requested.has(item) || !installed) {
+      for (const [i, file] of item.files.entries()) {
+        files.push([dests[i], await source.readFile(file.path)]);
+      }
+    }
+    if (requested.has(item) || !installed || isComponent(item)) active.push(item);
   }
 
   const themePath = path.join(outputDir, "HoneTheme.tss");
   const theme = await readInitFile(themePath, cwd);
-  const imports = toAdd
+  const imports = active
     .flatMap((item) => item.files)
     .filter((f) => f.path.endsWith(".uss"))
-    .map((f) => `@import url("${f.path}");`);
+    .map((f) => f.path);
   const newTheme = insertImports(theme, imports);
 
   const manifestPath = path.join(outputDir, "hone.manifest.json");
   const manifest = parseManifest(await readInitFile(manifestPath, cwd), shownPath(cwd, manifestPath));
-  const newComponents = toAdd
-    .filter((i) => COMPONENT_TYPES.includes(i.type ?? "") && !manifest.components.includes(i.name))
+  const newComponents = active
+    .filter((i) => isComponent(i) && !manifest.components.includes(i.name))
     .map((i) => i.name);
 
   for (const [dest, bytes] of files) {
@@ -89,18 +95,18 @@ export async function runAdd(options: AddOptions): Promise<void> {
     await overwrite(manifestPath, toJson({ ...manifest.json, components }), log, cwd);
   }
 
-  await warnMissingPackages(cwd, toAdd, log);
+  await warnMissingPackages(cwd, active, log);
   log("Unity Editor に戻るとコンパイルされます");
 }
 
 function listComponents(registry: Registry, log: (message: string) => void): void {
-  const rows = registry.items.filter((i) => COMPONENT_TYPES.includes(i.type ?? ""));
+  const rows = registry.items.filter(isComponent);
   if (rows.length === 0) {
     log("registry に追加できるコンポーネントがありません");
     return;
   }
   for (const item of rows) {
-    const kind = item.type?.replace("registry:", "");
+    const kind = item.type.replace("registry:", "");
     log(`${item.name} (${kind})${item.description ? ` ${item.description}` : ""}`);
   }
 }
@@ -158,30 +164,47 @@ function parseManifest(
   return { json: json as Record<string, unknown>, components };
 }
 
-// theme の最後の @import 行の直後に、まだ無い行を挿入した全文を返す。既存の行は書き換えない。
-// @import は :root などの規則より前に置く必要があるので、末尾には足さない。
-// 改行コードは既存の theme に合わせる（Windows の作業ツリーでは CRLF になる）
-function insertImports(theme: string, lines: string[]): string {
+// theme の最後の @import 行の直後に、まだ無い @import url("<path>"); を挿入した全文を返す。既存の行は書き換えない。
+// 同じ USS を指す @import が既にあれば（引用符や空白の違いを問わず）挿入しない。
+// @import は :root などの規則より前に置く（CSS と同じ規則に合わせる。Unity の挙動は確かめていない）ので、末尾には足さない。
+// 改行コードは既存の theme に合わせる（CRLF ならそれに従う）
+function insertImports(theme: string, paths: string[]): string {
   // コメント内の @import を拾わないよう、位置を保ったままコメントを空白にした写しを調べる
-  const masked = theme.replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\r\n]/g, " "));
+  const comments = [...theme.matchAll(/\/\*[\s\S]*?\*\//g)].map((m) => ({
+    start: m.index,
+    end: m.index + m[0].length,
+  }));
+  let masked = theme;
+  for (const { start, end } of comments) {
+    const blank = masked.slice(start, end).replace(/[^\r\n]/g, " ");
+    masked = masked.slice(0, start) + blank + masked.slice(end);
+  }
   const existing = new Set<string>();
   let lastEnd = -1;
   for (const m of masked.matchAll(/^[ \t]*@import\b[^\r\n]*/gm)) {
-    existing.add(m[0].trim());
+    const url = /url\(\s*(["']?)(.*?)\1\s*\)/.exec(m[0]);
+    if (url) existing.add(url[2]);
     lastEnd = m.index + m[0].length;
   }
-  const fresh = [...new Set(lines)].filter((l) => !existing.has(l));
+  const fresh = [...new Set(paths)].filter((p) => !existing.has(p));
   if (fresh.length === 0) return theme;
   if (lastEnd < 0) {
     throw new HoneError(
       "HoneTheme.tss に @import 行がありません。挿入位置を決められないため何も書きません（HoneTheme.tss を registry のものに戻すか、@import を 1 行書いてください）",
     );
   }
+  // 最後の @import の行末に複数行のコメントが跨っていれば、コメントの終わりの行末まで進める
+  const straddling = comments.find((c) => c.start < lastEnd && lastEnd < c.end);
+  if (straddling) {
+    lastEnd = straddling.end + /^[^\r\n]*/.exec(theme.slice(straddling.end))![0].length;
+  }
   const eol = theme.includes("\r\n") ? "\r\n" : "\n";
-  return theme.slice(0, lastEnd) + fresh.map((l) => eol + l).join("") + theme.slice(lastEnd);
+  const lines = fresh.map((p) => `${eol}@import url("${p}");`).join("");
+  return theme.slice(0, lastEnd) + lines + theme.slice(lastEnd);
 }
 
-// 既存ファイルの更新（theme と manifest。内容が変わるときだけ呼ぶ）
+// 既存ファイルの更新（theme と manifest。内容が変わるときだけ呼ぶ）。非原子的な書き込みで、
+// 失敗したときはファイルが途中までの内容になっている可能性がある
 async function overwrite(
   file: string,
   text: string,
@@ -193,14 +216,14 @@ async function overwrite(
     await writeFile(file, text);
   } catch (e) {
     throw new HoneError(
-      `書き込みに失敗しました（${reason(e)}）: ${shown}。ここまでに作成したファイルは残っています`,
+      `書き込みに失敗しました（${reason(e)}）: ${shown}。ここまでに作成・更新したファイルは残っています。このファイルの内容を確認してから、もう一度実行してください`,
       { cause: e },
     );
   }
   log(`更新: ${shown}`);
 }
 
-// UPM のパッケージは入れない。Packages/manifest.json に無ければ警告するだけ
+// UPM のパッケージは入れない。Packages/manifest.json の dependencies（直接の依存）に無ければ警告するだけ
 async function warnMissingPackages(
   cwd: string,
   items: RegistryItem[],
@@ -214,23 +237,21 @@ async function warnMissingPackages(
   }
   if (needed.size === 0) return;
 
-  let installed: Set<string> | undefined;
+  const file = path.join(cwd, "Packages/manifest.json");
+  let installed: Set<string>;
   try {
-    const manifest = JSON.parse(await readFile(path.join(cwd, "Packages/manifest.json"), "utf8"));
-    installed = new Set(Object.keys(manifest.dependencies));
-  } catch {
-    installed = undefined;
-  }
-  if (!installed) {
+    const manifest = JSON.parse(await readFile(file, "utf8")) as { dependencies?: object } | null;
+    installed = new Set(Object.keys(manifest?.dependencies ?? {}));
+  } catch (e) {
     log(
-      `警告: Packages/manifest.json を読めないため、必要なパッケージが入っているか確認できません: ${[...needed.keys()].join(", ")}`,
+      `警告: ${shownPath(cwd, file)} を読めない（${reason(e)}）ため、必要なパッケージが入っているか確認できません: ${[...needed.keys()].join(", ")}`,
     );
     return;
   }
   for (const [pkg, users] of needed) {
     if (!installed.has(pkg)) {
       log(
-        `警告: ${users.join(", ")} には UPM パッケージ ${pkg} が必要ですが、Packages/manifest.json にありません。Package Manager でインストールしてください`,
+        `警告: ${users.join(", ")} が使う UPM パッケージ ${pkg} が ${shownPath(cwd, file)} の dependencies に見つかりません。Package Manager でインストールしてください`,
       );
     }
   }

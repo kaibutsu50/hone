@@ -17,7 +17,7 @@ program
 
 program
   .command("add")
-  .description("コンポーネントを出力先にコピーし、依存を解決して HoneTheme.tss に @import を挿入する（既存のファイルは上書きしない）")
+  .description("コンポーネントを出力先にコピーし、依存を解決して HoneTheme.tss に @import を挿入する（コピー済みのファイルは上書きしない）")
   .argument("[names...]", "追加するコンポーネント名（大文字小文字は区別しない）。省略すると追加できる一覧を表示する")
   .action(async (names: string[]) => {
     await runAdd({ cwd: process.cwd(), names });

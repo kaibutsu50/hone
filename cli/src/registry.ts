@@ -12,7 +12,7 @@ export interface RegistryFile {
 
 export interface RegistryItem {
   name: string;
-  type?: string;
+  type: string;
   description?: string;
   files: RegistryFile[];
   registryDependencies?: string[];
@@ -46,7 +46,7 @@ export class RegistrySource {
     const items = (json as { items?: unknown } | null)?.items;
     if (!Array.isArray(items) || !items.every(isItem)) {
       throw new HoneError(
-        `registry.json の形式が不正です（items[].name と items[].files[].path は文字列、registryDependencies と dependencies は文字列の配列）: ${this.base}`,
+        `registry.json の形式が不正です（items[].name と items[].type と items[].files[].path は文字列、registryDependencies と dependencies は文字列の配列）: ${this.base}`,
       );
     }
     return { items };
@@ -102,6 +102,7 @@ function isItem(value: unknown): value is RegistryItem {
     typeof item === "object" &&
     item !== null &&
     typeof item.name === "string" &&
+    typeof item.type === "string" &&
     Array.isArray(item.files) &&
     item.files.every((f) => typeof (f as Partial<RegistryFile> | null)?.path === "string") &&
     isOptionalStringArray(item.registryDependencies) &&

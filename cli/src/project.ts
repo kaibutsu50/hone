@@ -49,8 +49,9 @@ export async function isDirectory(p: string): Promise<boolean> {
 export async function isFile(p: string): Promise<boolean> {
   try {
     return (await stat(p)).isFile();
-  } catch {
-    return false;
+  } catch (e) {
+    if (errorCode(e) === "ENOENT" || errorCode(e) === "ENOTDIR") return false;
+    throw new HoneError(`${p} を確認できませんでした（${reason(e)}）`, { cause: e });
   }
 }
 

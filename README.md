@@ -65,11 +65,12 @@ npx @kaibutsu50/hone add Button Dialog
 CLI が行うこと。
 
 - `Assets/Hone/UI/Button/` に `Button.cs` `Button.uxml` `Button.uss` `README.md` をコピーする
-- `registryDependencies` を解決し、依存先も一緒にコピーする（`Dialog` を追加すると `Button` が先にコピーされる。ファイルが全部ある依存先は何もしない）
-- `HoneTheme.tss` に `@import url("UI/Button/Button.uss");` を挿入する。位置は最後の `@import` 行の直後で、利用者が書いた `:root` などの規則より前になる。パスは `HoneTheme.tss` からの相対で書く（出力先を変えても壊れない）。これで USS はプロジェクト全体に効く。同じ行が既にあれば挿入しない
+- `registryDependencies` を解決し、依存先も一緒にコピーする（`Dialog` を追加すると `Button` が先にコピーされる。ファイルが全部ある依存先はコピーしない）
+- `HoneTheme.tss` に `@import url("UI/Button/Button.uss");` を挿入する。位置は最後の `@import` 行の直後で、既定の `HoneTheme.tss` では利用者が書く `:root` などの規則より前になる。パスは `HoneTheme.tss` からの相対で書く（出力先を変えても壊れない）。これで USS はプロジェクト全体に効く。同じ USS を指す `@import` が既にあれば挿入しない
 - `hone.manifest.json` の `components` に追加した名前を追記する
-- 項目が UPM パッケージを必要とするとき、`Packages/manifest.json` に無ければ警告する（インストールはしない）
-- 既にあるファイルは上書きしない（飛ばした旨を表示する）。編集済みのファイルを残したまま何度でも実行できる。名前は大文字小文字を区別しない（`button` でも `Button` でもよい）
+- 項目が UPM パッケージを必要とするとき、`Packages/manifest.json` の `dependencies`（直接の依存）に無ければ警告する（インストールはしない）
+- コピーするコンポーネントのファイルは、既にあれば上書きしない（飛ばした旨を表示する）。編集済みのファイルを残したまま何度でも実行できる。`add` が書き換えるのは `HoneTheme.tss`（`@import` 行の挿入だけで、既存の行は変えない）と `hone.manifest.json`（`components` の追記）だけ
+- 名前は大文字小文字を区別しない（`button` でも `Button` でもよい）
 
 `npx @kaibutsu50/hone add` を引数なしで実行すると、追加できるコンポーネントの一覧を表示する。
 
