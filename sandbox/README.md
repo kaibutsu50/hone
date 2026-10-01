@@ -43,8 +43,8 @@ Assets/Hone/
                       TokensExp/ は --hone-font-body（theme の :root）と .hone-text、.hone-focusable の ring の検証（Player の検証を含む）
                       ThemeExp/ は .tss の @import（絶対パス、相対パス）、既定テーマの Button の :focus、既定フォントの FontAsset と日本語の描画の検証
                       WorldSpace/ は World Space の panel に、カメラ経由の入力（PanelInputConfiguration + EventSystem）が届くかの検証
-    Gallery/          多言語スクリーンショットの撮影基盤。TestStrings.json（スクリプトごとの短文・長文）、Gallery.unity（PanelRenderer が 2 枚。Screen Space の `PanelRenderer` と World Space の `PanelRendererWorldSpace`）/ Gallery.uxml / Gallery.uss、GalleryController、
-                      GalleryHoneEntries（Hone.Button、Core.uss のクラスを付けた列、開いた状態の Hone.Dialog を登録する）、GalleryFocus（ring を写すため最初の .hone-focusable にフォーカスを当てる）、
+    Gallery/          多言語スクリーンショットの撮影基盤。TestStrings.json（スクリプトごとの表示名・短文・長文）、Gallery.unity（PanelRenderer が 2 枚。Screen Space の `PanelRenderer` と World Space の `PanelRendererWorldSpace`）/ Gallery.uxml / Gallery.uss、GalleryController、
+                      GalleryHoneEntries（Hone.Button、Core.uss のクラスを付けた列、開いた状態の Hone.Dialog を登録する）、GalleryFocus（ring を写すため、読み込み時と言語の切り替え時に最初の .hone-focusable にフォーカスを当てる）、
                       Hone.Sandbox.Gallery.asmdef（Tests/PlayMode が参照する。Hone.Sandbox.UI を参照する）
     Tests/PlayMode/   PlayMode テスト。BackStackTests、FocusScopeTests、DialogTests、ButtonTests の 1 件（NavigationSubmitEvent）は PanelRenderer を GameObject で作って panel を得る（`UNITY_EDITOR` のときだけコンパイルされる。Editor で実行する）。
                       DialogTests の `_WorldSpace` が付く 2 件（初期フォーカスと overlay の PointerDown）だけは、World Space の panel（`CreateWorldSpacePanel`）でも回す。`SendEvent` で送るので入力経路は通らない
@@ -95,17 +95,20 @@ unity command run_tests --mode playmode --filter Hone.Sandbox.Tests.SandboxSmoke
 
 ## Gallery（多言語スクリーンショット）
 
-見た目が変わる PR に添付するスクリーンショットを撮る基盤。`GalleryController.Register(name, factory)` で登録したコンポーネントを、`Gallery/TestStrings.json` の全スクリプト × 短文・長文で並べる。1 コンポーネントが 1 列で、列の中は 1 スクリプト 1 行。
+見た目が変わる PR に添付するスクリーンショットを撮る基盤。`GalleryController.Register(name, factory)` で登録したコンポーネントを、英語（`en`）と、上部の DropdownField（name `language`）で選んだ 1 スクリプトを、短文・長文で並べる。1 コンポーネントが 1 列で、列の中は en が 1 行目、選んだスクリプトが 2 行目。
+選択肢は `Gallery/TestStrings.json` の en 以外を書いた順に並び、表示名は各項目の `name`。初期値は en 以外の先頭で、今は `Japanese`（ファイルの並び順を変えると初期値も変わる）。
 Unity 標準の `Label` と `Button` は `GalleryController` が自分で登録する（name は `"Label"` `"Button"`）。
 `GalleryHoneEntries` が `Hone.Button`（1 つのセルに 4 variant を縦に積む。セルは縦並びで幅が決まるので、長文は省略記号になる）を最初に登録する。最初の `.hone-focusable` が `Hone.Button` になり、その ring が写る。続けて `Label.hone-text`（`.hone-text` を付けた `Label`）と `Button.hone-focusable`（`.hone-focusable` を付けた `Button`）を登録し、素の列と並べる。
 最後に `Hone.Dialog`（開いた状態。文字列はタイトルと本文に入れ、ボタンは固定の `Cancel` と `OK`）を登録する。
 列には `gallery-column--<name の "." を "-" にして小文字>` のクラスが付く（例: `gallery-column--hone-dialog`）。`Gallery.uss` は Dialog の列だけこのクラスで固定幅にしている。
-Dialog の列は縦に長く 1 画面に収まらないので、全スクリプトを撮るときは `ScrollView`（name `gallery`）の `scrollOffset` を `unity command eval_file` で書き換えながら、`capture_game_view` で複数枚撮る。
-`GalleryFocus` が UI の読み込み後に最初の `.hone-focusable` へフォーカスを当てるので、Play Mode で撮れば ring が写る。
+Dialog の列は縦に長く、Screen Space では 1 言語でも 1 画面に収まらない（6000.7.0b2）。PR に添付する画像は、Dialog の下が切れたままでよい。
+下まで見たいときは、`ScrollView`（name `gallery`）の `scrollOffset` を `unity command eval_file` で書き換えながら、`capture_game_view` で複数枚撮る。収めるために列幅や Dialog の幅は変えない。
+言語は、dropdown の代わりに `GalleryController.SelectScript` で切り替えて撮る（eval から dropdown に届く公開 API が無いため。下の「言語の切り替え」）。
+`GalleryFocus` が UI の読み込み後と言語の切り替え後に最初の `.hone-focusable` へフォーカスを当てるので、Play Mode で撮れば ring が写る（言語を切り替えると Dialog が作り直され、各 Dialog が自分の Cancel にフォーカスを移すため、当て直している）。
 背景と文字色は `Gallery.uss` が Hone のトークン（`--hone-color-background` `--hone-color-foreground`）で指定する。
 
 Hone のコンポーネントを載せるときは、`Register` を **sandbox 側のファイル**（例: `Sandbox/Gallery/` 配下）から呼ぶ。`registry/` 配下のコードには書かない（配布物が sandbox の asmdef に依存してしまう）。
-呼ぶ時点は `[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]`。`GalleryController` が列を作るのは UI が読み込まれた時点の 1 回だけで、それより後の `Register` は画面に出ず、ログも出ない。
+呼ぶ時点は `[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]`。`GalleryController` は UI が読み込まれた時点と言語を切り替えるたびに、その時点の登録内容で列を作り直す。それより後の `Register` は、読み込み時の画面には出ず、ログも出ない。
 このプロジェクトは Domain Reload を無効にしているので、`Register` した内容は Play をまたいで残る。同じ name の再登録は置き換わる。テストなどで一時的に登録したものは `Unregister` で消す。
 
 撮影手順（Editor は「Editor の開き方」で開いておく）:
@@ -114,6 +117,8 @@ Hone のコンポーネントを載せるときは、`Register` を **sandbox �
 unity command open_scene --path Assets/Hone/Sandbox/Gallery/Gallery.unity --project-path <sandbox の絶対パス>
 unity command set_active --target '{"hierarchyPath":"PanelRendererWorldSpace"}' --active false --project-path <sandbox の絶対パス>
 unity command editor_play --project-path <sandbox の絶対パス>
+# 既定（Japanese）だけ撮るときは、この 1 行を飛ばす。手順は下の「言語の切り替え」
+unity command eval_file --file <select-script.cs の絶対パス> --project-path <sandbox の絶対パス>
 MSYS_NO_PATHCONV=1 unity command capture_game_view --source screen --width 1920 --height 1080 --format json --project-path <sandbox の絶対パス> > <json の絶対パス>
 python -c "import json,base64; t=open(r'<json の絶対パス>',encoding='utf-8').read(); d=json.loads(t[t.index('{'):]); open(r'<sandbox の絶対パス>/Screenshots/gallery.png','wb').write(base64.b64decode(d['data']['result']['base64']))"
 unity command editor_stop --project-path <sandbox の絶対パス>
@@ -125,6 +130,24 @@ gh attach --key <ブランチ名> <sandbox の絶対パス>/Screenshots/gallery.
 - `--width` `--height` を省くと Game view のサイズで撮られる。Play Mode に入ってから撮る。
 - `Screenshots/` は gitignore 済み。`gh attach`（`pr-screenshot` スキル）が返す markdown を PR 本文に貼る。
 
+言語の切り替え（`select-script.cs`。`"ko"` を `TestStrings.json` の en 以外のキーに替えて撮る）:
+
+```csharp
+var controllers = UnityEngine.Object.FindObjectsByType<Hone.Sandbox.Gallery.GalleryController>();
+if (controllers.Length == 0)
+    throw new System.InvalidOperationException("no active GalleryController (is Play Mode on and a panel enabled?)");
+foreach (var c in controllers)
+    c.SelectScript("ko");
+return controllers.Length;
+```
+
+- `SelectScript` は dropdown の `index` を変えて ChangeEvent を出す。人が選んだときと同じ経路で、`GalleryFocus` の当て直しも走る。すでに選ばれている言語を渡すと何も起きない。
+- 切り替えの中（Build）で起きた例外は、ChangeEvent の callback の中で出るので eval には返らない。撮る前に Console に Gallery のエラーが出ていないことを確かめる。
+- 切り替えてから `GalleryFocus` が当て直すまで、`GalleryFocus` の `DelayMilliseconds` の 2 倍（当て直しと確認）かかる。切り替えと撮影は別のコマンドで行う（同じ eval の中で撮らない）。
+- `FindObjectsByType` は有効な GameObject のものだけを返す。片方の panel の GameObject を無効にして撮るときも、そのまま使える。
+- eval から `Hone.Sandbox.Gallery` の型は直接参照できる（6000.7.0b2）。`FindObjectsSortMode` を取る版は obsolete なので、引数なしの版を使う。
+- eval から dropdown や panel の root に届く公開 API は無い（`PanelRenderer` に root を取る API が無い。6000.7.0b2）。`SelectScript` がその入口。
+
 `Gallery.unity` の `PanelRenderer`（Screen Space）と `PanelRendererWorldSpace`（World Space）は、同じ `Gallery.uxml`、`GalleryController`、`GalleryFocus` を持つ。
 World Space 側は `WorldSpacePanelSettings.asset`、`worldSpaceSizeMode = Fixed`、size 1920×1080、位置 (0, 1, 0)（Main Camera の (0, 1, -10) の正面。距離 10 で Game view にほぼ全面で写る）。
 両方有効だと重なるので、撮るのは片方だけにする。もう一方を `unity command set_active` で無効化してから Play Mode に入る（上の Screen Space の手順の `set_active` の行がこれ。`GalleryController` に切り替えのフィールドは足していない）。
@@ -134,18 +157,20 @@ World Space 側は `WorldSpacePanelSettings.asset`、`worldSpaceSizeMode = Fixed
 unity command open_scene --path Assets/Hone/Sandbox/Gallery/Gallery.unity --project-path <sandbox の絶対パス>
 unity command set_active --target '{"hierarchyPath":"PanelRenderer"}' --active false --project-path <sandbox の絶対パス>
 unity command editor_play --project-path <sandbox の絶対パス>
+# 既定（Japanese）だけ撮るときは、この 1 行を飛ばす（select-script.cs は上の「言語の切り替え」）
+unity command eval_file --file <select-script.cs の絶対パス> --project-path <sandbox の絶対パス>
 MSYS_NO_PATHCONV=1 unity command screenshot --view game --output <sandbox の絶対パス>/Screenshots/gallery-worldspace.png --width 1920 --height 1080 --project-path <sandbox の絶対パス>
 unity command editor_stop --project-path <sandbox の絶対パス>
 ```
 
 - World Space は `screenshot --view game` で写る（カメラ経由で描画されるため）。
 - `set_active` の `--target` に `hierarchyPath` で指定した名前は完全一致で、`PanelRenderer` は `PanelRendererWorldSpace` を巻き込まない（6000.7.0b2 で、`PanelRenderer` だけを無効化して World Space 側が写ることを確認）。
-- 全スクリプトを撮るときは、Screen Space と同じく `ScrollView`（name `gallery`）の `scrollOffset` を書き換えながら複数枚撮る。
+- 言語の切り替えは Screen Space と同じ `SelectScript`。World Space の panel は論理サイズが 1920×1080 で、`Japanese` では Dialog の列まで 1 画面に収まった（ほかの言語は確かめていない。6000.7.0b2）。収まらないときは、Screen Space と同じく `ScrollView`（name `gallery`）の `scrollOffset` を書き換えながら複数枚撮る。
 - 同じ Gallery でも、World Space は論理サイズが 1920×1080 の panel なので、Screen Space と列の幅が違い、省略記号になる位置も違う（6000.7.0b2。原因は調べていない）。
 
 撮った画像で、文字列が読めるか、豆腐（□）になっていないか、行や列がはみ出していないかを人が見る。画像の自動比較はしない。
 
-フォントは同梱しない。既定フォントと fallback で、ar、th、emoji などがどう描画されるかを見るのも、この画像の目的のひとつ。
+フォントは同梱しない。既定フォントと fallback で、ar、th などがどう描画されるかを見るのも、この画像の目的のひとつ。
 
 ## FontVar の Player 検証
 

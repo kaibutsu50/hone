@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -12,21 +13,25 @@ namespace Hone.Sandbox.Gallery
     public readonly struct ScriptStrings
     {
         public readonly string Script;
+        public readonly string Name;
         public readonly string Short;
         public readonly string Long;
 
-        public ScriptStrings(string script, string shortText, string longText)
+        public ScriptStrings(string script, string name, string shortText, string longText)
         {
             Script = script;
+            Name = name;
             Short = shortText;
             Long = longText;
         }
     }
 
-    // 登録されたコンポーネントの生成関数ごとに 1 列を作り、TestStrings.json の全スクリプトの文字列（短文と長文）で 1 行ずつ並べる。
+    // 登録されたコンポーネントの生成関数ごとに 1 列を作り、渡された文字列（短文と長文）で 1 行ずつ並べる。
+    // Build は渡された文字列をそのまま並べる。画面では en と、dropdown で選んだ 1 スクリプトを渡す。
     // Register は sandbox 側のファイルから呼ぶ（registry/ 配下のコードには書かない。配布物が sandbox の asmdef に依存してしまう）。
     // 呼ぶ時点は [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]。
-    // 列を作るのは PanelRenderer の UI が読み込まれた時点の 1 回だけで、それより後の Register は画面に出ない。
+    // 列は PanelRenderer の UI が読み込まれた時点と、言語を切り替えるたびに、その時点の登録内容で作り直す。
+    // 読み込み時から画面に出すには、それより前（BeforeSceneLoad）に Register する。
     [RequireComponent(typeof(PanelRenderer))]
     public class GalleryController : MonoBehaviour
     {
@@ -36,9 +41,16 @@ namespace Hone.Sandbox.Gallery
             public Func<string, VisualElement> Factory;
         }
 
+        // 常に 1 行目に出すスクリプト
+        public const string BaseScript = "en";
+
         static readonly List<Entry> s_Entries = new List<Entry>();
 
         [SerializeField] TextAsset m_TestStrings;
+
+        // dropdown の選択肢（BaseScript 以外）。index が dropdown の index と対応する
+        readonly List<ScriptStrings> m_Selectable = new List<ScriptStrings>();
+        DropdownField m_Language;
 
         // 同じ name の再登録は factory を置き換える（Domain Reload 無効でも二重に並ばない）。
         // 異なる name の登録は残り続けるので、テストなどで登録したものは Unregister で消す。
@@ -69,16 +81,41 @@ namespace Hone.Sandbox.Gallery
             foreach (var property in JObject.Parse(json).Properties())
             {
                 var value = property.Value as JObject;
+                var name = value?["name"]?.Type == JTokenType.String ? (string)value["name"] : null;
                 var shortText = value?["short"]?.Type == JTokenType.String ? (string)value["short"] : null;
                 var longText = value?["long"]?.Type == JTokenType.String ? (string)value["long"] : null;
-                if (shortText == null || longText == null)
-                    throw new FormatException($"TestStrings.json: '{property.Name}' needs both \"short\" and \"long\" as strings");
-                result.Add(new ScriptStrings(property.Name, shortText, longText));
+                if (name == null || shortText == null || longText == null)
+                    throw new FormatException($"TestStrings.json: '{property.Name}' needs \"name\", \"short\" and \"long\" as strings");
+                result.Add(new ScriptStrings(property.Name, name, shortText, longText));
             }
             return result;
         }
 
-        // container の中身を作り直す。登録済みの全 factory を、全スクリプトの短文・長文で 1 回ずつ呼ぶ
+        // 画面に出す 2 スクリプト（BaseScript と script）を、この順で返す。
+        // script が BaseScript のとき、all に script が無いとき、all に BaseScript が無いときは ArgumentException
+        public static IReadOnlyList<ScriptStrings> Pick(IReadOnlyList<ScriptStrings> all, string script)
+        {
+            if (script == BaseScript)
+                throw new ArgumentException($"'{BaseScript}' is always shown; pick another script", nameof(script));
+
+            var baseStrings = FindScript(all, BaseScript);
+            var selected = FindScript(all, script);
+            if (baseStrings == null)
+                throw new ArgumentException($"'{BaseScript}' is not in the test strings", nameof(all));
+            if (selected == null)
+                throw new ArgumentException($"'{script}' is not in the test strings", nameof(script));
+            return new[] { baseStrings.Value, selected.Value };
+        }
+
+        static ScriptStrings? FindScript(IReadOnlyList<ScriptStrings> all, string script)
+        {
+            foreach (var s in all)
+                if (s.Script == script)
+                    return s;
+            return null;
+        }
+
+        // container の中身を作り直す。登録済みの全 factory を、渡された文字列の短文・長文で 1 回ずつ呼ぶ
         public static void Build(VisualElement container, IReadOnlyList<ScriptStrings> strings)
         {
             container.Clear();
@@ -130,6 +167,10 @@ namespace Hone.Sandbox.Gallery
 
         void Rebuild(VisualElement root)
         {
+            // 前の UI を指したまま残すと、この Rebuild が途中で止まったときに SelectScript が外れた dropdown を操作し、何も起きないまま戻る
+            m_Language = null;
+            m_Selectable.Clear();
+
             var scrollView = root.Q<ScrollView>("gallery");
             if (scrollView == null)
             {
@@ -141,7 +182,39 @@ namespace Hone.Sandbox.Gallery
                 Debug.LogError("Gallery: TestStrings is not assigned", this);
                 return;
             }
-            Build(scrollView.contentContainer, ParseTestStrings(m_TestStrings.text));
+            var language = root.Q<DropdownField>("language");
+            if (language == null)
+            {
+                Debug.LogError("Gallery: DropdownField named 'language' was not found (the PanelRenderer's UXML is not Gallery.uxml, or it has no such element)", this);
+                return;
+            }
+
+            var all = ParseTestStrings(m_TestStrings.text);
+            var selectable = all.Where(s => s.Script != BaseScript).ToList();
+            // 例外を出しうる Pick を、dropdown を配線する前に済ませる（失敗したときに dropdown だけ設定済みの半端な状態を残さない）
+            var initial = Pick(all, selectable[0].Script);
+
+            language.choices = selectable.Select(s => s.Name).ToList();
+            language.SetValueWithoutNotify(language.choices[0]);
+            language.RegisterValueChangedCallback(_ =>
+                Build(scrollView.contentContainer, Pick(all, selectable[language.index].Script)));
+            m_Selectable.AddRange(selectable);
+            m_Language = language;
+
+            Build(scrollView.contentContainer, initial);
+        }
+
+        // dropdown で script を選んだのと同じ経路（ChangeEvent）で切り替える。eval から言語を切り替えて撮るための入口。
+        // すでに選ばれている script を渡すと、ChangeEvent が出ないので何も起きない
+        public void SelectScript(string script)
+        {
+            if (m_Language == null || m_Language.panel == null)
+                throw new InvalidOperationException("Gallery: the UI is not loaded yet");
+
+            var index = m_Selectable.FindIndex(s => s.Script == script);
+            if (index < 0)
+                throw new ArgumentException($"'{script}' is not selectable", nameof(script));
+            m_Language.index = index;
         }
     }
 }

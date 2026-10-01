@@ -1,4 +1,7 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:hone="Hone">
     <Style src="Gallery.uss" />
-    <ui:ScrollView name="gallery" class="gallery" mode="Vertical" />
+    <ui:VisualElement class="gallery-page">
+        <ui:DropdownField name="language" label="Language" class="gallery-language" />
+        <ui:ScrollView name="gallery" class="gallery" mode="Vertical" />
+    </ui:VisualElement>
 </ui:UXML>
