@@ -1,0 +1,5 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:hone="Hone">
+    <ui:VisualElement name="center" style="flex-grow: 1; align-items: center; justify-content: center;">
+        <hone:Button name="target" text="World Space" />
+    </ui:VisualElement>
+</ui:UXML>

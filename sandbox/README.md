@@ -33,7 +33,8 @@ Assets/Hone/
   Sandbox/            sandbox 固有のアセット。`hone add` がコピーする領域と混ぜない
     Sandbox.unity     PanelRenderer を 1 つ置いたシーン（EventSystem は置かない）
     Sandbox.uxml      空の UXML
-    PanelSettings.asset   Theme Style Sheet に HoneTheme.tss を割り当て済み
+    PanelSettings.asset   Theme Style Sheet に HoneTheme.tss を割り当て済み（Screen Space）
+    WorldSpacePanelSettings.asset   PanelSettings.asset の複製で、Render Mode だけ World Space にしたもの。Theme Style Sheet と Text Settings は同じで、scale mode と pixels per unit は Unity の既定のまま
     Fonts/            検証用フォント。RobotoMono-Regular.ttf（Apache-2.0、Unity Editor 同梱）とその LICENSE、そこから作った Dynamic の FontAsset
     Experiments/<Name>/   Issue ごとの検証。FontVar/ は `-unity-font-definition` を USS 変数経由で差し替えられるかの検証
                       FontVar/Resources/Fonts/ は case 3（`resource()`）用の Fonts/RobotoMono.asset の複製。元を作り直したら同期する。
@@ -41,10 +42,12 @@ Assets/Hone/
                       FocusTrap/ は Dialog の focus trap 機構（IgnoreEvent の同 frame 順序、外側へのフォーカス漏れ、フォーカスが無いときの方向入力、EventSystem の有無）の検証
                       TokensExp/ は --hone-font-body（theme の :root）と .hone-text、.hone-focusable の ring の検証（Player の検証を含む）
                       ThemeExp/ は .tss の @import（絶対パス、相対パス）、既定テーマの Button の :focus、既定フォントの FontAsset と日本語の描画の検証
-    Gallery/          多言語スクリーンショットの撮影基盤。TestStrings.json（スクリプトごとの短文・長文）、Gallery.unity / Gallery.uxml / Gallery.uss、GalleryController、
+                      WorldSpace/ は World Space の panel に、カメラ経由の入力（PanelInputConfiguration + EventSystem）が届くかの検証
+    Gallery/          多言語スクリーンショットの撮影基盤。TestStrings.json（スクリプトごとの短文・長文）、Gallery.unity（PanelRenderer が 2 枚。Screen Space の `PanelRenderer` と World Space の `PanelRendererWorldSpace`）/ Gallery.uxml / Gallery.uss、GalleryController、
                       GalleryHoneEntries（Hone.Button、Core.uss のクラスを付けた列、開いた状態の Hone.Dialog を登録する）、GalleryFocus（ring を写すため最初の .hone-focusable にフォーカスを当てる）、
                       Hone.Sandbox.Gallery.asmdef（Tests/PlayMode が参照する。Hone.Sandbox.UI を参照する）
-    Tests/PlayMode/   PlayMode テスト。BackStackTests、FocusScopeTests、DialogTests、ButtonTests の 1 件（NavigationSubmitEvent）は PanelRenderer を GameObject で作って panel を得る（`UNITY_EDITOR` のときだけコンパイルされる。Editor で実行する）
+    Tests/PlayMode/   PlayMode テスト。BackStackTests、FocusScopeTests、DialogTests、ButtonTests の 1 件（NavigationSubmitEvent）は PanelRenderer を GameObject で作って panel を得る（`UNITY_EDITOR` のときだけコンパイルされる。Editor で実行する）。
+                      DialogTests の `_WorldSpace` が付く 2 件（初期フォーカスと overlay の PointerDown）だけは、World Space の panel（`CreateWorldSpacePanel`）でも回す。`SendEvent` で送るので入力経路は通らない
 ```
 
 `registry/` の内容は手でコピーしている。`hone add` ができたら CLI に置き換える。
@@ -72,6 +75,8 @@ unity command run_tests --mode playmode --filter Hone.Sandbox.Tests.SandboxSmoke
 ```
 
 どちらも `SandboxSmokeTests.TestRunnerIsAlive`（`Assert.Pass()` 1 件）が通れば基盤は動いている。
+
+`run_tests` が `0/0 passed` を返してテストが走らないときは、`--async_tests true` を付けて実行し、`unity command test_status` が `running` でなくなるまで待って結果を読む（6000.7.0b2、この形でテストが走った）。
 
 `--mode` の値は 2 系統で綴りが違う。`unity test` は `PlayMode` / `EditMode`、`unity command run_tests` は `playmode` / `editor` / `all`（既定 all）。
 `--filter` も、`run_tests` は大文字小文字を区別しない部分一致。
@@ -118,6 +123,23 @@ gh attach --key <ブランチ名> <sandbox の絶対パス>/Screenshots/gallery.
 - `capture_game_view` は `--save_path` を渡さない。渡すと `Assets/` 配下（`sandbox/Assets/Screenshots/`）に保存され、Texture として import されて `.meta` も増える。返ってきた base64 を自分で書き出す。
 - `--width` `--height` を省くと Game view のサイズで撮られる。Play Mode に入ってから撮る。
 - `Screenshots/` は gitignore 済み。`gh attach`（`pr-screenshot` スキル）が返す markdown を PR 本文に貼る。
+
+`Gallery.unity` の `PanelRenderer`（Screen Space）と `PanelRendererWorldSpace`（World Space）は、同じ `Gallery.uxml`、`GalleryController`、`GalleryFocus` を持つ。
+World Space 側は `WorldSpacePanelSettings.asset`、`worldSpaceSizeMode = Fixed`、size 1920×1080、位置 (0, 1, 0)（Main Camera の (0, 1, -10) の正面。距離 10 で Game view にほぼ全面で写る）。
+両方有効だと重なるので、撮るのは片方だけにする。もう一方を `unity command set_active` で無効化してから Play Mode に入る（`GalleryController` に切り替えのフィールドは足していない）。
+無効化はシーンに保存しない（保存すると `.unity` に残る）。撮り終えたら有効に戻し、Gallery を保存せずに別のシーンを開いて変更を捨てる。
+
+```bash
+unity command open_scene --path Assets/Hone/Sandbox/Gallery/Gallery.unity --project-path <sandbox の絶対パス>
+unity command set_active --target '{"hierarchyPath":"PanelRenderer"}' --active false --project-path <sandbox の絶対パス>
+unity command editor_play --project-path <sandbox の絶対パス>
+MSYS_NO_PATHCONV=1 unity command screenshot --view game --output <sandbox の絶対パス>/Screenshots/gallery-worldspace.png --width 1920 --height 1080 --project-path <sandbox の絶対パス>
+unity command editor_stop --project-path <sandbox の絶対パス>
+```
+
+- World Space は `screenshot --view game` で写る（カメラ経由で描画されるため）。Screen Space を撮るときは `PanelRendererWorldSpace`（`--target` の `hierarchyPath` が `PanelRendererWorldSpace`）を無効化し、上の `capture_game_view` の手順で撮る。
+- `set_active` の `--target` に `hierarchyPath` で指定した名前は完全一致で、`PanelRenderer` は `PanelRendererWorldSpace` を巻き込まない。
+- 同じ Gallery でも、World Space は論理サイズが 1920×1080 の panel なので、Screen Space と列の幅が違い、省略記号になる位置も違う（6000.7.0b2。原因は調べていない）。
 
 撮った画像で、文字列が読めるか、豆腐（□）になっていないか、行や列がはみ出していないかを人が見る。画像の自動比較はしない。
 
@@ -232,6 +254,27 @@ timeout 120 <sandbox の絶対パス>/Build/ThemeExp/ThemeExp.exe -screen-fullsc
 - Editor の Play Mode では、動的に作られた FontAsset と atlas が前回の Play Mode から残ることがあり、case 4 の「初回」の時間にならない。時間は Player の値を読む。
 - `CASE3` は `TextSettings` の内部 API を reflection で読む（実験用）。Player では runtime 生成の FontAsset の `name` が空になる（6000.7.0b2）。Editor では `Arial - Regular SDF`。fallback は `faceInfo.familyName` で出している。
 - `CASE4` は、日本語が豆腐になっていないかをコードでは判定しない。`case4-full.png` を人が見る。
+
+## WorldSpace の Player 検証
+
+`WorldSpace.unity` は Build Settings に入れていないので、ビルド時にシーンを指定する。ビルドの待ち方は FontVar と同じ。
+シーンは Main Camera、EventSystem + `InputSystemUIInputModule`、`PanelInputConfiguration`（`processWorldSpaceInput = true`、event camera は Main Camera）、World Space の `PanelRenderer` 1 枚（`WorldSpacePanelSettings.asset`、`worldSpaceSizeMode = Fixed`、1920×1080）。UXML は `WorldSpace.uxml` で、`Hone.Button` を panel の中央に 1 つ置く。
+`WorldSpaceProbe` は Input System の合成 `Mouse` を作り、ポインタを Button の位置へ動かして press / release を積む。Button の位置は、panel の中央にあるので `PanelRenderer` の `transform.position` を `Camera.WorldToScreenPoint` で screen 座標にして出す（要素の panel 座標から world への一般の変換は書かない）。
+
+```bash
+unity command build --project-path <sandbox の絶対パス> --target StandaloneWindows64 --outputPath <sandbox の絶対パス>/Build/WorldSpace/WorldSpace.exe --scenes '["Assets/Hone/Sandbox/Experiments/WorldSpace/WorldSpace.unity"]' --confirm true
+unity command build_status --project-path <sandbox の絶対パス>
+timeout 120 <sandbox の絶対パス>/Build/WorldSpace/WorldSpace.exe -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -logFile <ログの絶対パス>
+```
+
+ログの `[WorldSpaceProbe]` 行を読む。`RESULT clicked=true` と `DONE failed=0` が出て終了コード 0 なら、合成 Mouse のクリックが World Space の panel 上の `Hone.Button` の `clicked` に届いている。
+Probe は `HEADER`（renderMode、EventSystem、`PanelInputConfiguration` の有無）と `POINTER`（screen 座標と深度）も出す。測定の前提（panel の準備、Button の `worldBound`、PanelSettings が World Space であること、シーンの構成、Error / Exception のログ）が崩れたとき、または `clicked` が届かなかったときは `[WorldSpaceProbe] FAIL` を出し、終了コード 1 で終了する。
+Editor の Play Mode では `Application.Quit` が効かないので終了しないが、ログは同じものが出る。
+
+結果（Unity 6000.7.0b2、Windows。Editor の Play Mode と Player で同じ）:
+
+- Button の中心を `PanelRenderer` の `transform.position` とみなした `Camera.WorldToScreenPoint` の screen 座標で、`clicked` が届く。
+- World Space の panel では `worldBound` が world 単位になる（pixels per unit 100 の既定のままで、`Hone.Button` は幅 1.27、高さ 0.37）。ただしシーンの world 座標ではなく、panel の位置を原点にした値で、panel（位置 (0, 1, 0)）の中央にある Button の中心はほぼ (0, 0) だった。`worldBound` を `Camera.WorldToScreenPoint` に渡しても screen 座標にならない。
 
 ## 既知の事項
 
