@@ -11,7 +11,8 @@ using UnityEngine.UIElements;
 namespace Hone.Core.Editor
 {
     // hone.manifest.json（CLI が書く台帳）を読み、CLI が作れない Unity のアセットを作って割り当てる。
-    // 触るのは PanelSettings の themeStyleSheet と textSettings、HonePanelTextSettings.asset、フォントの隣の FontAsset だけ
+    // 変更するのは PanelSettings の themeStyleSheet と textSettings、HonePanelTextSettings.asset、フォントの隣の FontAsset だけ。
+    // ただし最後の AssetDatabase.SaveAssets は、プロジェクトの他の未保存の変更も保存する
     public static class HoneSync
     {
         public const string DefaultDirectory = "Assets/Hone";
@@ -19,7 +20,7 @@ namespace Hone.Core.Editor
         const string TextSettingsFileName = "HonePanelTextSettings.asset";
         const string LogPrefix = "[Hone] Sync: ";
 
-        // Unity の Font Asset の作成メニュー（Create > UI Toolkit > Text > Font Asset > SDF）と同じ値（6000.7）。
+        // Unity の Font Asset の作成メニュー（Create > UI Toolkit > Text > Font Asset > SDF）と同じ値（6000.7.0b2 で確認）。
         // multi atlas だけはメニュー（無効）と違い有効にする。CJK は 1 枚の atlas に収まらない
         const int SamplingPointSize = 90;
         const int AtlasPadding = 9;
@@ -42,6 +43,8 @@ namespace Hone.Core.Editor
         [MenuItem("Hone/Sync")]
         static void SyncFromMenu()
         {
+            // CLI は Unity の外でファイルを書くので、import されていないファイルを「無い」「別の種類」と誤認しないよう先に取り込む
+            AssetDatabase.Refresh();
             if (!File.Exists(ManifestPath(DefaultDirectory)))
             {
                 EditorUtility.DisplayDialog("Hone Sync", MissingManifestMessage(DefaultDirectory), "OK");
@@ -60,19 +63,34 @@ namespace Hone.Core.Editor
             }
             if (panels.Count == 1)
             {
-                Run(panels);
+                RunFromMenu(panels);
                 return;
             }
             HoneSyncWindow.Open(panels);
         }
 
-        // 変更した件数を返す。manifest が無い・読めないときは何もせずにエラーを出し、0 を返す
-        public static int Run(IEnumerable<PanelSettings> targets, string directory = DefaultDirectory)
+        // Console を開いていない利用者にも、エラーがあったことをダイアログで知らせる
+        internal static void RunFromMenu(IEnumerable<PanelSettings> targets)
         {
+            Run(targets, DefaultDirectory, out var errors);
+            if (errors > 0)
+                EditorUtility.DisplayDialog("Hone Sync", $"{errors} 件のエラーがありました。Console を確認してください", "OK");
+        }
+
+        // 変更したアセットの件数を返す。
+        // 前提（manifest、theme、HonePanelTextSettings.asset のパス）が満たせないときは、何も変えずにエラーを出して 0 を返す。
+        // フォント単位の失敗はエラーを出して次のフォントへ進む
+        public static int Run(IEnumerable<PanelSettings> targets, string directory = DefaultDirectory) =>
+            Run(targets, directory, out _);
+
+        // errors はエラーとして出した件数
+        public static int Run(IEnumerable<PanelSettings> targets, string directory, out int errors)
+        {
+            errors = 0;
             var manifestPath = ManifestPath(directory);
             if (!File.Exists(manifestPath))
             {
-                Debug.LogError(LogPrefix + MissingManifestMessage(directory));
+                Error(MissingManifestMessage(directory), ref errors);
                 return 0;
             }
             Manifest manifest;
@@ -82,21 +100,27 @@ namespace Hone.Core.Editor
             }
             catch (ArgumentException e)
             {
-                Debug.LogError($"{LogPrefix}{manifestPath} を JSON として読めませんでした（{e.Message}）");
+                Error($"{manifestPath} を JSON として読めませんでした（{e.Message}）", ref errors);
                 return 0;
             }
-            var theme = string.IsNullOrEmpty(manifest?.theme) ? null : AssetDatabase.LoadAssetAtPath<ThemeStyleSheet>(manifest.theme);
+            // 空のファイルは例外にならず null になる
+            if (manifest == null)
+            {
+                Error($"{manifestPath} が空です", ref errors);
+                return 0;
+            }
+            var theme = string.IsNullOrEmpty(manifest.theme) ? null : AssetDatabase.LoadAssetAtPath<ThemeStyleSheet>(manifest.theme);
             if (theme == null)
             {
-                Debug.LogError($"{LogPrefix}{manifestPath} の theme が指す .tss を読めません: {manifest?.theme}");
+                Error($"{manifestPath} の theme が指す .tss を読めません: {manifest.theme}", ref errors);
                 return 0;
             }
             var textSettingsPath = $"{directory}/{TextSettingsFileName}";
             var textSettings = AssetDatabase.LoadAssetAtPath<PanelTextSettings>(textSettingsPath);
             if (textSettings == null && File.Exists(textSettingsPath))
             {
-                // CreateAsset は同じパスの既存ファイルを消してから作るので、別の種類のアセットを上書きしない
-                Debug.LogError($"{LogPrefix}{textSettingsPath} が PanelTextSettings ではありません");
+                // CreateAsset は同じパスの既存ファイルを消して作り直す。別の種類のアセットを消さないよう、ここで止める
+                Error($"{textSettingsPath} が PanelTextSettings ではありません", ref errors);
                 return 0;
             }
 
@@ -105,6 +129,12 @@ namespace Hone.Core.Editor
             {
                 textSettings = ScriptableObject.CreateInstance<PanelTextSettings>();
                 AssetDatabase.CreateAsset(textSettings, textSettingsPath);
+                // 作れなかった（書き込めない場所など）ものを割り当てると、保存時に参照が外れる
+                if (!AssetDatabase.Contains(textSettings))
+                {
+                    Error($"{textSettingsPath} を作れませんでした", ref errors);
+                    return 0;
+                }
                 Log($"作成: {textSettingsPath}");
                 changes++;
             }
@@ -145,7 +175,7 @@ namespace Hone.Core.Editor
             {
                 foreach (var fontPath in entry.files ?? Array.Empty<string>())
                 {
-                    var fontAsset = LoadOrCreateFontAsset(fontPath, ref changes);
+                    var fontAsset = LoadOrCreateFontAsset(fontPath, ref changes, ref errors);
                     if (fontAsset == null)
                         continue;
                     var fontAssetPath = AssetDatabase.GetAssetPath(fontAsset);
@@ -166,18 +196,19 @@ namespace Hone.Core.Editor
                 changes++;
             }
 
-            if (changes == 0)
-            {
+            if (changes > 0)
+                AssetDatabase.SaveAssets();
+            if (errors > 0)
+                Debug.LogError($"{LogPrefix}{errors} 件のエラーがありました（{changes} 件のアセットを変更）。上のエラーを確認してください");
+            else if (changes == 0)
                 Log("変更なし");
-                return 0;
-            }
-            AssetDatabase.SaveAssets();
-            Log($"完了（{changes} 件のアセットを変更）");
+            else
+                Log($"完了（{changes} 件のアセットを変更）");
             return changes;
         }
 
         // <フォントと同じディレクトリ>/<フォントのファイル名> SDF.asset。あれば作らずにそれを使う
-        static FontAsset LoadOrCreateFontAsset(string fontPath, ref int changes)
+        static FontAsset LoadOrCreateFontAsset(string fontPath, ref int changes, ref int errors)
         {
             var name = Path.GetFileNameWithoutExtension(fontPath);
             var directory = Path.GetDirectoryName(fontPath)?.Replace('\\', '/');
@@ -186,16 +217,21 @@ namespace Hone.Core.Editor
             {
                 var existing = AssetDatabase.LoadAssetAtPath<FontAsset>(assetPath);
                 if (existing == null)
-                    Debug.LogError($"{LogPrefix}{assetPath} が FontAsset ではありません");
-                else
-                    Log($"既に存在するためスキップ: {assetPath}");
+                {
+                    Error($"{assetPath} が FontAsset ではありません", ref errors);
+                    return null;
+                }
+                // 利用者が同じ名前で置いた Static の FontAsset は ATG で使えないが、利用者のファイルなので作り直さない
+                if (existing.atlasPopulationMode != AtlasPopulationMode.Dynamic)
+                    Debug.LogWarning($"{LogPrefix}{assetPath} は Dynamic ではありません（ATG は Static の FontAsset に対応しない）");
+                Log($"既に存在するためスキップ: {assetPath}");
                 return existing;
             }
 
             var font = AssetDatabase.LoadAssetAtPath<Font>(fontPath);
             if (font == null)
             {
-                Debug.LogError($"{LogPrefix}フォントを読めません: {fontPath}");
+                Error($"フォントを読めません: {fontPath}", ref errors);
                 return null;
             }
             // ATG は Static の FontAsset に対応しないので Dynamic で作る
@@ -203,15 +239,29 @@ namespace Hone.Core.Editor
                 AtlasSize, AtlasSize, AtlasPopulationMode.Dynamic, true);
             if (fontAsset == null)
             {
-                Debug.LogError($"{LogPrefix}FontAsset を作れませんでした: {fontPath}");
+                Error($"FontAsset を作れませんでした: {fontPath}", ref errors);
                 return null;
             }
             // atlas と material は、本体を CreateAsset した後にサブアセットとして足す（保存前に足さないと参照が外れる）
             AssetDatabase.CreateAsset(fontAsset, assetPath);
-            fontAsset.atlasTextures[0].name = $"{name} Atlas";
-            fontAsset.material.name = $"{name} Atlas Material";
-            AssetDatabase.AddObjectToAsset(fontAsset.atlasTextures[0], fontAsset);
-            AssetDatabase.AddObjectToAsset(fontAsset.material, fontAsset);
+            if (!AssetDatabase.Contains(fontAsset))
+            {
+                Error($"{assetPath} を作れませんでした", ref errors);
+                return null;
+            }
+            try
+            {
+                fontAsset.atlasTextures[0].name = $"{name} Atlas";
+                fontAsset.material.name = $"{name} Atlas Material";
+                AssetDatabase.AddObjectToAsset(fontAsset.atlasTextures[0], fontAsset);
+                AssetDatabase.AddObjectToAsset(fontAsset.material, fontAsset);
+            }
+            catch
+            {
+                // atlas の参照が外れた本体が残ると、次の実行で「既に存在する」として fallback に入ってしまう
+                AssetDatabase.DeleteAsset(assetPath);
+                throw;
+            }
             EditorUtility.SetDirty(fontAsset);
             Log($"作成: {assetPath}");
             changes++;
@@ -221,9 +271,16 @@ namespace Hone.Core.Editor
         static string ManifestPath(string directory) => $"{directory}/{ManifestFileName}";
 
         static string MissingManifestMessage(string directory) =>
-            $"{ManifestPath(directory)} がありません。先に `npx @kaibutsu50/hone init` を実行してください";
+            $"{ManifestPath(directory)} がありません。先に `npx @kaibutsu50/hone init` を実行してください" +
+            "（hone.json の output を Assets/Hone 以外にしている場合、Sync はその出力先に対応していません）";
 
         static void Log(string message) => Debug.Log(LogPrefix + message);
+
+        static void Error(string message, ref int errors)
+        {
+            Debug.LogError(LogPrefix + message);
+            errors++;
+        }
     }
 
     // PanelSettings が複数あるときに、Sync の対象を選ばせる。既定はどれも選ばない
@@ -248,7 +305,7 @@ namespace Hone.Core.Editor
             if (panels == null)
             {
                 Close();
-                return;
+                GUIUtility.ExitGUI();
             }
             EditorGUILayout.LabelField("Sync する PanelSettings を選んでください", EditorStyles.boldLabel);
             scroll = EditorGUILayout.BeginScrollView(scroll);
@@ -259,14 +316,18 @@ namespace Hone.Core.Editor
             {
                 GUILayout.FlexibleSpace();
                 if (GUILayout.Button("キャンセル"))
+                {
                     Close();
+                    GUIUtility.ExitGUI();
+                }
                 using (new EditorGUI.DisabledScope(!selected.Any(s => s)))
                 {
                     if (GUILayout.Button("Sync"))
                     {
                         var targets = panels.Where((_, i) => selected[i]).ToList();
                         Close();
-                        HoneSync.Run(targets);
+                        HoneSync.RunFromMenu(targets);
+                        GUIUtility.ExitGUI();
                     }
                 }
             }

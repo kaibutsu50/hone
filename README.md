@@ -56,7 +56,8 @@ Sync が行うこと。
 - `HoneTheme.tss` を同じ `PanelSettings` の Theme Style Sheet に割り当てる
 - `PanelSettings` の他の設定（scale mode、sort order など）は変えない。既に設定済みの項目は飛ばすので、何度実行してもよい
 
-`PanelSettings` が複数ある場合は Sync が一覧を出し、どれに適用するかチェックボックスで選ぶ（既定はどれも選ばれていない）。
+対象は `Assets/` 配下の `PanelSettings`。1 つならそのまま適用し、無ければ「PanelSettings がありません」と出して終わる。複数ある場合は Sync が一覧を出し、どれに適用するかチェックボックスで選ぶ（既定はどれも選ばれていない）。
+エラーがあったときは、件数をダイアログで知らせる（内容は Console に出る）。
 
 ### 2. コンポーネントの追加
 

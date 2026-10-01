@@ -30,12 +30,12 @@ Assets/Hone/
   Tokens.uss          registry/Tokens.uss の手コピー
   HoneTheme.tss       registry/HoneTheme.tss の手コピー。差分は、`hone add` が挿入する各コンポーネントの USS の @import（Button、Dialog）と、末尾の :root（--hone-font-body に Sandbox/Fonts/RobotoMono.asset を指定）だけ。
                       利用者が雛形のコメントに従って自分で書く内容に当たる。registry 側を変えたら、この @import と :root を残して同期する
-  hone.manifest.json  `hone init` が作る manifest の手書き（`fonts` は空）。`Hone > Sync` が読む
+  hone.manifest.json  `hone init` が作る manifest の手書き（`fonts` は空）。`Hone > Sync` が読む。`hone add` が追記する `components` は、Sync が読まないので書いていない
   HonePanelTextSettings.asset   `Hone > Sync` が作った PanelTextSettings（Fallback Font Assets は空）
   Sandbox/            sandbox 固有のアセット。`hone add` がコピーする領域と混ぜない
     Sandbox.unity     PanelRenderer を 1 つ置いたシーン（EventSystem は置かない）
     Sandbox.uxml      空の UXML
-    PanelSettings.asset   Theme Style Sheet に HoneTheme.tss、Text Settings に HonePanelTextSettings.asset を割り当て済み（Screen Space。どちらも `Hone > Sync` で割り当てた）
+    PanelSettings.asset   Theme Style Sheet に HoneTheme.tss、Text Settings に HonePanelTextSettings.asset を割り当て済み（Screen Space）
     WorldSpacePanelSettings.asset   PanelSettings.asset の複製で、Render Mode だけ World Space にしたもの。Theme Style Sheet と Text Settings は同じで、scale mode と pixels per unit は Unity の既定のまま
     Fonts/            検証用フォント。RobotoMono-Regular.ttf（Apache-2.0、Unity Editor 同梱）とその LICENSE、そこから作った Dynamic の FontAsset
     Experiments/<Name>/   Issue ごとの検証。FontVar/ は `-unity-font-definition` を USS 変数経由で差し替えられるかの検証
