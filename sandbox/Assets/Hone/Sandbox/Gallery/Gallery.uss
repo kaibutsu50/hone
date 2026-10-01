@@ -1,13 +1,24 @@
 /* sandbox の撮影用の見た目。コンポーネントの USS ではないので、トークン規約（実値を書かない）の対象外。
  * 背景と文字色は Hone のトークン（light の 1 セット）に合わせる。暗い背景だと、ring（近い暗色）が写らない。 */
-.gallery {
+/* dropdown と ScrollView を包む。背景をここに置かないと、dropdown の背後にシーンのカメラ映像が透ける */
+.gallery-page {
     flex-grow: 1;
     padding: 8px;
     background-color: var(--hone-color-background);
 }
 
-.gallery Label {
+.gallery-page Label {
     color: var(--hone-color-foreground);
+}
+
+.gallery {
+    flex-grow: 1;
+}
+
+/* 言語の選択。全列に作用するので列の上に置き、幅は中身に合わせる */
+.gallery-language {
+    align-self: flex-start;
+    margin-bottom: 8px;
 }
 
 .gallery .unity-scroll-view__content-container {

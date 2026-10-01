@@ -43,7 +43,38 @@ namespace Hone.Sandbox.Tests
             var scripts = LoadTestStrings().Select(s => s.Script).ToList();
 
             CollectionAssert.AreEquivalent(
-                new[] { "ja", "ko", "zh-hans", "zh-hant", "ar", "th", "emoji", "de-long", "en" }, scripts);
+                new[] { "en", "ja", "ko", "zh-hans", "zh-hant", "ar", "th", "de-long" }, scripts);
+        }
+
+        [Test]
+        public void ParseTestStrings_ReadsName()
+        {
+            var strings = GalleryController.ParseTestStrings("{\"ja\": {\"name\": \"Japanese\", \"short\": \"a\", \"long\": \"b\"}}");
+
+            Assert.AreEqual("Japanese", strings[0].Name);
+        }
+
+        [Test]
+        public void Pick_ReturnsBaseThenSelected()
+        {
+            var picked = GalleryController.Pick(LoadTestStrings(), "ko");
+
+            CollectionAssert.AreEqual(new[] { "en", "ko" }, picked.Select(s => s.Script).ToList());
+        }
+
+        [TestCase("en")]
+        [TestCase("xx")]
+        public void Pick_InvalidScript_ThrowsArgumentException(string script)
+        {
+            Assert.Throws<ArgumentException>(() => GalleryController.Pick(LoadTestStrings(), script));
+        }
+
+        [Test]
+        public void Pick_NoBaseScript_ThrowsArgumentException()
+        {
+            var all = GalleryController.ParseTestStrings("{\"ja\": {\"name\": \"Japanese\", \"short\": \"a\", \"long\": \"b\"}}");
+
+            Assert.Throws<ArgumentException>(() => GalleryController.Pick(all, "ja"));
         }
 
         [Test]
@@ -108,10 +139,12 @@ namespace Hone.Sandbox.Tests
             Assert.Throws<InvalidOperationException>(() => GalleryController.Build(new VisualElement(), LoadTestStrings()));
         }
 
-        [TestCase("{\"ja\": {\"short\": \"a\"}}")]
-        [TestCase("{\"ja\": {\"long\": \"a\"}}")]
+        [TestCase("{\"ja\": {\"name\": \"n\", \"short\": \"a\"}}")]
+        [TestCase("{\"ja\": {\"name\": \"n\", \"long\": \"a\"}}")]
         [TestCase("{\"ja\": \"a\"}")]
-        [TestCase("{\"ja\": {\"short\": 1, \"long\": \"a\"}}")]
+        [TestCase("{\"ja\": {\"name\": \"n\", \"short\": 1, \"long\": \"a\"}}")]
+        [TestCase("{\"ja\": {\"short\": \"a\", \"long\": \"b\"}}")]
+        [TestCase("{\"ja\": {\"name\": 1, \"short\": \"a\", \"long\": \"b\"}}")]
         public void ParseTestStrings_MissingOrNonStringValue_ThrowsFormatException(string json)
         {
             Assert.Throws<FormatException>(() => GalleryController.ParseTestStrings(json));
