@@ -28,23 +28,24 @@ Unity で同じ体験を作るとき、構造的に違う点が二つある。
 - Unity 6.7 LTS 以降のプロジェクト
 - UI を表示する `PanelSettings` アセットと、シーン上の `PanelRenderer`（6.5 以降。旧 `UIDocument` でも動く）
 - Input System パッケージ（ゲームパッド入力のため。6.7 では標準同梱）
-- Node.js（CLI 実行のため。生成物には残らない）
+- Node.js 20.12 以上（CLI 実行のため。生成物には残らない）
 
 ### 1. 初期化
 
-Unity プロジェクトのルート（`Assets/` がある階層）で実行する。
+Unity プロジェクトのルート（`Assets/` と `ProjectSettings/` がある階層）で実行する。
 
 ```bash
-npx hone init
+npx @kaibutsu50/hone init
 ```
 
 CLI が行うこと。
 
-- `hone.json` を作る。出力先（既定 `Assets/Hone`）と registry の URL を記録する
+- `hone.json` を作る。出力先（既定 `Assets/Hone`）と registry の取得元（URL かローカルパス。`--registry <URL|パス>` で指定する）を記録する。`hone.json` が既にあれば書き換えず、その内容を使う
 - `Assets/Hone/Core/` に headless 層をコピーする。asmdef はここにだけ入る（Runtime 用の `Hone.Core` と Editor 用の `Hone.Core.Editor`）
 - `Assets/Hone/Tokens.uss` にトークン定義をコピーする
-- `Assets/Hone/HoneTheme.tss` を作る。Unity 既定テーマを `@import` し、その後に Hone のトークンと Core の USS を `@import` する
+- `Assets/Hone/HoneTheme.tss` をコピーする。Unity 既定テーマを `@import` し、その後に Hone のトークンと Core の USS を `@import` する
 - `Assets/Hone/hone.manifest.json` を作る。Unity 側の Sync が読む台帳
+- 既にあるファイルは上書きしない。`init` は何度実行しても何も壊れない
 
 Unity Editor に戻ると import とコンパイルが走る。その後、メニューの `Hone > Sync` を一度実行する。
 
@@ -58,7 +59,7 @@ Sync が行うこと。
 ### 2. コンポーネントの追加
 
 ```bash
-npx hone add Button Dialog
+npx @kaibutsu50/hone add Button Dialog
 ```
 
 CLI が行うこと。
@@ -103,7 +104,7 @@ UI Builder からは、Library の Project タブに `Hone` 配下として現�
 fallback が空のまま未収録文字に当たると OS フォントの全列挙が走り、フリーズする報告がある。
 
 ```bash
-npx hone add font ja
+npx @kaibutsu50/hone add font ja
 ```
 
 CLI が行うこと。
@@ -131,11 +132,11 @@ Hone はフォントを同梱しない。`.hone-text` クラスを付けた要�
 
 | Web (shadcn) | Unity (Hone) |
 |---|---|
-| `npx shadcn init` が `tailwind.config` と `globals.css` を書く | `npx hone init` が `HoneTheme.tss` を書き、`Hone > Sync` が `PanelSettings` に割り当てる |
-| `npx shadcn add button` | `npx hone add Button` |
+| `npx shadcn init` が `tailwind.config` と `globals.css` を書く | `npx @kaibutsu50/hone init` が `HoneTheme.tss` を書き、`Hone > Sync` が `PanelSettings` に割り当てる |
+| `npx shadcn add button` | `npx @kaibutsu50/hone add Button` |
 | `import { Button } from "@/components/ui/button"` | UXML は `xmlns:hone="Hone"`、C# は `using Hone;` |
 | スタイルはコンポーネント内の Tailwind クラス | スタイルは `Button.uss`。`HoneTheme.tss` から `@import` される |
-| `next/font` でフォントを取得 | `npx hone add font ja` と `Hone > Sync` |
+| `next/font` でフォントを取得 | `npx @kaibutsu50/hone add font ja` と `Hone > Sync` |
 | ホットリロード | Unity Editor に戻った時の import とコンパイル |
 
 ### 未検証の点
