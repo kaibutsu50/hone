@@ -2,7 +2,7 @@ import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 import { unzipSync } from "fflate";
-import { HoneError, reason } from "./errors.js";
+import { errorCode, HoneError, reason } from "./errors.js";
 import { FONT_SOURCES, type FontSource } from "./fonts.js";
 import {
   createFile,
@@ -18,7 +18,8 @@ import {
 } from "./project.js";
 import type { FetchLike } from "./registry.js";
 
-export const DEFAULT_FONT_CACHE = path.join(homedir(), ".cache", "hone", "fonts");
+// 使うときに評価する（HOME が引けない環境でも、font 以外のコマンドは動くように）
+export const defaultFontCache = (): string => path.join(homedir(), ".cache", "hone", "fonts");
 
 export interface AddFontOptions {
   cwd: string;
@@ -38,7 +39,7 @@ export async function runAddFont(options: AddFontOptions): Promise<void> {
   const { cwd } = options;
   const log = options.log ?? console.log;
   const fetchFn = options.fetch ?? ((url) => fetch(url));
-  const cacheDir = options.cacheDir ?? DEFAULT_FONT_CACHE;
+  const cacheDir = options.cacheDir ?? defaultFontCache();
 
   if (options.langs.length === 0) {
     throw new HoneError(`言語を指定してください。対応している lang: ${supportedLangs()}`);
@@ -51,10 +52,12 @@ export async function runAddFont(options: AddFontOptions): Promise<void> {
   }
   const { outputDir, output } = resolveOutput(cwd, config);
   const manifestPath = path.join(outputDir, "hone.manifest.json");
-  const manifest = parseManifest(await readInitFile(manifestPath, cwd), shownPath(cwd, manifestPath));
+  const readManifest = async () =>
+    parseManifest(await readInitFile(manifestPath, cwd), shownPath(cwd, manifestPath));
+  await readManifest(); // 取得の前に、manifest が読めることを確かめる
 
-  // 書き込みの前に、取得を全部済ませる。どれかに失敗したら何も書かない。
-  // 配置先が全部あれば取得しない（同じ lang の再実行でダウンロードしない）
+  // プロジェクトへの書き込みの前に、取得（とキャッシュへの保存）を全部済ませる。どれかに失敗したらプロジェクトには何も書かない。
+  // 配置先に 3 ファイルが名前で揃っていれば取得しない（同じ lang の再実行でダウンロードしない。内容は比べない）
   const plans: { source: FontSource; files: [dest: string, bytes: Buffer][] }[] = [];
   for (const source of sources) {
     const names = fileNames(source);
@@ -69,12 +72,14 @@ export async function runAddFont(options: AddFontOptions): Promise<void> {
     const installed = (await Promise.all(dests.map(isFile))).every(Boolean);
     const files: [string, Buffer][] = [];
     if (!installed) {
-      const bytes = await loadFont(source, fetchFn, cacheDir, log, cwd);
+      const bytes = await loadFont(source, fetchFn, cacheDir, log);
       files.push([dests[0], bytes.regular], [dests[1], bytes.bold], [dests[2], bytes.license]);
     }
     plans.push({ source, files });
   }
 
+  // 取得には時間がかかるので、書く直前に読み直す（その間に add や Sync が更新した内容を消さない）
+  const manifest = await readManifest();
   const added: unknown[] = [];
   for (const { source, files } of plans) {
     for (const [dest, bytes] of files) await createFile(dest, bytes, log, cwd);
@@ -123,30 +128,50 @@ async function loadFont(
   fetchFn: FetchLike,
   cacheDir: string,
   log: (message: string) => void,
-  cwd: string,
 ): Promise<FontBytes> {
   const names = fileNames(source);
   const dir = path.join(cacheDir, source.tag, source.dir);
   const cached = [names.regular, names.bold, names.license].map((name) => path.join(dir, name));
-  if ((await Promise.all(cached.map(isFile))).every(Boolean)) {
+  const hit = await readCache(cached, dir, log);
+  if (hit) {
     log(`キャッシュを使用: ${source.family}（${source.tag}）`);
-    const [regular, bold, license] = await Promise.all(cached.map((file) => readFile(file)));
-    return { regular, bold, license };
+    return { regular: hit[0], bold: hit[1], license: hit[2] };
   }
 
   log(`取得: ${source.family}（${source.url}）`);
   const bytes = await download(source, fetchFn);
   const contents = [bytes.regular, bytes.bold, bytes.license];
+  const tmps = cached.map((file) => `${file}.${process.pid}.tmp`);
   try {
     await mkdir(dir, { recursive: true });
     // 全部を一時ファイルに書いてから名前を付ける（途中で止まっても、揃っていないキャッシュは使われない）
-    await Promise.all(cached.map((file, i) => writeFile(`${file}.tmp`, contents[i])));
-    for (const file of cached) await rename(`${file}.tmp`, file);
+    const written = await Promise.allSettled(tmps.map((tmp, i) => writeFile(tmp, contents[i])));
+    const failed = written.find((r) => r.status === "rejected");
+    if (failed) throw failed.reason;
+    for (const [i, file] of cached.entries()) await rename(tmps[i], file);
   } catch (e) {
-    await Promise.all(cached.map((file) => rm(`${file}.tmp`, { force: true })));
-    log(`警告: キャッシュに保存できませんでした（${reason(e)}）: ${shownPath(cwd, dir)}`);
+    await Promise.all(tmps.map((tmp) => rm(tmp, { force: true }).catch(() => {})));
+    log(`警告: キャッシュに保存できませんでした（${reason(e)}）: ${dir}`);
   }
   return bytes;
+}
+
+// 3 ファイルが揃っていて空でなければ、その内容。無い・欠けている・空のときは undefined（取得し直す）。
+// 読めないとき（権限など）は、警告してキャッシュを使わない
+async function readCache(
+  files: string[],
+  dir: string,
+  log: (message: string) => void,
+): Promise<Buffer[] | undefined> {
+  try {
+    const bytes = await Promise.all(files.map((file) => readFile(file)));
+    return bytes.every((b) => b.length > 0) ? bytes : undefined;
+  } catch (e) {
+    if (errorCode(e) !== "ENOENT" && errorCode(e) !== "ENOTDIR") {
+      log(`警告: キャッシュを読めませんでした（${reason(e)}）。取得し直します: ${dir}`);
+    }
+    return undefined;
+  }
 }
 
 async function download(source: FontSource, fetchFn: FetchLike): Promise<FontBytes> {
@@ -159,8 +184,10 @@ async function download(source: FontSource, fetchFn: FetchLike): Promise<FontByt
     archive = new Uint8Array(await res.arrayBuffer());
   } catch (e) {
     if (e instanceof HoneError) throw e;
+    // fetch の失敗は TypeError("fetch failed") で、本当の原因（ENOTFOUND など）は cause にある
+    const detail = e instanceof Error && e.cause !== undefined ? `${reason(e)}: ${reason(e.cause)}` : reason(e);
     throw new HoneError(
-      `フォントを取得できません（${reason(e)}）。ネットワークに接続するか、キャッシュのある環境で実行してください: ${source.url}`,
+      `フォントを取得できません（${detail}）。ネットワークに接続するか、このタグ（${source.tag}）のキャッシュがあるマシンで実行してください: ${source.url}`,
       { cause: e },
     );
   }
@@ -177,6 +204,7 @@ async function download(source: FontSource, fetchFn: FetchLike): Promise<FontByt
   const pick = (name: string): Buffer => {
     const data = unzipped[name];
     if (!data) throw new HoneError(`取得した zip に ${name} がありません: ${source.url}`);
+    if (data.length === 0) throw new HoneError(`取得した zip の ${name} が空です: ${source.url}`);
     return Buffer.from(data);
   };
   return {

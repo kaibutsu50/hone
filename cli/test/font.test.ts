@@ -9,7 +9,7 @@ import { FONT_SOURCES, type FontSource } from "../src/fonts.js";
 import { runInit } from "../src/init.js";
 import { listFiles, makeUnityProject, repoRoot } from "./helpers.js";
 
-// テスト名の (A)〜(E) は Issue #22 の受け入れ条件の記号
+// テスト名の (A)〜(E) は Issue #22 の受け入れ条件の記号（A 配置と manifest 追記、B 複数 lang、C 再実行で再取得・重複なし、D 未対応 lang、E オフラインでキャッシュから配置）
 
 let tmp: string;
 let cacheDir: string;
@@ -27,7 +27,8 @@ const silent = { log: () => {} };
 const enc = (text: string) => new TextEncoder().encode(text);
 const source = (lang: string): FontSource => FONT_SOURCES.find((s) => s.lang === lang)!;
 
-// 実物と同じ構造の小さな zip（必要な 3 ファイルと、取り出されないはずのファイル）
+// FONT_SOURCES.entries と同じ構造の小さな zip（必要な 3 ファイルと、取り出されないはずのファイル）。
+// entries が実物の zip と一致していることは、自動テストでは確かめられない（取得元の表の確認は PR に記録する）
 function makeZip(s: FontSource): Uint8Array {
   return zipSync({
     [s.entries.regular]: enc(`${s.dir}:regular`),
@@ -162,7 +163,7 @@ describe("hone add font", () => {
     const target = path.join(root, "Assets/Hone/Fonts/NotoSansJP/NotoSansJP-Regular.otf");
     const mtime = (await stat(target)).mtimeMs;
     const manifestBefore = await read(root, "Assets/Hone/hone.manifest.json");
-    // キャッシュがあっても取得しないことを確かめるため、キャッシュを消す
+    // 取得されない理由がキャッシュのヒットではなく、配置先に揃っていることだと示すため、キャッシュを消す
     await rm(cacheDir, { recursive: true });
 
     const second = makeFetch();
@@ -338,5 +339,127 @@ describe("FONT_SOURCES", () => {
       expect(s.url).toContain(`/${s.tag}/`);
       expect(s.tag).not.toMatch(/latest/i);
     }
+  });
+});
+
+describe("hone add font の堅牢性", () => {
+  const cacheFiles = (s: FontSource) =>
+    [`${s.dir}-Regular.otf`, `${s.dir}-Bold.otf`, "LICENSE.txt"].map((n) => path.join(cacheDir, s.tag, s.dir, n));
+
+  it("キャッシュがあれば、ネットワークが使えても取得しない", async () => {
+    const root = await makeInitializedProject();
+    await addFont(root, ["ja"], makeFetch().fetchMock);
+    await rm(path.join(root, "Assets/Hone/Fonts"), { recursive: true });
+
+    const { calls, fetchMock } = makeFetch();
+    await addFont(root, ["ja"], fetchMock);
+
+    expect(calls).toEqual([]);
+    expect(await read(root, "Assets/Hone/Fonts/NotoSansJP/NotoSansJP-Bold.otf")).toBe("NotoSansJP:bold");
+  });
+
+  it("キャッシュの 3 ファイルのうち 1 つが欠けていれば、取得し直してキャッシュを揃える", async () => {
+    const root = await makeInitializedProject();
+    await addFont(root, ["ja"], makeFetch().fetchMock);
+    await rm(path.join(root, "Assets/Hone/Fonts"), { recursive: true });
+    await rm(cacheFiles(source("ja"))[1]);
+
+    const { calls, fetchMock } = makeFetch();
+    await addFont(root, ["ja"], fetchMock);
+
+    expect(calls).toEqual([source("ja").url]);
+    expect(await listFiles(path.join(cacheDir, source("ja").tag))).toHaveLength(3);
+  });
+
+  it("キャッシュに空のファイルがあれば、使わずに取得し直す", async () => {
+    const root = await makeInitializedProject();
+    await addFont(root, ["ja"], makeFetch().fetchMock);
+    await rm(path.join(root, "Assets/Hone/Fonts"), { recursive: true });
+    await writeFile(cacheFiles(source("ja"))[0], "");
+
+    const { calls, fetchMock } = makeFetch();
+    await addFont(root, ["ja"], fetchMock);
+
+    expect(calls).toEqual([source("ja").url]);
+    expect(await read(root, "Assets/Hone/Fonts/NotoSansJP/NotoSansJP-Regular.otf")).toBe("NotoSansJP:regular");
+    expect(await readFile(cacheFiles(source("ja"))[0], "utf8")).toBe("NotoSansJP:regular");
+  });
+
+  it("キャッシュを書けなくても、警告して配置は成功する", async () => {
+    const root = await makeInitializedProject();
+    // キャッシュ先がファイルなので、mkdir できない
+    await writeFile(cacheDir, "not a directory");
+    const logs: string[] = [];
+
+    await runAdd({ cwd: root, names: ["font", "ja"], fetch: makeFetch().fetchMock, cacheDir, log: (m) => logs.push(m) });
+
+    expect(logs.some((m) => m.startsWith("警告: キャッシュに保存できませんでした"))).toBe(true);
+    expect(await read(root, "Assets/Hone/Fonts/NotoSansJP/NotoSansJP-Regular.otf")).toBe("NotoSansJP:regular");
+    expect((await readManifest(root)).fonts).toHaveLength(1);
+  });
+
+  it("zip 内のファイルが空なら、エラーにして何も書かない", async () => {
+    const root = await makeInitializedProject();
+    const s = source("ja");
+    const empty = async (): Promise<Response> =>
+      new Response(zipSync({ [s.entries.regular]: new Uint8Array(0), [s.entries.bold]: enc("b"), [s.entries.license]: enc("l") }));
+
+    await expect(addFont(root, ["ja"], empty)).rejects.toThrow(/空です/);
+    await expect(stat(path.join(root, "Assets/Hone/Fonts"))).rejects.toThrow();
+  });
+
+  it("fetch の失敗は、cause の原因も表示する", async () => {
+    const root = await makeInitializedProject();
+    const dns = async (): Promise<Response> => {
+      throw new TypeError("fetch failed", { cause: Object.assign(new Error("getaddrinfo ENOTFOUND github.com"), { code: "ENOTFOUND" }) });
+    };
+
+    await expect(addFont(root, ["ja"], dns)).rejects.toThrow("fetch failed: ENOTFOUND");
+  });
+
+  it("取得している間に manifest が更新されても、その更新を消さない", async () => {
+    const root = await makeInitializedProject();
+    const manifestPath = path.join(root, "Assets/Hone/hone.manifest.json");
+    const { fetchMock } = makeFetch();
+    const concurrent = async (url: string | URL): Promise<Response> => {
+      const manifest = await readManifest(root);
+      await writeFile(manifestPath, JSON.stringify({ ...manifest, components: ["Button"] }));
+      return fetchMock(url);
+    };
+
+    await addFont(root, ["ja"], concurrent);
+
+    const after = await readManifest(root);
+    expect(after.components).toEqual(["Button"]);
+    expect(after.fonts).toHaveLength(1);
+  });
+
+  it("manifest に登録済みでファイルが無いときは、ファイルだけ置き直し、fonts は重複しない", async () => {
+    const root = await makeInitializedProject();
+    await addFont(root, ["ja"], makeFetch().fetchMock);
+    await rm(path.join(root, "Assets/Hone/Fonts"), { recursive: true });
+
+    await addFont(root, ["ja"], makeFetch().fetchMock);
+
+    expect(await listFiles(path.join(root, "Assets/Hone/Fonts/NotoSansJP"))).toHaveLength(3);
+    expect((await readManifest(root)).fonts).toHaveLength(1);
+  });
+
+  it("manifest の fonts が配列でなければ、取得の前にエラーにする", async () => {
+    const root = await makeInitializedProject();
+    const manifest = await readManifest(root);
+    await writeFile(path.join(root, "Assets/Hone/hone.manifest.json"), JSON.stringify({ ...manifest, fonts: "ja" }));
+    const { calls, fetchMock } = makeFetch();
+
+    await expect(addFont(root, ["ja"], fetchMock)).rejects.toThrow("fonts は配列");
+    expect(calls).toEqual([]);
+  });
+
+  it("font は大文字小文字を区別しない", async () => {
+    const root = await makeInitializedProject();
+
+    await runAdd({ cwd: root, names: ["FONT", "ja"], fetch: makeFetch().fetchMock, cacheDir, ...silent });
+
+    expect((await readManifest(root)).fonts).toHaveLength(1);
   });
 });
