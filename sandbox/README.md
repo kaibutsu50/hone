@@ -21,7 +21,7 @@ Assets/Hone/
   Core/               registry/Core の手コピー
     Runtime/          Hone.Core.asmdef、Core.uss、BackStack.cs（NavigationCancel で最前面の IDismissable を閉じる）、IDismissable.cs、
                       FocusScope.cs（subtree 限定のナビ、trap、初期フォーカスと復元）
-    Editor/           Hone.Core.Editor.asmdef
+    Editor/           Hone.Core.Editor.asmdef、HoneSync.cs（メニュー `Hone > Sync`）
   UI/                 registry/UI の手コピー
     Hone.Sandbox.UI.asmdef  sandbox 専用（registry には置かない）。UI には asmdef を置かない規約なので、Gallery と PlayMode テストから参照できるよう、
                       利用者が自分の asmdef に UI を乗せる形をここで再現する。Hone.Core を参照し（Dialog.cs が FocusScope と BackStack を使う）、autoReferenced は false（Assembly-CSharp の Experiments に Hone.Button を見せない）
@@ -30,10 +30,12 @@ Assets/Hone/
   Tokens.uss          registry/Tokens.uss の手コピー
   HoneTheme.tss       registry/HoneTheme.tss の手コピー。差分は、`hone add` が挿入する各コンポーネントの USS の @import（Button、Dialog）と、末尾の :root（--hone-font-body に Sandbox/Fonts/RobotoMono.asset を指定）だけ。
                       利用者が雛形のコメントに従って自分で書く内容に当たる。registry 側を変えたら、この @import と :root を残して同期する
+  hone.manifest.json  `hone init` が作る manifest の手書き（`fonts` は空）。`Hone > Sync` が読む。`hone add` が追記する `components` は、Sync が読まないので書いていない
+  HonePanelTextSettings.asset   `Hone > Sync` が作った PanelTextSettings（Fallback Font Assets は空）
   Sandbox/            sandbox 固有のアセット。`hone add` がコピーする領域と混ぜない
     Sandbox.unity     PanelRenderer を 1 つ置いたシーン（EventSystem は置かない）
     Sandbox.uxml      空の UXML
-    PanelSettings.asset   Theme Style Sheet に HoneTheme.tss を割り当て済み（Screen Space）
+    PanelSettings.asset   Theme Style Sheet に HoneTheme.tss、Text Settings に HonePanelTextSettings.asset を割り当て済み（Screen Space）
     WorldSpacePanelSettings.asset   PanelSettings.asset の複製で、Render Mode だけ World Space にしたもの。Theme Style Sheet と Text Settings は同じで、scale mode と pixels per unit は Unity の既定のまま
     Fonts/            検証用フォント。RobotoMono-Regular.ttf（Apache-2.0、Unity Editor 同梱）とその LICENSE、そこから作った Dynamic の FontAsset
     Experiments/<Name>/   Issue ごとの検証。FontVar/ は `-unity-font-definition` を USS 変数経由で差し替えられるかの検証
@@ -46,6 +48,7 @@ Assets/Hone/
     Gallery/          多言語スクリーンショットの撮影基盤。TestStrings.json（スクリプトごとの表示名・短文・長文）、Gallery.unity（PanelRenderer が 2 枚。Screen Space の `PanelRenderer` と World Space の `PanelRendererWorldSpace`）/ Gallery.uxml / Gallery.uss、GalleryController、
                       GalleryHoneEntries（Hone.Button、Core.uss のクラスを付けた列、開いた状態の Hone.Dialog を登録する）、GalleryFocus（ring を写すため、読み込み時と言語の切り替え時に最初の .hone-focusable にフォーカスを当てる）、
                       Hone.Sandbox.Gallery.asmdef（Tests/PlayMode が参照する。Hone.Sandbox.UI を参照する）
+    Tests/EditMode/   EditMode テスト。HoneSyncTests（`Assets/HoneSyncTestsTmp/` に manifest と PanelSettings を作って `HoneSync.Run` を呼び、終わったら消す）
     Tests/PlayMode/   PlayMode テスト。BackStackTests、FocusScopeTests、DialogTests、ButtonTests の 1 件（NavigationSubmitEvent）は PanelRenderer を GameObject で作って panel を得る（`UNITY_EDITOR` のときだけコンパイルされる。Editor で実行する）。
                       DialogTests の `_WorldSpace` が付く 2 件（初期フォーカスと overlay の PointerDown）だけは、World Space の panel（`CreateWorldSpacePanel`）でも回す。`SendEvent` で送るので入力経路は通らない
 ```
@@ -59,6 +62,14 @@ Assets/Hone/
 - Test Framework 1.9.0、UI Test Framework 6.7.0（`com.unity.ui.test-framework`）。どちらも Editor 同梱
 - `com.unity.pipeline` 0.7.0-exp.1: `unity command` で Editor を操作するため。**0.8.0-exp.1 にしない。**
   0.8 は `[CliCommand]` を別アセンブリへ移しており、6000.7.0b2 同梱の URP Core（旧配置を前提）がコンパイルエラーになる
+
+## EditMode テストの実行
+
+Editor を閉じた状態で、プロジェクトは絶対パスで渡す（`sandbox` だけだと、同じ名前のディレクトリを持つ他の worktree と曖昧になる）:
+
+```bash
+unity test <sandbox の絶対パス> --mode EditMode --editor-version 6000.7.0b2 --output <結果の xml の絶対パス>
+```
 
 ## PlayMode テストの実行
 
