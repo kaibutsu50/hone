@@ -30,7 +30,8 @@ namespace Hone.Sandbox.Gallery
     // Build は渡された文字列をそのまま並べる。画面では en と、dropdown で選んだ 1 スクリプトを渡す。
     // Register は sandbox 側のファイルから呼ぶ（registry/ 配下のコードには書かない。配布物が sandbox の asmdef に依存してしまう）。
     // 呼ぶ時点は [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]。
-    // 列を作るのは PanelRenderer の UI が読み込まれた時点の 1 回だけで、それより後の Register は画面に出ない。
+    // 列は PanelRenderer の UI が読み込まれた時点と、言語を切り替えるたびに、その時点の登録内容で作り直す。
+    // 読み込み時から画面に出すには、それより前（BeforeSceneLoad）に Register する。
     [RequireComponent(typeof(PanelRenderer))]
     public class GalleryController : MonoBehaviour
     {
@@ -90,7 +91,8 @@ namespace Hone.Sandbox.Gallery
             return result;
         }
 
-        // 画面に出す 2 スクリプト（BaseScript と script）を、この順で返す
+        // 画面に出す 2 スクリプト（BaseScript と script）を、この順で返す。
+        // script が BaseScript のとき、all に script が無いとき、all に BaseScript が無いときは ArgumentException
         public static IReadOnlyList<ScriptStrings> Pick(IReadOnlyList<ScriptStrings> all, string script)
         {
             if (script == BaseScript)
@@ -165,6 +167,10 @@ namespace Hone.Sandbox.Gallery
 
         void Rebuild(VisualElement root)
         {
+            // 前の UI を指したまま残すと、この Rebuild が途中で止まったときに SelectScript が外れた dropdown を操作し、何も起きないまま戻る
+            m_Language = null;
+            m_Selectable.Clear();
+
             var scrollView = root.Q<ScrollView>("gallery");
             if (scrollView == null)
             {
@@ -184,24 +190,25 @@ namespace Hone.Sandbox.Gallery
             }
 
             var all = ParseTestStrings(m_TestStrings.text);
-            m_Selectable.Clear();
-            foreach (var s in all)
-                if (s.Script != BaseScript)
-                    m_Selectable.Add(s);
+            var selectable = all.Where(s => s.Script != BaseScript).ToList();
+            // 例外を出しうる Pick を、dropdown を配線する前に済ませる（失敗したときに dropdown だけ設定済みの半端な状態を残さない）
+            var initial = Pick(all, selectable[0].Script);
 
-            language.choices = m_Selectable.Select(s => s.Name).ToList();
+            language.choices = selectable.Select(s => s.Name).ToList();
             language.SetValueWithoutNotify(language.choices[0]);
             language.RegisterValueChangedCallback(_ =>
-                Build(scrollView.contentContainer, Pick(all, m_Selectable[language.index].Script)));
+                Build(scrollView.contentContainer, Pick(all, selectable[language.index].Script)));
+            m_Selectable.AddRange(selectable);
             m_Language = language;
 
-            Build(scrollView.contentContainer, Pick(all, m_Selectable[0].Script));
+            Build(scrollView.contentContainer, initial);
         }
 
-        // dropdown で script を選んだのと同じ経路（ChangeEvent）で切り替える。eval から言語を切り替えて撮るための入口
+        // dropdown で script を選んだのと同じ経路（ChangeEvent）で切り替える。eval から言語を切り替えて撮るための入口。
+        // すでに選ばれている script を渡すと、ChangeEvent が出ないので何も起きない
         public void SelectScript(string script)
         {
-            if (m_Language == null)
+            if (m_Language == null || m_Language.panel == null)
                 throw new InvalidOperationException("Gallery: the UI is not loaded yet");
 
             var index = m_Selectable.FindIndex(s => s.Script == script);

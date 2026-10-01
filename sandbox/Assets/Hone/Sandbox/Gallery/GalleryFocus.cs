@@ -5,7 +5,7 @@ namespace Hone.Sandbox.Gallery
 {
     // 撮影用。Gallery の UI が読み込まれたあと、最初の .hone-focusable にフォーカスを当てて focus ring を写す。言語を切り替えたときも当て直す。
     // reload callback の中では当てず、schedule で後回しにする（GalleryController が同じ callback で列を作り終えてから探すため）。
-    // 待ち時間は経験値で、これより短くて足りるかは確かめていない。
+    // 待ち時間は経験値で、これより短くて足りるかは確かめていない（読み込み時と言語の切り替え時の両方で、Build と Dialog の Open() がこの間に終わる前提）。
     // 対象が無い、またはフォーカスが移らなかったときは LogError を出す（ring が写っていない画像を黙って撮らないため）。
     [RequireComponent(typeof(PanelRenderer))]
     public class GalleryFocus : MonoBehaviour

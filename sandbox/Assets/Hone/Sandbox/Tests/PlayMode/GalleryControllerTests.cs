@@ -42,7 +42,8 @@ namespace Hone.Sandbox.Tests
         {
             var scripts = LoadTestStrings().Select(s => s.Script).ToList();
 
-            CollectionAssert.AreEquivalent(
+            // 順序込みで見る。dropdown の初期値は en 以外の先頭（ja）なので、並び順が既定の言語を決める
+            CollectionAssert.AreEqual(
                 new[] { "en", "ja", "ko", "zh-hans", "zh-hant", "ar", "th", "de-long" }, scripts);
         }
 
@@ -51,13 +52,20 @@ namespace Hone.Sandbox.Tests
         {
             var strings = GalleryController.ParseTestStrings("{\"ja\": {\"name\": \"Japanese\", \"short\": \"a\", \"long\": \"b\"}}");
 
+            Assert.AreEqual("ja", strings[0].Script);
             Assert.AreEqual("Japanese", strings[0].Name);
+            Assert.AreEqual("a", strings[0].Short);
+            Assert.AreEqual("b", strings[0].Long);
         }
 
         [Test]
         public void Pick_ReturnsBaseThenSelected()
         {
-            var picked = GalleryController.Pick(LoadTestStrings(), "ko");
+            // en を後ろに置き、all の並び順ではなく en が先頭になることを確かめる
+            var all = GalleryController.ParseTestStrings(
+                "{\"ko\": {\"name\": \"Korean\", \"short\": \"a\", \"long\": \"b\"}, \"en\": {\"name\": \"English\", \"short\": \"c\", \"long\": \"d\"}}");
+
+            var picked = GalleryController.Pick(all, "ko");
 
             CollectionAssert.AreEqual(new[] { "en", "ko" }, picked.Select(s => s.Script).ToList());
         }
