@@ -1,0 +1,28 @@
+{
+  "name": "@kaibutsu50/hone",
+  "version": "0.0.0",
+  "description": "Unity UI Toolkit 向けの、shadcn/ui 方式の UI コンポーネント集の CLI",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "hone": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "commander": "^15.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.2"
+  }
+}

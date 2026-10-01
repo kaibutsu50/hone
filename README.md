@@ -35,7 +35,7 @@ Unity で同じ体験を作るとき、構造的に違う点が二つある。
 Unity プロジェクトのルート（`Assets/` がある階層）で実行する。
 
 ```bash
-npx hone init
+npx @kaibutsu50/hone init
 ```
 
 CLI が行うこと。
@@ -58,7 +58,7 @@ Sync が行うこと。
 ### 2. コンポーネントの追加
 
 ```bash
-npx hone add Button Dialog
+npx @kaibutsu50/hone add Button Dialog
 ```
 
 CLI が行うこと。
@@ -103,7 +103,7 @@ UI Builder からは、Library の Project タブに `Hone` 配下として現�
 fallback が空のまま未収録文字に当たると OS フォントの全列挙が走り、フリーズする報告がある。
 
 ```bash
-npx hone add font ja
+npx @kaibutsu50/hone add font ja
 ```
 
 CLI が行うこと。
@@ -131,11 +131,11 @@ Hone はフォントを同梱しない。`.hone-text` クラスを付けた要�
 
 | Web (shadcn) | Unity (Hone) |
 |---|---|
-| `npx shadcn init` が `tailwind.config` と `globals.css` を書く | `npx hone init` が `HoneTheme.tss` を書き、`Hone > Sync` が `PanelSettings` に割り当てる |
-| `npx shadcn add button` | `npx hone add Button` |
+| `npx shadcn init` が `tailwind.config` と `globals.css` を書く | `npx @kaibutsu50/hone init` が `HoneTheme.tss` を書き、`Hone > Sync` が `PanelSettings` に割り当てる |
+| `npx shadcn add button` | `npx @kaibutsu50/hone add Button` |
 | `import { Button } from "@/components/ui/button"` | UXML は `xmlns:hone="Hone"`、C# は `using Hone;` |
 | スタイルはコンポーネント内の Tailwind クラス | スタイルは `Button.uss`。`HoneTheme.tss` から `@import` される |
-| `next/font` でフォントを取得 | `npx hone add font ja` と `Hone > Sync` |
+| `next/font` でフォントを取得 | `npx @kaibutsu50/hone add font ja` と `Hone > Sync` |
 | ホットリロード | Unity Editor に戻った時の import とコンパイル |
 
 ### 未検証の点
