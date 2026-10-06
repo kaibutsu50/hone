@@ -37,6 +37,7 @@ Assets/Hone/
     Sandbox.uxml      空の UXML
     PanelSettings.asset   Theme Style Sheet に HoneTheme.tss、Text Settings に HonePanelTextSettings.asset を割り当て済み（Screen Space）
     WorldSpacePanelSettings.asset   PanelSettings.asset の複製で、Render Mode だけ World Space にしたもの。Theme Style Sheet と Text Settings は同じで、scale mode と pixels per unit は Unity の既定のまま
+    WorldSpacePanelSettings2.asset  WorldSpacePanelSettings.asset の複製（中身は同じ）。同じ asset を 2 枚の PanelRenderer に割り当てると同じ panel になるので、WorldSpace/ の 2 枚目の panel 用に分けてある
     Fonts/            検証用フォント。RobotoMono-Regular.ttf（Apache-2.0、Unity Editor 同梱）とその LICENSE、そこから作った Dynamic の FontAsset
     Experiments/<Name>/   Issue ごとの検証。FontVar/ は `-unity-font-definition` を USS 変数経由で差し替えられるかの検証
                       FontVar/Resources/Fonts/ は case 3（`resource()`）用の Fonts/RobotoMono.asset の複製。元を作り直したら同期する。
@@ -44,7 +45,8 @@ Assets/Hone/
                       FocusTrap/ は Dialog の focus trap 機構（IgnoreEvent の同 frame 順序、外側へのフォーカス漏れ、フォーカスが無いときの方向入力、EventSystem の有無）の検証
                       TokensExp/ は --hone-font-body（theme の :root）と .hone-text、.hone-focusable の ring の検証（Player の検証を含む）
                       ThemeExp/ は .tss の @import（絶対パス、相対パス）、既定テーマの Button の :focus、既定フォントの FontAsset と日本語の描画の検証
-                      WorldSpace/ は World Space の panel に、カメラ経由の入力（PanelInputConfiguration + EventSystem）が届くかの検証
+                      WorldSpace/ は World Space の panel に、カメラ経由の入力（PanelInputConfiguration + EventSystem）が届くかと、Hone.Button / Hone.Dialog が World Space の panel で動くかの検証。
+                      Hone.Button と Hone.Dialog を型で扱うので、この中にだけ asmdef（Hone.Sandbox.Experiments.WorldSpace.asmdef。Hone.Sandbox.UI を参照し、autoReferenced は false）を置く
     Gallery/          多言語スクリーンショットの撮影基盤。TestStrings.json（スクリプトごとの表示名・短文・長文）、Gallery.unity（PanelRenderer が 2 枚。Screen Space の `PanelRenderer` と World Space の `PanelRendererWorldSpace`）/ Gallery.uxml / Gallery.uss、GalleryController、
                       GalleryHoneEntries（Hone.Button、Core.uss のクラスを付けた列、開いた状態の Hone.Dialog を登録する）、GalleryFocus（ring を写すため、読み込み時と言語の切り替え時に最初の .hone-focusable にフォーカスを当てる）、
                       Hone.Sandbox.Gallery.asmdef（Tests/PlayMode が参照する。Hone.Sandbox.UI を参照する）
@@ -296,8 +298,32 @@ timeout 120 <sandbox の絶対パス>/Build/ThemeExp/ThemeExp.exe -screen-fullsc
 ## WorldSpace の Player 検証
 
 `WorldSpace.unity` は Build Settings に入れていないので、ビルド時にシーンを指定する。ビルドの待ち方は FontVar と同じ。
-シーンは Main Camera、EventSystem + `InputSystemUIInputModule`、`PanelInputConfiguration`（`processWorldSpaceInput = true`、event camera は Main Camera）、World Space の `PanelRenderer` 1 枚（`WorldSpacePanelSettings.asset`、`worldSpaceSizeMode = Fixed`、1920×1080）。UXML は `WorldSpace.uxml` で、`Hone.Button` を panel の中央に 1 つ置く。
-`WorldSpaceProbe` は Input System の合成 `Mouse` を作り、ポインタを Button の位置へ動かして press / release を積む。Button の位置は、panel の中央にあるので `PanelRenderer` の `transform.position` を `Camera.WorldToScreenPoint` で screen 座標にして出す（要素の panel 座標から world への一般の変換は書かない）。
+シーンは Main Camera（(0, 1, -10)）、EventSystem + `InputSystemUIInputModule`、`PanelInputConfiguration`（`processWorldSpaceInput = true`、event camera は Main Camera）、World Space の `PanelRenderer` 2 枚。
+どちらも UXML は `WorldSpace.uxml` で、`Hone.Button`（name `target`）を panel の中央に 1 つと、閉じた `Hone.Dialog`（name `dialog`。`Dialog.uxml` の使用例と同じ中身）を root 直下の最後の子に置く。
+
+| panel | GameObject | PanelSettings | 大きさ（`worldSpaceSizeMode = Fixed`） | 位置 |
+|---|---|---|---|---|
+| 1 枚目 | `PanelRenderer`（`WorldSpaceProbe` が付く） | `WorldSpacePanelSettings.asset` | 1920×1080 | (0, 1, 0) |
+| 2 枚目 | `PanelRenderer2` | `WorldSpacePanelSettings2.asset` | 480×300（1 つのダイアログ程度。`--hone-size-dialog` の 512px より狭い） | (5, 1, -2)。1 枚目の手前の右側で、カメラに収まり、1 枚目の Button の中心と重ならない |
+
+`WorldSpaceProbe` は Input System の合成 `Mouse` を作り、ポインタを要素の位置へ動かして press / release を積む。
+要素の screen 座標は、要素の `worldBound` の中心を、panel の root の `worldBound` の中心を原点にした値とみなし、`PanelRenderer` の `transform`（panel の中央が位置）で world に直して `Camera.WorldToScreenPoint` に渡して出す。
+前提の確認で、各 panel の中央にある Button の中心がこの変換で `transform.position` の screen 座標（2px 以内）に一致することを確かめる。`Screen.width` などは見ない。
+
+ステップ（1 ステップが `RESULT` 行を 1 行出す）:
+
+| ステップ | 対象 | 操作 | 判定 |
+|---|---|---|---|
+| `hover` | 1 枚目の Button | ポインタを中心へ動かす | `resolvedStyle.opacity` が 1 から 0.9 になる |
+| `active` | 同上 | press したまま | `opacity` が 0.8 |
+| `focus` | 同上 | release の後 | `focusedElement` が Button で、`borderTopWidth` が押す前より大きい |
+| `click` | 同上 | press / release | `clicked` が 1 回 |
+| `open` | 1 枚目の Dialog | `Open()` | content が panel の root の中に収まり、幅が `--hone-size-dialog`（max-width）で決まる |
+| `overlay` | 同上 | content の外側（panel の左上の角から 12px）を press | `closed` が 1 回発火し、`isOpen` が false |
+| `footer` | 同上 | `Open()` して OK の中心を press / release | OK の `clicked` が 1 回 |
+| `open-narrow` | 2 枚目の Dialog | `Open()` | content が panel の中に収まり、幅が panel の 90% で決まる |
+| `cross-click` | 1 枚目の Button と 2 枚目の Dialog の OK | 続けてクリック | どちらの `clicked` も 1 回 |
+| `cross-focus` | 両 panel | 1 枚目の Button に `Focus()` してから、2 枚目の Dialog を `Open()` → `Close()` | 判定しない（前提の、1 枚目の Button がフォーカスを得たことだけ判定）。Open 前 / Open 後 / Close 後の両 panel の `focusedElement` を記録する |
 
 ```bash
 unity command build --project-path <sandbox の絶対パス> --target StandaloneWindows64 --outputPath <sandbox の絶対パス>/Build/WorldSpace/WorldSpace.exe --scenes '["Assets/Hone/Sandbox/Experiments/WorldSpace/WorldSpace.unity"]' --confirm true
@@ -305,23 +331,28 @@ unity command build_status --project-path <sandbox の絶対パス>
 timeout 120 <sandbox の絶対パス>/Build/WorldSpace/WorldSpace.exe -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -logFile <ログの絶対パス>
 ```
 
-ログの `[WorldSpaceProbe]` 行を読む。`RESULT clicked=true count=1` と `DONE failed=0` が出て終了コード 0 なら、合成 Mouse のクリックが World Space の panel 上の `Hone.Button` の `clicked` に 1 回届いている。
-Probe は `HEADER`（renderMode、size mode、EventSystem、`PanelInputConfiguration` の有無、Main Camera が event camera か、Button の型）と `POINTER`（screen 座標と深度）も出す。
+ログの `[WorldSpaceProbe]` 行を読む。`RESULT step=<名前> … pass=true|false` の行が全ステップ分と、最後に `DONE steps=<件数> failed=0` が出て終了コード 0 なら、全ステップが期待どおり。
+Probe は `HEADER`（renderMode、PanelSettings、size mode、layout の大きさ、root と Button の `worldBound`、EventSystem、`PanelInputConfiguration` の有無、Main Camera が event camera か、Button の型）と `POINTER`（要素の `worldBound` と screen 座標）も出す。
 失敗はすべて `[WorldSpaceProbe] FAIL <理由>` の行で出し、最後に `[WorldSpaceProbe] FAIL total=<件数> first=<最初の理由>` を出して終了コード 1 で終了する（`DONE` は出さない）。失敗に数えるのは次のとおり:
 
 - panel が 300 frame 以内に準備できない、または 60 秒以内に終わらない
-- 測定の前提（Button が `Hone.Button` で `worldBound` を持つ、PanelSettings が World Space、`worldSpaceSizeMode = Fixed`、EventSystem + `InputSystemUIInputModule`、`processWorldSpaceInput = true` の `PanelInputConfiguration`、Main Camera が event camera、panel がカメラの前）が崩れている。このときはクリックせず、`RESULT` 行も出さない
-- `clicked` が 0 回、または 2 回以上（1 回の press / release に対して）
+- 測定の前提（2 枚目の panel がある、Button が `Hone.Button` で `worldBound` を持つ、2 枚の PanelSettings が World Space で別の asset、`worldSpaceSizeMode = Fixed`、Dialog が閉じている、EventSystem + `InputSystemUIInputModule`、`processWorldSpaceInput = true` の `PanelInputConfiguration`、Main Camera が event camera、Button の中心の変換が合う）が崩れている。このときは何も押さず、`RESULT` 行も出さない
+- どれかのステップの期待値が外れた（`pass=false`）。押した点がカメラの外や後ろにある場合も含む
 - Probe 自身以外の Error / Exception / Assert のログ（Probe の `Awake` から終了まで）
 
 `DONE` も `FAIL total=` も無いログは、Probe が動かなかった（シーン違い、コンポーネント欠落）か途中で止まったものとして扱う。外側の `timeout 120` はそのときの保険。
 合成 Mouse のほかに実マウスがつながっていると、実マウスの動きでポインタがずれてクリックが外れる可能性がある（未確認。起きても `clicked` が 0 回で FAIL になる側に倒れる）。
 Editor の Play Mode では `Application.Quit` が効かないので終了しないが、ログは同じものが出る。
 
-結果（Unity 6000.7.0b2、Windows。Editor の Play Mode と Player で同じ）:
+結果（Unity 6000.7.0b2、Windows の Player。3 回回して同じ。`steps=10 failed=0`）:
 
-- Button の中心を `PanelRenderer` の `transform.position` とみなした `Camera.WorldToScreenPoint` の screen 座標で、`clicked` が届く。
-- World Space の panel では `worldBound` が world 単位になる（pixels per unit 100 の既定のままで、`Hone.Button` は幅 1.27、高さ 0.37）。ただしシーンの world 座標ではなく、panel の位置を原点にした値で、panel（位置 (0, 1, 0)）の中央にある Button の中心はほぼ (0, 0) だった。`worldBound` を `Camera.WorldToScreenPoint` に渡しても screen 座標にならない。
+- World Space の panel では `worldBound` が world 単位になる（pixels per unit 100 の既定のままで、`Hone.Button` は幅 1.27、高さ 0.37）。ただしシーンの world 座標ではなく、panel の位置を原点にした値で、panel（位置 (0, 1, 0)）の中央にある Button の中心はほぼ (0, 0) だった。`worldBound` を `Camera.WorldToScreenPoint` に直接渡しても screen 座標にならない。
+- `worldBound` の y は上向き。layout で下にある footer の OK の `worldBound.y` は、root の中心（root の `worldBound` は y -5.4 から 5.4）より小さい負の値だった（-0.66）。上のとおり、root の中心を原点にした値を、y を反転せずに `transform` を通して world に直すと、`Camera.WorldToScreenPoint` の screen 座標でクリックが届く。y を反転すると、footer の OK が中心より上に写り、OK の `clicked` が届かない。
+- 1 枚目の Button は、既定の variant で hover の `opacity` が 0.9、active が 0.8、クリックの後に `focusedElement` が Button になり `borderTopWidth` が 1 から 2 になり、`clicked` が 1 回届く。
+- 1 枚目（1920×1080）の Dialog は、content が 512×182px で panel の中に収まり、幅は `--hone-size-dialog`（90% は 1728px）で決まる。overlay の押下で閉じ、閉じた後のフォーカスは開く前の Button に戻る。footer の OK の `clicked` が届く。
+- 2 枚目（480×300）の Dialog は、content が 432×182px（panel の幅の 90%）で、panel の中に収まる。
+- `cross-click`: 2 枚目の Dialog を開いたまま、1 枚目の Button と 2 枚目の OK の `clicked` がどちらも届く。
+- `cross-focus`: 1 枚目の Button にフォーカスがある状態から 2 枚目の Dialog を `Open()` すると、2 枚目の Cancel にフォーカスが移り、1 枚目の Button はフォーカスを失った（1 枚目の `focusedElement` が null）。`Close()` の後は両 panel とも null で、1 枚目の Button には戻らない。
 
 ## 既知の事項
 
