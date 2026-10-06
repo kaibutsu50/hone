@@ -42,6 +42,22 @@ using Button = Hone.Button;
 - `unity-button` クラスは外してあり、既定テーマの Button の見た目は効かない。
 - `FocusScope` や `BackStack` は使わない。単独で完結する。
 
+## World Space での置き方
+
+World Space の panel でも、Screen Space と同じ構造のまま置ける。Button 側に World Space 用の設定は無い。
+Unity 6000.7.0b2、Windows の Player で、World Space の panel（1920×1080、`worldSpaceSizeMode = Fixed`）の中央に置いた既定の variant に、マウスのポインタを `Camera` 経由で当てて確かめた。
+scene には EventSystem（`InputSystemUIInputModule`）と、`processWorldSpaceInput = true` の `PanelInputConfiguration`（event camera は Main Camera）がある。
+
+| 操作 | 結果 |
+|---|---|
+| ポインタを乗せる（`:hover`） | `opacity` が 1 から 0.9 になる |
+| 押している間（`:active`） | `opacity` が 0.8 になる |
+| クリックした後（`:focus`） | `focusController.focusedElement` が Button になり、`border-width` が 1px から 2px（`--hone-ring-width`）になる |
+| 押して離す | `clicked` が 1 回発火する |
+
+2 枚目の World Space の panel（480×300）に開いた Dialog があっても、1 枚目の Button の `clicked` は発火する。panel をまたいで入力は止まらない。
+別の panel の Dialog を `Open()` すると、この Button はフォーカスを失い、Dialog を `Close()` しても戻らない（別の panel の要素がフォーカスを得ると、元の panel のフォーカスは外れた。詳しくは Dialog の README）。
+
 ## レイアウト
 
 `width` は固定していない。`min-width` と内容で決まり、`flex-shrink: 0` なので横並びの親の中では縮まない。長い文字列を省略記号で切りたいときは、親を縦並び（`align-items: stretch`）にして幅を決める。

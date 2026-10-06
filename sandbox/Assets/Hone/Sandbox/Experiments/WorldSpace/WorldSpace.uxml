@@ -2,4 +2,12 @@
     <ui:VisualElement name="center" style="flex-grow: 1; align-items: center; justify-content: center;">
         <hone:Button name="target" text="World Space" />
     </ui:VisualElement>
+    <hone:Dialog name="dialog">
+        <ui:Label class="hone-dialog__title hone-text" text="Delete this item?" />
+        <ui:Label class="hone-dialog__description hone-text" text="This action cannot be undone." />
+        <ui:VisualElement class="hone-dialog__footer">
+            <hone:Button name="cancel" variant="outline" text="Cancel" />
+            <hone:Button name="ok" text="OK" />
+        </ui:VisualElement>
+    </hone:Dialog>
 </ui:UXML>

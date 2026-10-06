@@ -61,6 +61,29 @@ UI Toolkit には z-index が無く、描画とポインタの判定は hierarch
 `hone-dialog--blur` は `backdrop-filter` を使う。URP のみ、Screen Space のみで、World Space では効かない。
 値はトークン `--hone-backdrop-blur`（`blur()` の完成形）で、`var()` 経由でも `resolvedStyle.backdropFilter` が `blur(8)` に解決されることを確認した（6000.7.0b2。描画結果は見ていない）。
 
+## World Space での置き方
+
+World Space では panel 自体が 1 つのダイアログの大きさになるので、Dialog は panel の root 直下に置く。Dialog は親（panel の root）の全面を覆うので、root の直下の最後の子にする。panel がダイアログだけなら、唯一の子になる。
+World Space 用の設定や分岐は無く、Screen Space と同じ構造のまま動く。Unity 6000.7.0b2、Windows の Player で、マウスのポインタを `Camera` 経由で当てて確かめた。
+scene には EventSystem（`InputSystemUIInputModule`）と、`processWorldSpaceInput = true` の `PanelInputConfiguration`（event camera は Main Camera）がある。
+
+- overlay は、その Dialog がある panel の中だけを覆う。別の panel への入力は止めない。
+  1 枚目（1920×1080）の Button と、2 枚目（480×300）の開いた Dialog の OK を続けてクリックすると、どちらの `clicked` も届いた。
+- overlay の content の外側を押すと閉じ（`dismissOnOverlay = true`）、footer の OK のクリックは overlay の後ろに隠れず届く。
+- content の幅は、panel の幅の 90% と `--hone-size-dialog`（512px）の小さい方。panel の幅が `--hone-size-dialog` 以下なら 90% で決まる。
+
+  | panel の大きさ | content の幅 | 決まり方 |
+  |---|---|---|
+  | 1920×1080 | 512px | `--hone-size-dialog`（90% は 1728px） |
+  | 480×300 | 432px | 90% |
+
+  どちらも content の高さは 182px で、panel の中に収まった。
+- 戻す先の記憶は、その Dialog がある panel の `focusController` だけを見る。別の panel の要素へはフォーカスを戻さない。
+  1 枚目の panel の Button にフォーカスを当てて、2 枚目の panel の Dialog を `Open()` すると、Dialog の中の Cancel にフォーカスが移り、1 枚目の Button はフォーカスを失った。
+  `Close()` の後は、どちらの panel にもフォーカスが無い（1 枚目の Button には戻らない）。
+  別の panel のダイアログを閉じたあとに元の要素へフォーカスを戻すなら、`closed` で利用者が `Focus()` する。
+- `hone-dialog--blur` は World Space では効かない（上の「USS クラス」のとおり）。
+
 ## headless 層との関係
 
 - 中身の枠は `FocusScope`（`trap = true`、`autoFocus = false`）。方向入力と Tab は枠の中に留まる。
