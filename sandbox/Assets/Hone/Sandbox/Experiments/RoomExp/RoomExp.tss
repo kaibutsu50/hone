@@ -1,0 +1,11 @@
+@import url("unity-theme://default");
+@import url("../../../Tokens.uss");
+@import url("../../../Core/Runtime/Core.uss");
+@import url("../../../UI/Button/Button.uss");
+@import url("RoomExp.uss");
+/* RoomExp 専用の theme（#56）。HoneTheme.tss に対する差分は、Dialog の @import が無いことと、RoomExp.uss の @import だけ。
+ * HoneTheme.tss は変えない。モデルルームの USS を theme から @import する読み込み方（#59）を、この tss で確かめる。
+ * :root の --hone-font-body は HoneTheme.tss と同じ RobotoMono のまま。.room-exp の中だけ RoomExp.uss で DotGothic16 に上書きする（(d)）。 */
+:root {
+    --hone-font-body: url("project://database/Assets/Hone/Sandbox/Fonts/RobotoMono.asset?fileID=11400000&guid=8e30fac64f691ac4693c1f510183ed2d&type=2#RobotoMono");
+}
