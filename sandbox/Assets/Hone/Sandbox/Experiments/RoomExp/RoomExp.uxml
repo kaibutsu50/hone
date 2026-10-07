@@ -1,0 +1,32 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:hone="Hone">
+    <ui:Template name="Fonts" src="RoomExpFonts.uxml" />
+    <ui:VisualElement name="stage" class="room-exp-stage">
+        <ui:VisualElement name="left" class="room-exp-column">
+            <ui:Label class="room-exp-heading" text="(a) :focus background-image cursor / (d) scoped rule" />
+            <ui:VisualElement name="menu" class="room-exp room-exp-menu">
+                <hone:Button name="item-1" variant="Ghost" text="Fight" />
+                <hone:Button name="item-2" variant="Ghost" text="Run" />
+            </ui:VisualElement>
+            <ui:VisualElement class="room-exp-menu room-exp-ring-control">
+                <hone:Button name="ring-control" variant="Ghost" text="ring control (outside .room-exp)" />
+            </ui:VisualElement>
+            <ui:Label class="room-exp-heading" text="(d) scoped --hone-font-body" />
+            <ui:Label name="font-outside" class="hone-text" text="outside .room-exp ABC" />
+            <ui:VisualElement class="room-exp">
+                <ui:Label name="font-inside" class="hone-text" text="inside .room-exp ABC ドット" />
+            </ui:VisualElement>
+            <ui:Label class="room-exp-heading" text="(b) loop: uss / schedule / experimental" />
+            <ui:VisualElement name="blink-row" class="room-exp-row">
+                <ui:VisualElement name="blink-uss" class="room-exp-blink room-exp-blink--uss" />
+                <ui:VisualElement name="blink-schedule" class="room-exp-blink room-exp-blink--schedule" />
+                <ui:VisualElement name="blink-experimental" class="room-exp-blink" />
+            </ui:VisualElement>
+            <ui:Label class="room-exp-heading" text="(e) typewriter: 0 / half / full" />
+            <ui:VisualElement name="typewriter" style="width: 800px;" />
+        </ui:VisualElement>
+        <ui:VisualElement name="right" class="room-exp-column">
+            <ui:Label class="room-exp-heading" text="(c) Screen Space (ConstantPixelSize, scale 1)" />
+            <ui:Instance template="Fonts" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

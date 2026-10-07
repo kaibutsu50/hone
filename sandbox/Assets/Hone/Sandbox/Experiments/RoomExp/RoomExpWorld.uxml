@@ -1,0 +1,13 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Template name="Fonts" src="RoomExpFonts.uxml" />
+    <ui:VisualElement name="stage" class="room-exp-column" style="flex-grow: 1;">
+        <ui:Label class="room-exp-heading" text="(c) World Space" />
+        <ui:Instance template="Fonts" />
+        <ui:Label class="room-exp-heading" text="(b) loop: uss / schedule / experimental" />
+        <ui:VisualElement name="blink-row" class="room-exp-row">
+            <ui:VisualElement name="blink-uss" class="room-exp-blink room-exp-blink--uss" />
+            <ui:VisualElement name="blink-schedule" class="room-exp-blink room-exp-blink--schedule" />
+            <ui:VisualElement name="blink-experimental" class="room-exp-blink" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

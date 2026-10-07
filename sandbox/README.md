@@ -38,7 +38,9 @@ Assets/Hone/
     PanelSettings.asset   Theme Style Sheet に HoneTheme.tss、Text Settings に HonePanelTextSettings.asset を割り当て済み（Screen Space）
     WorldSpacePanelSettings.asset   PanelSettings.asset の複製で、Render Mode だけ World Space にしたもの。Theme Style Sheet と Text Settings は同じで、scale mode と pixels per unit は Unity の既定のまま
     WorldSpacePanelSettings2.asset  WorldSpacePanelSettings.asset の複製（中身は同じ）。同じ asset を 2 枚の PanelRenderer に割り当てると同じ panel になるので、WorldSpace/ の 2 枚目の panel 用に分けてある
-    Fonts/            検証用フォント。RobotoMono-Regular.ttf（Apache-2.0、Unity Editor 同梱）とその LICENSE、そこから作った Dynamic の FontAsset
+    Fonts/            検証用フォント。RobotoMono-Regular.ttf（Apache-2.0、Unity Editor 同梱）とその LICENSE、そこから作った Dynamic の FontAsset。
+                      DotGothic16-Regular.ttf（SIL OFL 1.1、google/fonts の ofl/dotgothic16）とその OFL.txt、そこから作った Dynamic の DotGothic16.asset
+                      （「RoomExp の検証」の (c) の推奨値。RASTER_HINTED、sampling 16、padding 1、atlas の Filter Mode は Point、multi atlas は無効）
     Experiments/<Name>/   Issue ごとの検証。FontVar/ は `-unity-font-definition` を USS 変数経由で差し替えられるかの検証
                       FontVar/Resources/Fonts/ は case 3（`resource()`）用の Fonts/RobotoMono.asset の複製。元を作り直したら同期する。
                       Resources 配下なので sandbox のすべての Player ビルドに入る
@@ -47,6 +49,8 @@ Assets/Hone/
                       ThemeExp/ は .tss の @import（絶対パス、相対パス）、既定テーマの Button の :focus、既定フォントの FontAsset と日本語の描画の検証
                       WorldSpace/ は World Space の panel に、カメラ経由の入力（PanelInputConfiguration + EventSystem）が届くかと、Hone.Button / Hone.Dialog が World Space の panel で動くかの検証。
                       Hone.Button と Hone.Dialog を型で扱うので、この中にだけ asmdef（Hone.Sandbox.Experiments.WorldSpace.asmdef。Hone.Sandbox.UI を参照し、autoReferenced は false）を置く
+                      RoomExp/ はモデルルームの前提（:focus の背景画像のカーソル、ループするアニメーション、ピクセルフォント、範囲を絞ったフォント、文字送り）の検証。
+                      RoomExp.tss は RoomExp 専用の theme で、RoomExp.uss を @import する（HoneTheme.tss は変えない）。RoomExp/Fonts/ は (c) の比較用の FontAsset
     Gallery/          多言語スクリーンショットの撮影基盤。TestStrings.json（スクリプトごとの表示名・短文・長文）、Gallery.unity（PanelRenderer が 2 枚。Screen Space の `PanelRenderer` と World Space の `PanelRendererWorldSpace`）/ Gallery.uxml / Gallery.uss、GalleryController、
                       GalleryHoneEntries（Hone.Button、Core.uss のクラスを付けた列、開いた状態の Hone.Dialog を登録する）、GalleryFocus（ring を写すため、読み込み時と言語の切り替え時に最初の .hone-focusable にフォーカスを当てる）、
                       Hone.Sandbox.Gallery.asmdef（Tests/PlayMode が参照する。Hone.Sandbox.UI を参照する）
@@ -353,6 +357,49 @@ Editor の Play Mode では `Application.Quit` が効かないので終了しな
 - 2 枚目（480×300）の Dialog は、content が 432×182px（panel の幅の 90%）で、panel の中に収まる。
 - `cross-click`: 2 枚目の Dialog を開いたまま、1 枚目の Button と 2 枚目の OK の `clicked` がどちらも届く。
 - `cross-focus`: 1 枚目の Button にフォーカスがある状態から 2 枚目の Dialog を `Open()` すると、2 枚目の Cancel にフォーカスが移り、1 枚目の Button はフォーカスを失った（1 枚目の `focusedElement` が null）。`Close()` の後は両 panel とも null で、1 枚目の Button には戻らない。
+
+## RoomExp の検証
+
+モデルルームの先頭のルームと文字送りの部品が前提にする、UI Toolkit の挙動の検証。Unity 6000.7.0b2（`ProjectSettings/ProjectVersion.txt`）、Windows の Editor の Play Mode で確かめた。
+
+`RoomExp.unity` の構成:
+
+| GameObject | 中身 |
+|---|---|
+| `Main Camera` | 位置 (0, 1, -10)、縦の FOV 60 |
+| `PanelRenderer` | Screen Space。`RoomExpPanelSettings.asset`（`Sandbox/PanelSettings.asset` の複製で、scale mode を ConstantPixelSize、scale 1 にしたもの）、`RoomExp.uxml`。`RoomExpProbe` が付く |
+| `PanelRendererWorldSpace` | World Space。`RoomExpWorldSpacePanelSettings.asset`（`Sandbox/WorldSpacePanelSettings.asset` の複製）、`RoomExpWorld.uxml`（(b) と (c) だけ）。760×470、位置 (5.4, -1.65, -0.647) |
+
+theme はどちらも `RoomExp.tss`。`HoneTheme.tss` と同じ @import（Dialog を除く）と `:root` の `--hone-font-body`（RobotoMono）に、`RoomExp.uss` の @import を足したもの。
+World Space の panel は、カメラから 9.353 の距離に置いてある。描画解像度の高さが 1080px のとき、panel の 1px（0.01 world 単位）が画面の 1px に写る。
+
+```bash
+unity command open_scene --path Assets/Hone/Sandbox/Experiments/RoomExp/RoomExp.unity --project-path <sandbox の絶対パス>
+unity command editor_play --project-path <sandbox の絶対パス>
+unity command console --project-path <sandbox の絶対パス>
+unity command editor_stop --project-path <sandbox の絶対パス>
+```
+
+ログの `[RoomExpProbe]` 行を読む。`RESULT item=<項目> ok=<true|false> …` が 16 行と、最後に `DONE results=16 mismatches=<件数> failures=<件数>` が出る。
+`ok` は Issue の仮説どおりだったかで、`false` は結果であって Probe の失敗ではない（今は `e-textelement` の 1 件が `false`。下の表）。
+測定の前提が崩れたとき（panel が準備できない、要素が無い、Probe 以外の Error のログ）は `[RoomExpProbe] FAIL` を出し、`failures` に数える。
+(c) は判定しない。`HEADER` 行に各 Label の FontAsset の設定を出すので、スクリーンショットを人が見る。
+
+(c) を撮るときは、先に Game view の描画解像度を 1920×1080 に固定する（`unity command eval_file` で `UnityEditor.PlayModeWindow.SetCustomRenderingResolution(1920, 1080, "RoomExp 1920x1080");`）。
+固定しないと Game view のウィンドウの大きさで描画され、`capture_game_view` の `--width` `--height` は撮った画像を拡大・縮小するだけになり、にじみを判定できない（6000.7.0b2）。
+撮影は `capture_game_view --source screen --width 1920 --height 1080`（Gallery の撮影手順と同じ。World Space の panel も写る）。
+
+Play Mode に入ると、Dynamic の FontAsset に glyph と atlas が書き込まれ、1 つが 2MB ほどになる（`Sandbox/Fonts/RobotoMono.asset` も同じ）。コミットの前に、Play Mode を抜けてから各 FontAsset の `ClearFontAssetData(true)` を呼んで消す（Inspector の Clear Dynamic Data と同じ目的）。
+
+結果:
+
+| # | 確認 | 結果 | 採る方式 |
+|---|---|---|---|
+| (a) | ▶ のカーソルを `:focus` の `background-image` で描けるか | 通る。`.room-exp .hone-button:focus` に `background-image: url("RoomExpCursor.png")` と `background-position-x: left 6px`、`background-repeat: no-repeat`、`background-size: 8px 8px` を書くと、`resolvedStyle.backgroundImage` がフォーカス前の none から `RoomExpCursor` になる。`padding-left` と `border-width` を状態によらず同じ値にしておけば、`layout.width` はフォーカス前後とも 76 で変わらない（親に引き伸ばされない配置で測った）。`Hone.Button` は `.unity-button` を外しているので、既定テーマの Button の `:focus` とは競合しなかった。勝つための詳細度の追加は要らなかった | カーソルは `:focus` の `background-image` で描く。`padding-left` と `border-width` は状態によらず同じ値を置く |
+| (b) | ループするアニメーションの手段 | `@keyframes` は受け付けない。規則ごと警告なしで捨てられる。`animation-name: <名前>` は `warning: Expected ([ <resource> \| <url> \| none ]#) but found '<名前>'` になる。6000.7 の `animation-name` は、`UIAnimationClip` のアセット（中身は `AnimationClip`）を `url()` で指す形。<br>`UIAnimationClip`（`RoomExpBlink.asset`。opacity の curve、0.5 秒、ループ）を `animation-name: url("RoomExpBlink.asset")` と `animation-iteration-count: infinite` で指すと、Screen Space と World Space の両方で opacity が 0〜1 で動く。panel から外して戻すと再開する。ただし作成は UI Toolkit の Animation の Editor が前提で（今回は Editor の内部 API を reflection で呼んで作った）、curve の binding 名（要素自身は `Opacity`、子要素は `#<name>/Opacity`）は文書化されていない。<br>`schedule.Execute(...).Every(250)` で `is-dim` クラスを付け外しし、USS の `transition` で動かす形は、両方の panel で動く。panel から外している 1 秒の間は tick が 0 回で、戻すと再開する。<br>`experimental.animation`（250ms の 1→0 と 0→1 を `OnCompleted` でつなぐ）も同じく、両方の panel で動き、外すと止まり、戻すと再開する。callback は毎 frame 呼ばれる | `schedule.Execute(...).Every(ms)` でクラスを付け外しし、`transition` で動かす。公開 API だけで済み、何をどう動かすかは状態クラスと `transition` として USS に残るので、利用者が書き換えられる（部品は状態クラスを出すだけで演出を持たない、というモデルルームの方針に合う）。`experimental.animation` は動かす値を C# に書くことになる。USS の `animation-name` は、`UIAnimationClip` の作り方と binding 名が文書化されたら比べ直す |
+| (c) | ピクセルフォントが Screen Space と World Space でにじまずに描けるか | DotGothic16 で、描画方式ごとに `font-size` 16px と 32px を並べ、ドットの縁の中間調の画素の割合（文字の画素のうち、明るさが背景より明るく白より暗いもの）を測った。Screen Space（scale 1）と、上の 1:1 の配置の World Space で同じ値だった。<br>SDFAA、sampling 90（Hone > Sync と同じ値）: 16px で 0.85、32px で 0.46。縁がにじむ。<br>SDFAA_HINTED、sampling 16: 16px で 0.99、32px で 0.92。<br>RASTER_HINTED、sampling 16、atlas の Filter Mode Point を Advanced Text Generator で描く: 字形が壊れる（字の上に別の字の断片が重なる。atlas を Bilinear にしても同じ）。<br>同じ FontAsset を `-unity-text-generator: standard` で描く: 16px も 32px も 0.00。ドットがそのまま出る。<br>atlas の Point は、Dynamic のデータを消して atlas が作り直された後も残った | DotGothic16.asset は RASTER_HINTED、sampling 16（DotGothic16 のドットの格子）、padding 1、atlas の Filter Mode は Point、multi atlas は無効。使う範囲に `-unity-text-generator: standard` を置き、`font-size` は 16 の整数倍にする。<br>確かめていないこと: Standard の生成器で ar や th を描いたときのシェーピング、World Space の panel を拡大・縮小・傾けたとき、atlas（1024×1024）に入りきらない数の glyph を使ったとき（multi atlas が無効なので） |
+| (d) | 親クラスで範囲を絞った `--hone-font-body` の上書きと、範囲を絞った規則の勝ち負け | 通る。`.room-exp { --hone-font-body: url("project://…DotGothic16.asset…"); }` で、`.room-exp` の中の `.hone-text` は DotGothic16、外は `:root` の RobotoMono になる。同じ規則に書いた `-unity-text-generator: standard` も中の Label に継承される（中は Standard、外は Advanced）。<br>`.room-exp .hone-focusable.hone-focusable:focus { border-width: 0 }` は Core.uss の ring に勝つ（フォーカス後の `borderTopWidth` が 0）。対照の、`.room-exp` の外で同じく `border-width: 0` を置いた Button は、フォーカスで ring の 2 になる。<br>この USS は theme（`RoomExp.tss`）から @import して読み込めた | ルームの範囲は `.room-<genre>` の 1 クラスで絞り、フォントは `--hone-font-body` の上書き、focus ring の上書きは `.room-<genre> .hone-focusable.hone-focusable:focus` の形で書く。ルームの USS は theme から @import する |
+| (e) | 文字送りで、行の折り返しと高さが動かない方式 | 候補 1（表示済みの部分はそのまま、未表示の部分を `<alpha=#00>` で透明にする）で通る。Gallery の `TestStrings.json` の長文を幅 180px、16px の Label に入れ、表示した文字数 0 / 半分 / 全部で比べた。`layout.height` は ja 73、en 45、ar 45、th 45 で、それぞれ 3 つとも同じ。各行の先頭の文字も同じ。未表示の文字の glyph は頂点の alpha が 0 で、表示済みの glyph だけが alpha > 0 だった。<br>glyph の行と位置は `TextElement.PostProcessTextVertices` の `Glyph.line` と `Glyph.textRange` で取れる（公開 API）。`textRange` は `text` ではなく `parsedText`（タグを除いた文字列）の位置を指す。<br>ar の途中まで表示した字形は、全部表示したときと同じ。アレフ（左につながらない文字）の後ろで切ると、見えている範囲の画素が全部表示と完全に一致する。左につながる文字の間で切っても、見えている側の文字はつながる形のまま描かれ、違いは境界の 5px だけだった（シェーピングは未表示の部分を含む文字列全体で行われている）。th も半分の表示の 1 行目が全部表示と画素単位で一致した。<br>本文の `<` は `<noparse>` で囲めばタグとして解釈されない（`HP<10 <b>bold</b>` の `parsedText` が本文と同じ）。ただし本文に `</noparse>` そのものがあると、そこで閉じて以降のタグが解釈される（`a</noparse><b>b</b>` が `ab` になる）。本文の `</noparse>` を `<</noparse>/noparse><noparse>` に置き換えると、文字のまま出る。<br>`StringInfo` の text element の数（Mono 6.13）: 分解形の「が」、e + 結合アクセント、サロゲートペアの絵文字、タイ語の声調記号付きの文字、アラビア語のファトハ付きの文字は 1。ZWJ でつないだ家族の絵文字は 5、国旗（regional indicator 2 つ）は 2、タイ語の SARA AM（ำ）付きの文字は 2 になる | 候補 1 で組む。表示済みと未表示の部分をそれぞれ `<noparse>` で囲み、本文の `</noparse>` は上の形に置き換え、その間に `<alpha=#00>` を置く。1 文字は `StringInfo` の text element 単位で数える。ZWJ の絵文字と国旗は途中の状態が見え、タイ語の SARA AM は 2 回に分けて表示されるが、Gallery の長文（ja、en、ar、th）では字形は崩れない |
 
 ## 既知の事項
 

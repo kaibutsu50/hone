@@ -1,0 +1,10 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <!-- (c) DotGothic16 の FontAsset の描画方式の比較。RoomExp.uxml（Screen Space）と RoomExpWorld.uxml（World Space）の両方が使う -->
+    <ui:Label class="room-exp-font room-exp-font--16 room-exp-font--sdfaa" text="SDFAA/90 16 ドット文字 ABC 123" />
+    <ui:Label class="room-exp-font room-exp-font--32 room-exp-font--sdfaa" text="SDFAA/90 32 ドット文字 ABC" />
+    <ui:Label class="room-exp-font room-exp-font--16 room-exp-font--sdfaa-hinted16" text="SDFAA_HINTED/16 16 ドット文字 ABC 123" />
+    <ui:Label class="room-exp-font room-exp-font--32 room-exp-font--sdfaa-hinted16" text="SDFAA_HINTED/16 32 ドット文字 ABC" />
+    <ui:Label class="room-exp-font room-exp-font--16 room-exp-font--raster16point" text="RASTER_HINTED/16 Point 16 ドット文字 ABC" />
+    <ui:Label class="room-exp-font room-exp-font--16 room-exp-font--raster16point room-exp-font--standard" text="RASTER_HINTED/16 Point standard 16 ドット文字 ABC" />
+    <ui:Label class="room-exp-font room-exp-font--32 room-exp-font--raster16point room-exp-font--standard" text="RASTER_HINTED/16 Point standard 32 ドット文字" />
+</ui:UXML>
