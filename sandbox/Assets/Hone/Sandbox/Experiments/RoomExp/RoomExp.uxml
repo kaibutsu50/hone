@@ -23,6 +23,8 @@
             </ui:VisualElement>
             <ui:Label class="room-exp-heading" text="(e) typewriter: 0 / half / full" />
             <ui:VisualElement name="typewriter" style="width: 800px;" />
+            <ui:Label class="room-exp-heading" text="(e) typewriter in .room-exp (DotGothic16, standard generator)" />
+            <ui:VisualElement name="typewriter-room" class="room-exp" style="width: 800px;" />
         </ui:VisualElement>
         <ui:VisualElement name="right" class="room-exp-column">
             <ui:Label class="room-exp-heading" text="(c) Screen Space (ConstantPixelSize, scale 1)" />

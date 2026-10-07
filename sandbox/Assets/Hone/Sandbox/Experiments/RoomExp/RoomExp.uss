@@ -34,13 +34,14 @@
     align-items: flex-start;
 }
 
-/* (d) の対照。.room-exp の外で同じく border-width: 0 を置き、フォーカスで Core.uss の ring（2px）になることを確かめる */
+/* (d) の対照。.room-exp の外で同じく border-width: 0 を置き、フォーカスで Core.uss の ring（--hone-ring-width）になることを確かめる */
 .room-exp-ring-control .hone-button {
     border-width: 0;
     color: rgb(250, 250, 250);
 }
 
-/* フォーカスの有無に関係なく同じ padding-left と border-width を置き、フォーカスで幅が変わらないようにする */
+/* フォーカスの有無に関係なく同じ padding-left と border-width を置き、フォーカスで幅が変わらないようにする。
+ * この規則だけでは、フォーカス時に Core.uss の ring（クラス 3 つ分の詳細度）が border-width を変える。下の (d) の :focus の規則と組で効く */
 .room-exp .hone-button {
     padding-left: 20px;
     border-width: 0;
@@ -62,8 +63,9 @@
 }
 
 /* ---- (d) 範囲を絞ったフォント ---- */
-/* DotGothic16.asset は (c) の推奨値（RASTER_HINTED、sampling 16、atlas Point）。ビットマップの atlas は Advanced Text Generator では字形が壊れるので、
- * 範囲の中だけ Standard の生成器にする。font-size は sampling の 16 の整数倍にする */
+/* DotGothic16.asset は (c) の推奨値（RASTER_HINTED、sampling 16、atlas Point）。このビットマップの atlas は Advanced Text Generator では字形が壊れた
+ * （6000.7.0b2。確かめたのは DotGothic16 の RASTER_HINTED、sampling 16、atlas の Point と Bilinear だけ）ので、範囲の中だけ Standard の生成器にする。
+ * font-size は sampling の 16 の整数倍にする */
 .room-exp {
     --hone-font-body: url("project://database/Assets/Hone/Sandbox/Fonts/DotGothic16.asset?fileID=11400000&guid=0ca85d51ff7f9e14fa49cd7c1a1b0d09&type=2#DotGothic16");
     -unity-text-generator: standard;
@@ -81,13 +83,13 @@
     background-color: rgb(250, 250, 250);
 }
 
-/* 候補 0: USS の animation-name。値は @keyframes の名前ではなく UIAnimationClip のアセット（6000.7.0b2） */
+/* uss: USS の animation-name。値は @keyframes の名前ではなく UIAnimationClip のアセット（6000.7.0b2） */
 .room-exp-blink--uss {
     animation-name: url("RoomExpBlink.asset");
     animation-iteration-count: infinite;
 }
 
-/* 候補 1: schedule.Execute(...).Every(ms) で is-dim を付け外しし、transition で動かす */
+/* schedule: schedule.Execute(...).Every(ms) で is-dim を付け外しし、transition で動かす。experimental は C# で opacity を書くので、USS の規則を持たない */
 .room-exp-blink--schedule {
     transition-property: opacity;
     transition-duration: 0.2s;
