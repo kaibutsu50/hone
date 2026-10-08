@@ -80,3 +80,19 @@
     margin-right: 4px;
     padding: 4px;
 }
+
+/* Hone.MessageWindow の列。MessageWindow は親の幅に従うので、幅が中身で決まる行に置くと最小幅まで潰れて 1 文字ずつ折り返す（6000.7.0b2）。
+ * Dialog の列と同じく、セルの幅を px で確定させ、列はそれが 2 つ入る固定幅にする。
+ * 幅は .gallery-tag の min-width（56）+ 2 つの .gallery-message-window（width + margin-right）に余白を足した値。どちらかを変えたら合わせる */
+.gallery-column--hone-messagewindow {
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: auto;
+    width: 400px;
+}
+
+.gallery-message-window {
+    width: 160px;
+    flex-shrink: 0;
+    margin-right: 4px;
+}

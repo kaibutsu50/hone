@@ -27,8 +27,9 @@ Assets/Hone/
                       利用者が自分の asmdef に UI を乗せる形をここで再現する。Hone.Core を参照し（Dialog.cs が FocusScope と BackStack を使う）、autoReferenced は false（Assembly-CSharp の Experiments に Hone.Button を見せない）
     Button/           Hone.Button（Button.cs、Button.uxml、Button.uss、README.md）
     Dialog/           Hone.Dialog（Dialog.cs、Dialog.uxml、Dialog.uss、README.md）
+    MessageWindow/    Hone.MessageWindow（MessageWindow.cs、MessageWindow.uxml、MessageWindow.uss、README.md）
   Tokens.uss          registry/Tokens.uss の手コピー
-  HoneTheme.tss       registry/HoneTheme.tss の手コピー。差分は、`hone add` が挿入する各コンポーネントの USS の @import（Button、Dialog）と、末尾の :root（--hone-font-body に Sandbox/Fonts/RobotoMono.asset を指定）だけ。
+  HoneTheme.tss       registry/HoneTheme.tss の手コピー。差分は、`hone add` が挿入する各コンポーネントの USS の @import（Button、Dialog、MessageWindow）と、末尾の :root（--hone-font-body に Sandbox/Fonts/RobotoMono.asset を指定）だけ。
                       利用者が雛形のコメントに従って自分で書く内容に当たる。registry 側を変えたら、この @import と :root を残して同期する
   hone.manifest.json  `hone init` が作る manifest の手書き（`fonts` は空）。`Hone > Sync` が読む。`hone add` が追記する `components` は、Sync が読まないので書いていない
   HonePanelTextSettings.asset   `Hone > Sync` が作った PanelTextSettings（Fallback Font Assets は空）
@@ -52,10 +53,10 @@ Assets/Hone/
                       RoomExp/ はモデルルームの前提（:focus の背景画像のカーソル、ループするアニメーション、ピクセルフォント、範囲を絞ったフォント、文字送り）の検証。
                       RoomExp.tss は RoomExp 専用の theme で、RoomExp.uss を @import する（HoneTheme.tss は変えない）。RoomExp/Fonts/ は (c) の比較用の FontAsset
     Gallery/          多言語スクリーンショットの撮影基盤。TestStrings.json（スクリプトごとの表示名・短文・長文）、Gallery.unity（PanelRenderer が 2 枚。Screen Space の `PanelRenderer` と World Space の `PanelRendererWorldSpace`）/ Gallery.uxml / Gallery.uss、GalleryController、
-                      GalleryHoneEntries（Hone.Button、Core.uss のクラスを付けた列、開いた状態の Hone.Dialog を登録する）、GalleryFocus（ring を写すため、読み込み時と言語の切り替え時に最初の .hone-focusable にフォーカスを当てる）、
+                      GalleryHoneEntries（Hone.Button、Core.uss のクラスを付けた列、開いた状態の Hone.Dialog、2 ページの 1 ページ目を出した Hone.MessageWindow を登録する）、GalleryFocus（ring を写すため、読み込み時と言語の切り替え時に最初の .hone-focusable にフォーカスを当てる）、
                       Hone.Sandbox.Gallery.asmdef（Tests/PlayMode が参照する。Hone.Sandbox.UI を参照する）
     Tests/EditMode/   EditMode テスト。HoneSyncTests（`Assets/HoneSyncTestsTmp/` に manifest と PanelSettings を作って `HoneSync.Run` を呼び、終わったら消す）
-    Tests/PlayMode/   PlayMode テスト。BackStackTests、FocusScopeTests、DialogTests、ButtonTests の 1 件（NavigationSubmitEvent）は PanelRenderer を GameObject で作って panel を得る（`UNITY_EDITOR` のときだけコンパイルされる。Editor で実行する）。
+    Tests/PlayMode/   PlayMode テスト。BackStackTests、FocusScopeTests、DialogTests、MessageWindowTests（ページの無い状態の 1 件を除く）、ButtonTests の 1 件（NavigationSubmitEvent）は PanelRenderer を GameObject で作って panel を得る（`UNITY_EDITOR` のときだけコンパイルされる。Editor で実行する）。
                       DialogTests の `_WorldSpace` が付く 2 件（初期フォーカスと overlay の PointerDown）だけは、World Space の panel（`CreateWorldSpacePanel`）でも回す。`SendEvent` で送るので入力経路は通らない
 ```
 
@@ -116,8 +117,8 @@ unity command run_tests --mode playmode --filter Hone.Sandbox.Tests.SandboxSmoke
 選択肢は `Gallery/TestStrings.json` の en 以外を書いた順に並び、表示名は各項目の `name`。初期値は en 以外の先頭で、今は `Japanese`（ファイルの並び順を変えると初期値も変わる）。
 Unity 標準の `Label` と `Button` は `GalleryController` が自分で登録する（name は `"Label"` `"Button"`）。
 `GalleryHoneEntries` が `Hone.Button`（1 つのセルに 4 variant を縦に積む。セルは縦並びで幅が決まるので、長文は省略記号になる）を最初に登録する。最初の `.hone-focusable` が `Hone.Button` になり、その ring が写る。続けて `Label.hone-text`（`.hone-text` を付けた `Label`）と `Button.hone-focusable`（`.hone-focusable` を付けた `Button`）を登録し、素の列と並べる。
-最後に `Hone.Dialog`（開いた状態。文字列はタイトルと本文に入れ、ボタンは固定の `Cancel` と `OK`）を登録する。
-列には `gallery-column--<name の "." を "-" にして小文字>` のクラスが付く（例: `gallery-column--hone-dialog`）。`Gallery.uss` は Dialog の列だけこのクラスで固定幅にしている。
+続けて `Hone.Dialog`（開いた状態。文字列はタイトルと本文に入れ、ボタンは固定の `Cancel` と `OK`）を、最後に `Hone.MessageWindow`（文字列を 2 ページにして 1 ページ目を即時表示し、次のページがある状態の ▼ を写す）を登録する。
+列には `gallery-column--<name の "." を "-" にして小文字>` のクラスが付く（例: `gallery-column--hone-dialog`）。`Gallery.uss` は Dialog と MessageWindow の列だけこのクラスで固定幅にしている（どちらも親の幅に従う部品で、幅が中身で決まる列では潰れるため）。
 Dialog の列は縦に長く、Screen Space では 1 言語でも 1 画面に収まらない（6000.7.0b2）。PR に添付する画像は、Dialog の下が切れたままでよい。
 下まで見たいときは、`ScrollView`（name `gallery`）の `scrollOffset` を `unity command eval_file` で書き換えながら、`capture_game_view` で複数枚撮る。収めるために列幅や Dialog の幅は変えない。
 言語は、dropdown の代わりに `GalleryController.SelectScript` で切り替えて撮る（eval から dropdown に届く公開 API が無いため。下の「言語の切り替え」）。
