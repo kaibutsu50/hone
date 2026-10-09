@@ -35,18 +35,6 @@
     margin-bottom: 8px;
 }
 
-.gallery .unity-scroll-view__content-container {
-    flex-direction: row;
-    align-items: flex-start;
-}
-
-.gallery-column {
-    flex-basis: 0;
-    flex-grow: 1;
-    margin-right: 8px;
-    overflow: hidden;
-}
-
 .gallery-heading {
     -unity-font-style: bold;
     margin-bottom: 4px;
@@ -75,20 +63,23 @@
     margin-bottom: 2px;
 }
 
-/* Hone.Dialog のセル。幅は px で確定させる。割合の幅（flex-basis: 0 から伸ばす幅、width: 40% のどちらも）だと、
+/* Hone.Dialog のセル。基準の幅は px で持つ。割合の幅（flex-basis: 0 から伸ばす幅、width: 40% のどちらも）だと、
  * 中央寄せの content が min-width まで潰れて 1 文字ずつ折り返した（6000.7.0b2）。全面を覆う実際の配置（position: absolute で上下左右 0）では起きない。
- * 広げるほど他の列が狭くなる。overlay が content の周りに見えるよう余白を空ける */
+ * 基準の幅を px で持ち、行の残りを短文と長文の 2 セルで分けて伸ばす（flex-grow。基準が px なら潰れない。6000.7.0b2）。
+ * content は Dialog 自身の最大幅で止まり、周りは overlay になる。overlay が content の周りに見えるよう余白を空ける */
 .gallery-dialog {
-    width: 160px;
+    width: 480px;
+    flex-grow: 1;
     flex-shrink: 0;
     margin-right: 4px;
     padding: 4px;
 }
 
 /* Hone.MessageWindow のセル。MessageWindow は親の幅に従うので、幅が中身で決まる行に置くと最小幅まで潰れて 1 文字ずつ折り返す（6000.7.0b2）。
- * セルの幅を px で確定させる */
+ * 幅の決め方は .gallery-dialog と同じ（基準を px で持ち、行の残りまで伸ばす） */
 .gallery-message-window {
-    width: 160px;
+    width: 480px;
+    flex-grow: 1;
     flex-shrink: 0;
     margin-right: 4px;
 }

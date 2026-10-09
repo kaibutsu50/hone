@@ -117,12 +117,12 @@ unity command run_tests --mode playmode --filter Hone.Sandbox.Tests.SandboxSmoke
 読み込み時は、リストの先頭（登録順の先頭の `Hone.Button`）が選ばれる。
 選択肢は `Gallery/TestStrings.json` の en 以外を書いた順に並び、表示名は各項目の `name`。初期値は en 以外の先頭で、今は `Japanese`（ファイルの並び順を変えると初期値も変わる）。
 Unity 標準の `Label` と `Button` は `GalleryController` が自分で登録する（name は `"Label"` `"Button"`）。
-`GalleryHoneEntries` が `Hone.Button`（1 つのセルに 4 variant を縦に積む。セルは縦並びで幅が決まるので、長文は省略記号になる）を最初に登録する。最初の `.hone-focusable` が `Hone.Button` になり、その ring が写る。続けて `Label.hone-text`（`.hone-text` を付けた `Label`）と `Button.hone-focusable`（`.hone-focusable` を付けた `Button`）を登録し、素の列と並べる。
+`GalleryHoneEntries` が `Hone.Button`（1 つのセルに 4 variant を縦に積む。セルは縦並びで幅が決まるので、長文は省略記号になる）を最初に登録する。リストの初期選択が `Hone.Button` になり、その ring が写る。続けて `Label.hone-text`（`.hone-text` を付けた `Label`）と `Button.hone-focusable`（`.hone-focusable` を付けた `Button`）を登録する。リストで素の `Label` / `Button` と選び比べて、見た目の差を見る。
 続けて `Hone.Dialog`（開いた状態。文字列はタイトルと本文に入れ、ボタンは固定の `Cancel` と `OK`）を、最後に `Hone.MessageWindow`（文字列を 2 ページにして 1 ページ目を即時表示し、次のページがある状態の ▼ を写す）を登録する。
 列には `gallery-column--<name の "." を "-" にして小文字>` のクラスが付く（例: `gallery-column--hone-dialog`。テストが列の特定に使う。USS では使っていない）。
-Dialog と MessageWindow は親の幅に従う部品なので、`Gallery.uss` はセル（`.gallery-dialog`、`.gallery-message-window`）の幅を px で確定させている（割合の幅だと 1 文字ずつ折り返す）。
-Dialog の列は縦に長く、Screen Space では en と ja の 2 行が 1 画面に収まらない（ja の Dialog の下が切れる。6000.7.0b2）。PR に添付する画像は、Dialog の下が切れたままでよい。MessageWindow は Screen Space でも 2 行とも収まる。
-下まで見たいときは、`ScrollView`（name `gallery`）の `scrollOffset` を `unity command eval_file` で書き換えながら、`capture_game_view` で複数枚撮る。収めるために列幅や Dialog の幅は変えない。
+Dialog と MessageWindow は親の幅に従う部品なので、`Gallery.uss` はセル（`.gallery-dialog`、`.gallery-message-window`）の基準の幅を px で持ち、行の残りまで伸ばしている（`flex-basis: 0` や割合の幅から伸ばすと 1 文字ずつ折り返す）。
+`Japanese` では、Screen Space でも Dialog と MessageWindow の en と ja の 2 行が 1 画面に収まった（ほかの言語は確かめていない。6000.7.0b2）。
+収まらないときに下まで見るには、`ScrollView`（name `gallery`）の `scrollOffset` を `unity command eval_file` で書き換えながら、`capture_game_view` で複数枚撮る。収めるためにセルの幅（`.gallery-dialog` など）は変えない。
 コンポーネントは、ListView の代わりに `GalleryController.SelectComponent` で切り替えて撮る（下の「コンポーネントの切り替え」）。言語も、dropdown の代わりに `GalleryController.SelectScript` で切り替えて撮る（eval から dropdown に届く公開 API が無いため。下の「言語の切り替え」）。
 `GalleryFocus` が UI の読み込み後と言語の切り替え後に最初の `.hone-focusable` へフォーカスを当てるので、Play Mode で撮れば ring が写る（言語を切り替えると Dialog が作り直され、各 Dialog が自分の Cancel にフォーカスを移すため、当て直している）。
 コンポーネントを選んだときは当て直さない（左のリストを上下で選んでいる途中でフォーカスが右へ飛ぶため）。撮るときは、`SelectComponent` に続けて `GalleryFocus.RefocusLater()` を呼んで当てる。フォーカスを持たないコンポーネント（`Label` など）では、当てる対象が無いだけで何も起きず、エラーも出ない。
@@ -130,7 +130,7 @@ Hone.Dialog を選ぶと、Dialog の `Open()` が自分の Cancel にフォー�
 背景と文字色は `Gallery.uss` が Hone のトークン（`--hone-color-background` `--hone-color-foreground`）で指定する。
 
 Hone のコンポーネントを載せるときは、`Register` を **sandbox 側のファイル**（例: `Sandbox/Gallery/` 配下）から呼ぶ。`registry/` 配下のコードには書かない（配布物が sandbox の asmdef に依存してしまう）。
-呼ぶ時点は `[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]`。`GalleryController` は UI が読み込まれた時点と言語を切り替えるたびに、その時点の登録内容で列を作り直す。それより後の `Register` は、読み込み時の画面には出ず、ログも出ない。
+呼ぶ時点は `[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]`。`GalleryController` は UI が読み込まれた時点の登録内容で左のリストを作り、右の列は、コンポーネントか言語を切り替えるたびに、選んだ name の factory で作り直す。それより後の `Register` はリストに出ず、ログも出ない。
 このプロジェクトは Domain Reload を無効にしているので、`Register` した内容は Play をまたいで残る。同じ name の再登録は置き換わる。テストなどで一時的に登録したものは `Unregister` で消す。
 
 撮影手順（Editor は「Editor の開き方」で開いておく）:
@@ -143,7 +143,7 @@ unity command editor_play --project-path <sandbox の絶対パス>
 unity command eval_file --file <select-component.cs の絶対パス> --project-path <sandbox の絶対パス>
 # 既定（Japanese）だけ撮るときは、この 1 行を飛ばす。手順は下の「言語の切り替え」
 unity command eval_file --file <select-script.cs の絶対パス> --project-path <sandbox の絶対パス>
-# 切り替えてから、GalleryFocus の当て直しが終わるまで待ってから撮る
+# 切り替えてから、GalleryFocus の当て直しが終わるまで（DelayMilliseconds の 2 倍）待ってから撮る
 MSYS_NO_PATHCONV=1 unity command capture_game_view --source screen --width 1920 --height 1080 --format json --project-path <sandbox の絶対パス> > <json の絶対パス>
 python -c "import json,base64; t=open(r'<json の絶対パス>',encoding='utf-8').read(); d=json.loads(t[t.index('{'):]); open(r'<sandbox の絶対パス>/Screenshots/gallery.png','wb').write(base64.b64decode(d['data']['result']['base64']))"
 unity command editor_stop --project-path <sandbox の絶対パス>
@@ -170,7 +170,7 @@ return controllers.Length;
 ```
 
 - `SelectComponent` は ListView の `selectedIndex` を変えて、人が選んだときと同じ経路で右を切り替える。すでに選ばれている name を渡すと何も起きない。name は `GalleryController.Names`（左のリストの項目）のどれか。
-- `RefocusLater` は `GalleryFocus` が言語の切り替え時に行うのと同じ当て直しを、`DelayMilliseconds` 後に行う。切り替えと撮影は別のコマンドで行う（同じ eval の中で撮らない）。
+- `RefocusLater` は `GalleryFocus` が言語の切り替え時に行うのと同じ当て直しを、`DelayMilliseconds` 後に行う。当て直しと確認が終わるまで `DelayMilliseconds` の 2 倍かかる。切り替えと撮影は別のコマンドで行う（同じ eval の中で撮らない）。
 
 言語の切り替え（`select-script.cs`。`"ko"` を `TestStrings.json` の en 以外のキーに替えて撮る）:
 

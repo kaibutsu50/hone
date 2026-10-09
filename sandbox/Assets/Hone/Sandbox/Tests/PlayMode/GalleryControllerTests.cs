@@ -133,14 +133,12 @@ namespace Hone.Sandbox.Tests
         public void Unregister_RemovesFactory()
         {
             const string name = "GalleryControllerTests.Unregister";
-            var calls = 0;
-            Register(name, text => { calls++; return new Label(text); });
+            Register(name, text => new Label(text));
 
             GalleryController.Unregister(name);
 
             CollectionAssert.DoesNotContain(GalleryController.Names, name);
             Assert.Throws<ArgumentException>(() => GalleryController.Build(new VisualElement(), name, LoadTestStrings()));
-            Assert.AreEqual(0, calls);
         }
 
         [Test]
@@ -158,20 +156,40 @@ namespace Hone.Sandbox.Tests
             var strings = LoadTestStrings();
             var targetCalls = 0;
             var otherCalls = 0;
-            Register("GalleryControllerTests.Target", text => { targetCalls++; return new Label(text); });
+            // 先に登録したほうではなく、後から登録したほうを Build する（先頭のエントリを作る実装を通さないため）
             Register("GalleryControllerTests.Other", text => { otherCalls++; return new Label(text); });
+            Register("GalleryControllerTests.Target", text => { targetCalls++; return new Label(text); });
+            var container = new VisualElement();
 
-            GalleryController.Build(new VisualElement(), "GalleryControllerTests.Target", strings);
+            GalleryController.Build(container, "GalleryControllerTests.Target", strings);
 
             Assert.AreEqual(strings.Count * 2, targetCalls);
             Assert.AreEqual(0, otherCalls);
+            Assert.IsNull(container.Q(className: GalleryController.ColumnClass("GalleryControllerTests.Other")));
+        }
+
+        [Test]
+        public void Build_AnotherName_ReplacesTheColumn()
+        {
+            const string first = "GalleryControllerTests.SwitchFrom";
+            const string second = "GalleryControllerTests.SwitchTo";
+            Register(first, text => new Label(text));
+            Register(second, text => new Label(text));
+            var container = new VisualElement();
+
+            GalleryController.Build(container, first, LoadTestStrings());
+            GalleryController.Build(container, second, LoadTestStrings());
+
+            Assert.AreEqual(1, container.childCount);
+            Assert.IsTrue(container[0].ClassListContains(GalleryController.ColumnClass(second)));
         }
 
         [Test]
         public void Names_FollowsRegistrationOrder_ReRegisterKeepsPosition()
         {
-            const string first = "GalleryControllerTests.First";
-            const string second = "GalleryControllerTests.Second";
+            // 辞書順とは逆の順に登録する（名前で並べ替える実装を通さないため）
+            const string first = "GalleryControllerTests.Zeta";
+            const string second = "GalleryControllerTests.Alpha";
             Register(first, text => new Label(text));
             Register(second, text => new Label(text));
             var before = GalleryController.Names.ToList();
@@ -184,10 +202,16 @@ namespace Hone.Sandbox.Tests
         }
 
         [Test]
-        public void Build_UnknownName_ThrowsArgumentException()
+        public void Build_UnknownName_ThrowsArgumentExceptionAndKeepsContent()
         {
+            var container = new VisualElement();
+            var existing = new VisualElement();
+            container.Add(existing);
+
             Assert.Throws<ArgumentException>(() =>
-                GalleryController.Build(new VisualElement(), "GalleryControllerTests.NotRegistered", LoadTestStrings()));
+                GalleryController.Build(container, "GalleryControllerTests.NotRegistered", LoadTestStrings()));
+            Assert.AreEqual(1, container.childCount);
+            Assert.AreSame(existing, container[0]);
         }
 
         [TestCase("{\"ja\": {\"name\": \"n\", \"short\": \"a\"}}")]

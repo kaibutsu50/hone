@@ -30,7 +30,8 @@ namespace Hone.Sandbox.Gallery
     // Build は渡された文字列をそのまま並べる。画面では en と、dropdown で選んだ 1 スクリプトを渡す。
     // Register は sandbox 側のファイルから呼ぶ（registry/ 配下のコードには書かない。配布物が sandbox の asmdef に依存してしまう）。
     // 呼ぶ時点は [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]。
-    // 列は PanelRenderer の UI が読み込まれた時点と、コンポーネントまたは言語を切り替えるたびに、その時点の登録内容で作り直す。
+    // 左のリストは PanelRenderer の UI が読み込まれた時点の登録内容で作る（それより後の Register / Unregister はリストに反映されない）。
+    // 右の列は、読み込み時と、コンポーネントまたは言語を切り替えるたびに、選んだ name の factory で作り直す。
     // 読み込み時から画面に出すには、それより前（BeforeSceneLoad）に Register する。
     [RequireComponent(typeof(PanelRenderer))]
     public class GalleryController : MonoBehaviour
@@ -175,7 +176,8 @@ namespace Hone.Sandbox.Gallery
 
         void Rebuild(VisualElement root)
         {
-            // 前の UI を指したまま残すと、この Rebuild が途中で止まったときに SelectScript と SelectComponent が外れた要素を操作し、何も起きないまま戻る
+            // 前の UI を指したまま残すと、この Rebuild が途中で止まったときに SelectScript と SelectComponent が前の要素を操作してしまう。
+            // null にしておけば、どちらも InvalidOperationException で eval に返る
             m_Language = null;
             m_Components = null;
             m_Selectable.Clear();
@@ -213,8 +215,9 @@ namespace Hone.Sandbox.Gallery
 
             var all = ParseTestStrings(m_TestStrings.text);
             var selectable = all.Where(s => s.Script != BaseScript).ToList();
-            // 例外を出しうる Pick を、dropdown と ListView を配線する前に済ませる（失敗したときに片方だけ設定済みの半端な状態を残さない）
-            var initial = Pick(all, selectable[0].Script);
+            // 例外を出しうる Pick と初回の Build を、dropdown と ListView を配線する前に済ませる。
+            // 失敗したときに、配線済みで右が空の半端な状態を残さない（m_Language と m_Components が null のままなので、SelectScript と SelectComponent が例外を返す）
+            Build(scrollView.contentContainer, names[0], Pick(all, selectable[0].Script));
 
             // 選んでいるコンポーネントを、今の言語で作り直す。コンポーネントと言語のどちらを切り替えても、もう一方は今のまま
             void BuildSelected()
@@ -231,7 +234,7 @@ namespace Hone.Sandbox.Gallery
             m_Selectable.AddRange(selectable);
             m_Language = language;
 
-            components.itemsSource = names;
+            // itemsSource は makeItem と bindItem の後に入れる（先に入れると既定の項目で一度作ってから作り直す）
             components.makeItem = () =>
             {
                 var item = new Label();
@@ -239,13 +242,12 @@ namespace Hone.Sandbox.Gallery
                 return item;
             };
             components.bindItem = (element, index) => ((Label)element).text = names[index];
+            components.itemsSource = names;
             components.selectionType = SelectionType.Single;
             components.SetSelectionWithoutNotify(new[] { 0 });
             components.selectedIndicesChanged += _ => BuildSelected();
             m_ComponentNames.AddRange(names);
             m_Components = components;
-
-            Build(scrollView.contentContainer, names[0], initial);
         }
 
         // dropdown で script を選んだのと同じ経路（ChangeEvent）で切り替える。eval から言語を切り替えて撮るための入口。
