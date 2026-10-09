@@ -7,7 +7,7 @@ namespace Hone.Sandbox.Gallery
     // Hone.Sandbox.UI を参照すると、namespace Hone の中の Button は Hone.Button を指す。ここの Button は Unity 標準のもの
     using Button = UnityEngine.UIElements.Button;
 
-    // Hone.Button、Hone.Dialog と、Core.uss の .hone-text と .hone-focusable を Gallery に載せる。素の "Label" "Button" の列と並べて、見た目の差を見る。
+    // Hone.Button、Hone.Dialog、Hone.MessageWindow と、Core.uss の .hone-text と .hone-focusable を Gallery に載せる。素の "Label" "Button" の列と並べて、見た目の差を見る。
     // Register は sandbox 側から呼ぶ（registry/ 配下のコードには書かない）。呼ぶ時点は README の Gallery の節を参照。
     static class GalleryHoneEntries
     {
@@ -61,6 +61,16 @@ namespace Hone.Sandbox.Gallery
                 dialog.Add(footer);
                 dialog.RegisterCallbackOnce<AttachToPanelEvent>(evt => dialog.Open());
                 return dialog;
+            });
+            // 2 ページにして、1 ページ目で次のページがある状態（.is-waiting の ▼）を写す。charactersPerSecond は 0（即時表示）のまま。
+            // MessageWindow は親の幅に従うので、セルの幅は Gallery.uss の .gallery-message-window で確定させる。
+            // Show は Dialog の Open と揃えて attach の時点で呼ぶ（即時表示なので attach 前に呼んでも同じに出る）
+            GalleryController.Register("Hone.MessageWindow", text =>
+            {
+                var window = new MessageWindow();
+                window.AddToClassList("gallery-message-window");
+                window.RegisterCallbackOnce<AttachToPanelEvent>(evt => window.Show(text, text));
+                return window;
             });
         }
     }

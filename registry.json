@@ -52,6 +52,21 @@
       "classes": ["Hone.Dialog"]
     },
     {
+      "name": "MessageWindow",
+      "type": "registry:ui",
+      "title": "MessageWindow",
+      "description": "複数ページの文章を 1 ページずつ出し、Submit で次へ送るメッセージウィンドウ（文字送りを持ち、既定は即時表示）",
+      "files": [
+        { "path": "UI/MessageWindow/MessageWindow.cs", "type": "registry:ui" },
+        { "path": "UI/MessageWindow/MessageWindow.uxml", "type": "registry:ui" },
+        { "path": "UI/MessageWindow/MessageWindow.uss", "type": "registry:ui" },
+        { "path": "UI/MessageWindow/README.md", "type": "registry:ui" }
+      ],
+      "registryDependencies": ["Core"],
+      "dependencies": [],
+      "classes": ["Hone.MessageWindow"]
+    },
+    {
       "name": "Default",
       "type": "registry:theme",
       "title": "Default",
