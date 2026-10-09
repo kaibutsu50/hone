@@ -3,20 +3,25 @@ using UnityEngine.UIElements;
 
 namespace Hone.Sandbox.Gallery
 {
-    // 撮影用。Gallery の UI が読み込まれたあと、最初の .hone-focusable にフォーカスを当てて focus ring を写す。言語を切り替えたときも当て直す。
+    // 撮影用。Gallery の UI が読み込まれたあと、最初の .hone-focusable にフォーカスを当てて focus ring を写す。言語を切り替えたときと、RefocusLater を呼んだときも当て直す。
     // reload callback の中では当てず、schedule で後回しにする（GalleryController が同じ callback で列を作り終えてから探すため）。
-    // 待ち時間は経験値で、これより短くて足りるかは確かめていない（読み込み時と言語の切り替え時の両方で、Build と Dialog の Open() がこの間に終わる前提）。
-    // 対象が無い、またはフォーカスが移らなかったときは LogError を出す（ring が写っていない画像を黙って撮らないため）。
+    // 待ち時間は経験値で、これより短くて足りるかは確かめていない（読み込み時、言語の切り替え時、RefocusLater のいずれでも、Build と Dialog の Open() がこの間に終わる前提）。
+    // 対象が無いときは何もしない（Label などフォーカスを持たないコンポーネントを選んでいることがある）。フォーカスが移らなかったときは LogError を出す（ring が写っていない画像を黙って撮らないため）。
+    // コンポーネントを選んだときは当て直さない（左のリストを上下で選んでいる途中でフォーカスが右へ飛び、続けて選べなくなる）。
+    // 撮影では eval で SelectComponent に続けて RefocusLater を呼んで当てる。
     [RequireComponent(typeof(PanelRenderer))]
     [RequireComponent(typeof(GalleryController))]
     public class GalleryFocus : MonoBehaviour
     {
         const long DelayMilliseconds = 200;
 
+        VisualElement m_Root;
+
         void Awake()
         {
             GetComponent<PanelRenderer>().RegisterUIReloadCallback((panelRenderer, root, version) =>
             {
+                m_Root = root;
                 root.schedule.Execute(() => FocusFirst(root)).ExecuteLater(DelayMilliseconds);
 
                 // 言語を切り替えると GalleryController が Dialog を作り直し、各 Dialog が attach 時の Open() で自分の Cancel にフォーカスを移す。
@@ -27,14 +32,21 @@ namespace Hone.Sandbox.Gallery
             });
         }
 
+        // 撮影用。DelayMilliseconds 後に、右の最初の .hone-focusable に当てる（言語の切り替え時と同じ）
+        public void RefocusLater()
+        {
+            if (m_Root == null || m_Root.panel == null)
+                throw new System.InvalidOperationException("Gallery: the UI is not loaded yet");
+
+            var root = m_Root;
+            root.schedule.Execute(() => FocusFirst(root)).ExecuteLater(DelayMilliseconds);
+        }
+
         void FocusFirst(VisualElement root)
         {
             var target = root.Q(className: "hone-focusable");
             if (target == null)
-            {
-                Debug.LogError("Gallery: no element with class 'hone-focusable' to focus", this);
                 return;
-            }
             target.Focus();
             // フォーカス変更は非同期なので、確かめるのも後回しにする
             root.schedule.Execute(() =>

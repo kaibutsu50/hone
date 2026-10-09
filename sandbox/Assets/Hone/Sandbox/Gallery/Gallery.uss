@@ -1,7 +1,7 @@
 /* sandbox の撮影用の見た目。コンポーネントの USS ではないので、トークン規約（実値を書かない）の対象外。
  * 背景と文字色は Hone のトークン（light の 1 セット）に合わせる。暗い背景だと、ring（近い暗色）が写らない。 */
 
-/* dropdown と ScrollView を包む。背景をここに置かないと、dropdown の背後にシーンのカメラ映像が透ける */
+/* dropdown と、リストと ScrollView の並びを包む。背景をここに置かないと、dropdown の背後にシーンのカメラ映像が透ける */
 .gallery-page {
     flex-grow: 1;
     padding: 8px;
@@ -12,26 +12,27 @@
     color: var(--hone-color-foreground);
 }
 
+/* 左のリストと右のプレビューの並び */
+.gallery-body {
+    flex-direction: row;
+    flex-grow: 1;
+}
+
+/* コンポーネントを選ぶリスト。右の幅に影響されないよう固定幅にする */
+.gallery-components {
+    width: 200px;
+    flex-shrink: 0;
+    margin-right: 8px;
+}
+
 .gallery {
     flex-grow: 1;
 }
 
-/* 言語の選択。全列に作用するので列の上に置き、幅は中身に合わせる */
+/* 言語の選択。選んでいるコンポーネントの 2 行目に作用するので、リストとプレビューの上に置き、幅は中身に合わせる */
 .gallery-language {
     align-self: flex-start;
     margin-bottom: 8px;
-}
-
-.gallery .unity-scroll-view__content-container {
-    flex-direction: row;
-    align-items: flex-start;
-}
-
-.gallery-column {
-    flex-basis: 0;
-    flex-grow: 1;
-    margin-right: 8px;
-    overflow: hidden;
 }
 
 .gallery-heading {
@@ -62,37 +63,23 @@
     margin-bottom: 2px;
 }
 
-/* Hone.Dialog の列。Dialog は画面を覆う大きさを前提にしているので、他の列より広い固定幅にする。
- * 幅は .gallery-tag の min-width（56）+ 2 つの .gallery-dialog（width + margin-right）に余白を足した値。どちらかを変えたら合わせる */
-.gallery-column--hone-dialog {
-    flex-grow: 0;
-    flex-shrink: 0;
-    flex-basis: auto;
-    width: 380px;
-}
-
-/* Hone.Dialog のセル。幅は px で確定させる。割合の幅（flex-basis: 0 から伸ばす幅、width: 40% のどちらも）だと、
+/* Hone.Dialog のセル。基準の幅は px で持つ。割合の幅（flex-basis: 0 から伸ばす幅、width: 40% のどちらも）だと、
  * 中央寄せの content が min-width まで潰れて 1 文字ずつ折り返した（6000.7.0b2）。全面を覆う実際の配置（position: absolute で上下左右 0）では起きない。
- * 広げるほど他の列が狭くなる。overlay が content の周りに見えるよう余白を空ける */
+ * 基準の幅を px で持ち、行の残りを短文と長文の 2 セルで分けて伸ばす（flex-grow。基準が px なら潰れない。6000.7.0b2）。
+ * content は Dialog 自身の最大幅で止まり、周りは overlay になる。overlay が content の周りに見えるよう余白を空ける */
 .gallery-dialog {
-    width: 160px;
+    width: 480px;
+    flex-grow: 1;
     flex-shrink: 0;
     margin-right: 4px;
     padding: 4px;
 }
 
-/* Hone.MessageWindow の列。MessageWindow は親の幅に従うので、幅が中身で決まる行に置くと最小幅まで潰れて 1 文字ずつ折り返す（6000.7.0b2）。
- * Dialog の列と同じく、セルの幅を px で確定させ、列はそれが 2 つ入る固定幅にする。
- * 幅は .gallery-tag の min-width（56）+ 2 つの .gallery-message-window（width + margin-right）に余白を足した値。どちらかを変えたら合わせる */
-.gallery-column--hone-messagewindow {
-    flex-grow: 0;
-    flex-shrink: 0;
-    flex-basis: auto;
-    width: 400px;
-}
-
+/* Hone.MessageWindow のセル。MessageWindow は親の幅に従うので、幅が中身で決まる行に置くと最小幅まで潰れて 1 文字ずつ折り返す（6000.7.0b2）。
+ * 幅の決め方は .gallery-dialog と同じ（基準を px で持ち、行の残りまで伸ばす） */
 .gallery-message-window {
-    width: 160px;
+    width: 480px;
+    flex-grow: 1;
     flex-shrink: 0;
     margin-right: 4px;
 }

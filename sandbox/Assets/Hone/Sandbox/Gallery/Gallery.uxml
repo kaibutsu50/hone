@@ -2,6 +2,9 @@
     <Style src="Gallery.uss" />
     <ui:VisualElement class="gallery-page">
         <ui:DropdownField name="language" label="Language" class="gallery-language" />
-        <ui:ScrollView name="gallery" class="gallery" mode="Vertical" />
+        <ui:VisualElement class="gallery-body">
+            <ui:ListView name="components" class="gallery-components" />
+            <ui:ScrollView name="gallery" class="gallery" mode="Vertical" />
+        </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

@@ -7,14 +7,14 @@ namespace Hone.Sandbox.Gallery
     // Hone.Sandbox.UI を参照すると、namespace Hone の中の Button は Hone.Button を指す。ここの Button は Unity 標準のもの
     using Button = UnityEngine.UIElements.Button;
 
-    // Hone.Button、Hone.Dialog、Hone.MessageWindow と、Core.uss の .hone-text と .hone-focusable を Gallery に載せる。素の "Label" "Button" の列と並べて、見た目の差を見る。
+    // Hone.Button、Hone.Dialog、Hone.MessageWindow と、Core.uss の .hone-text と .hone-focusable を Gallery に載せる。左のリストで素の "Label" "Button" と選び比べて、見た目の差を見る。
     // Register は sandbox 側から呼ぶ（registry/ 配下のコードには書かない）。呼ぶ時点は README の Gallery の節を参照。
     static class GalleryHoneEntries
     {
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Register()
         {
-            // 最初の .hone-focusable に GalleryFocus が focus を当てるので、Hone.Button を先に登録して ring を写す。
+            // 登録順の先頭がリストの初期選択になり、GalleryFocus がその最初の .hone-focusable に focus を当てるので、Hone.Button を先に登録して ring を写す。
             // 4 variant を 1 つのセルに縦に積む。セルは縦並び（align-items: stretch）で幅が決まるので、長文は省略記号になる
             GalleryController.Register("Hone.Button", text =>
             {
