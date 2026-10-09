@@ -90,7 +90,8 @@ namespace Hone.Sandbox.Tests
         {
             var strings = LoadTestStrings();
             var received = new List<string>();
-            Register("GalleryControllerTests", text =>
+            const string name = "GalleryControllerTests";
+            Register(name, text =>
             {
                 received.Add(text);
                 var label = new Label(text);
@@ -99,7 +100,7 @@ namespace Hone.Sandbox.Tests
             });
             var container = new VisualElement();
 
-            GalleryController.Build(container, strings);
+            GalleryController.Build(container, name, strings);
 
             var expected = strings.SelectMany(s => new[] { s.Short, s.Long }).ToList();
             Assert.AreEqual(expected.Count, received.Count);
@@ -113,7 +114,8 @@ namespace Hone.Sandbox.Tests
         public void Build_RebuildsWithoutDuplicatingElements()
         {
             var strings = LoadTestStrings();
-            Register("GalleryControllerTests.Rebuild", text =>
+            const string name = "GalleryControllerTests.Rebuild";
+            Register(name, text =>
             {
                 var label = new Label(text);
                 label.AddToClassList(TestItemClass);
@@ -121,8 +123,8 @@ namespace Hone.Sandbox.Tests
             });
             var container = new VisualElement();
 
-            GalleryController.Build(container, strings);
-            GalleryController.Build(container, strings);
+            GalleryController.Build(container, name, strings);
+            GalleryController.Build(container, name, strings);
 
             Assert.AreEqual(strings.Count * 2, container.Query<Label>(className: TestItemClass).ToList().Count);
         }
@@ -130,21 +132,62 @@ namespace Hone.Sandbox.Tests
         [Test]
         public void Unregister_RemovesFactory()
         {
+            const string name = "GalleryControllerTests.Unregister";
             var calls = 0;
-            Register("GalleryControllerTests.Unregister", text => { calls++; return new Label(text); });
+            Register(name, text => { calls++; return new Label(text); });
 
-            GalleryController.Unregister("GalleryControllerTests.Unregister");
-            GalleryController.Build(new VisualElement(), LoadTestStrings());
+            GalleryController.Unregister(name);
 
+            CollectionAssert.DoesNotContain(GalleryController.Names, name);
+            Assert.Throws<ArgumentException>(() => GalleryController.Build(new VisualElement(), name, LoadTestStrings()));
             Assert.AreEqual(0, calls);
         }
 
         [Test]
         public void Build_FactoryReturnsNull_Throws()
         {
-            Register("GalleryControllerTests.Null", text => null);
+            const string name = "GalleryControllerTests.Null";
+            Register(name, text => null);
 
-            Assert.Throws<InvalidOperationException>(() => GalleryController.Build(new VisualElement(), LoadTestStrings()));
+            Assert.Throws<InvalidOperationException>(() => GalleryController.Build(new VisualElement(), name, LoadTestStrings()));
+        }
+
+        [Test]
+        public void Build_OnlyBuildsTheNamedEntry()
+        {
+            var strings = LoadTestStrings();
+            var targetCalls = 0;
+            var otherCalls = 0;
+            Register("GalleryControllerTests.Target", text => { targetCalls++; return new Label(text); });
+            Register("GalleryControllerTests.Other", text => { otherCalls++; return new Label(text); });
+
+            GalleryController.Build(new VisualElement(), "GalleryControllerTests.Target", strings);
+
+            Assert.AreEqual(strings.Count * 2, targetCalls);
+            Assert.AreEqual(0, otherCalls);
+        }
+
+        [Test]
+        public void Names_FollowsRegistrationOrder_ReRegisterKeepsPosition()
+        {
+            const string first = "GalleryControllerTests.First";
+            const string second = "GalleryControllerTests.Second";
+            Register(first, text => new Label(text));
+            Register(second, text => new Label(text));
+            var before = GalleryController.Names.ToList();
+
+            Register(first, text => new Label(text));
+
+            var after = GalleryController.Names.ToList();
+            Assert.Less(after.IndexOf(first), after.IndexOf(second));
+            CollectionAssert.AreEqual(before, after);
+        }
+
+        [Test]
+        public void Build_UnknownName_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() =>
+                GalleryController.Build(new VisualElement(), "GalleryControllerTests.NotRegistered", LoadTestStrings()));
         }
 
         [TestCase("{\"ja\": {\"name\": \"n\", \"short\": \"a\"}}")]
@@ -166,9 +209,8 @@ namespace Hone.Sandbox.Tests
             Register(name, text => new Label(text));
             var container = new VisualElement();
 
-            GalleryController.Build(container, GalleryController.Pick(LoadTestStrings(), "ko"));
+            GalleryController.Build(container, name, GalleryController.Pick(LoadTestStrings(), "ko"));
 
-            // 他の登録（Label、Button、Hone の列）も static に残っているので、この name の列だけを見る
             var column = container.Q(className: GalleryController.ColumnClass(name));
             var tags = column.Query<Label>(className: "gallery-tag").ToList().Select(l => l.text).ToList();
             CollectionAssert.AreEqual(new[] { "en", "ko" }, tags);
@@ -180,10 +222,11 @@ namespace Hone.Sandbox.Tests
             var strings = LoadTestStrings();
             var firstCalls = 0;
             var secondCalls = 0;
-            Register("GalleryControllerTests.Replace", text => { firstCalls++; return new Label(text); });
-            Register("GalleryControllerTests.Replace", text => { secondCalls++; return new Label(text); });
+            const string name = "GalleryControllerTests.Replace";
+            Register(name, text => { firstCalls++; return new Label(text); });
+            Register(name, text => { secondCalls++; return new Label(text); });
 
-            GalleryController.Build(new VisualElement(), strings);
+            GalleryController.Build(new VisualElement(), name, strings);
 
             Assert.AreEqual(0, firstCalls);
             Assert.AreEqual(strings.Count * 2, secondCalls);
