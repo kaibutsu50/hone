@@ -13,7 +13,8 @@ namespace Hone.Sandbox.Tests
     // Editor で実行する前提（PanelSettings と UXML を AssetDatabase から読む）。
     // 入力は SendEvent で送る（入力経路は通らない）。(G) の測定中に Focus() しないのは、ring が border を変えて高さがずれるため。
     // text の Label の本文は rich text の <noparse> などで囲まれるので、本文との比較は label.text ではなく parsedText（タグを除いた文字列）で行う。
-    // parsedText はレイアウトの後に埋まるので、Show / Advance の後は frame を進めてから読む
+    // parsedText はレイアウトの後に埋まるので、Show / Advance の後は frame を進めてから読む。
+    // parsedText は Advanced Text Generator（sandbox の既定）でしか実装されていない（Standard の生成器では NotImplementedException。6000.7.0b2）
     public class MessageWindowTests
     {
         const string PanelSettingsPath = "Assets/Hone/Sandbox/PanelSettings.asset";
@@ -73,13 +74,26 @@ namespace Hone.Sandbox.Tests
             }
         }
 
+        // クリックはウィンドウのどこでもよいので、子の text の Label に送り、bubble でウィンドウに届くことも確かめる
         static void Click(MessageWindow window)
         {
+            var label = TextOf(window);
             using (var evt = ClickEvent.GetPooled())
             {
-                evt.target = window;
-                window.SendEvent(evt);
+                evt.target = label;
+                label.SendEvent(evt);
             }
+        }
+
+        // 表示済みの部分の長さ（label.text の中の、未表示の部分の始まりの位置）。全部出ているときは -1。
+        // 方式（未表示の部分の前に <alpha=#00> を置く）に結び付いた読み方で、表示数が減らないことを見るためだけに使う
+        static int HiddenStart(MessageWindow window) => TextOf(window).text.IndexOf("<alpha=#00>", System.StringComparison.Ordinal);
+
+        static IEnumerator WaitRealtime(float seconds)
+        {
+            var until = Time.realtimeSinceStartup + seconds;
+            while (Time.realtimeSinceStartup < until)
+                yield return null;
         }
 
         // (A) 2 ページで Show すると、1 ページ目の全文が出て、次のページがあるので .is-waiting が付く
@@ -156,10 +170,9 @@ namespace Hone.Sandbox.Tests
             const string page = "01234567890123456789"; // 20 文字 = 2 秒かかる
 
             window.Show(page, "second");
-            yield return null;
-
             Assert.IsTrue(window.ClassListContains("is-revealing"));
             Assert.IsFalse(window.ClassListContains("is-waiting"));
+            yield return null;
             StringAssert.Contains("<alpha=#00>", TextOf(window).text, "the unrevealed part must be hidden");
 
             Submit(window);
@@ -170,6 +183,12 @@ namespace Hone.Sandbox.Tests
             Assert.IsTrue(window.ClassListContains("is-waiting"));
             Assert.AreEqual(page, TextOf(window).parsedText);
             StringAssert.DoesNotContain("<alpha", TextOf(window).text, "nothing may stay hidden once the full text is shown");
+
+            // 次のページへ進むと、そのページの文字送りが始まる
+            Submit(window);
+            Assert.AreEqual(1, window.pageIndex);
+            Assert.IsTrue(window.ClassListContains("is-revealing"));
+            Assert.IsFalse(window.ClassListContains("is-waiting"));
         }
 
         // (E) 文字送りが時間で終わると .is-revealing が外れ、次のページがあれば .is-waiting が付く。速さの正確さは見ない（十分長く待つだけ）
@@ -239,7 +258,8 @@ namespace Hone.Sandbox.Tests
             yield return Settle();
             Assert.IsTrue(window.ClassListContains("is-revealing"), "the reveal ended before the first measurement");
             var revealingHeight = label.layout.height;
-            Assert.Greater(revealingHeight, 0f);
+            // 折り返して複数行になっていること（1 行のままだと、方式が壊れていても高さが同じになって素通りする）
+            Assert.Greater(revealingHeight, label.resolvedStyle.fontSize * 2, "the text must wrap to several lines");
 
             Submit(window);
             yield return Settle();
@@ -296,6 +316,169 @@ namespace Hone.Sandbox.Tests
                 Assert.AreEqual(pages[i], TextOf(window).parsedText, $"page {i}");
                 window.Advance();
             }
+        }
+
+        // 送りの途中でも、タグの形の本文は文字のまま出る。表示済みと未表示の境目が本文の </noparse> の途中に来たときも崩れない。
+        // 4 文字/秒で、1 秒後は境目が "a</n" の後、2 秒後は "a</nopars" の後になる（どちらも </noparse> の途中。frame の揺れには十分な余裕がある）
+        [UnityTest]
+        public IEnumerator Reveal_TagLikeText_MidReveal_IsShownLiterally()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow { charactersPerSecond = 4 };
+            root.Add(window);
+            const string page = "a</noparse><b>bcdefgh</b>";
+
+            window.Show(page);
+            foreach (var seconds in new[] { 1f, 1f })
+            {
+                yield return WaitRealtime(seconds);
+                Assert.IsTrue(window.ClassListContains("is-revealing"), "the reveal ended before the measurement");
+                Assert.AreEqual(page, TextOf(window).parsedText);
+            }
+        }
+
+        // panel から外れたら送りを止め、そのページの全文を出した状態にする
+        [UnityTest]
+        public IEnumerator Detach_WhileRevealing_ShowsFullText()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow { charactersPerSecond = 10 };
+            root.Add(window);
+            window.Show("01234567890123456789", "second");
+            Assert.IsTrue(window.ClassListContains("is-revealing"));
+
+            window.RemoveFromHierarchy();
+
+            Assert.IsFalse(window.ClassListContains("is-revealing"));
+            Assert.IsTrue(window.ClassListContains("is-waiting"));
+            Assert.AreEqual(-1, HiddenStart(window), "nothing may stay hidden after detaching");
+
+            // 付け直しても再開しない
+            root.Add(window);
+            yield return Settle();
+            Assert.IsFalse(window.ClassListContains("is-revealing"));
+            Assert.AreEqual(0, window.pageIndex);
+        }
+
+        // completed の後に Show し直すと、もう一度 completed が出る
+        [UnityTest]
+        public IEnumerator Show_AfterCompleted_FiresCompletedAgain()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow();
+            var completed = 0;
+            window.completed += () => completed++;
+            root.Add(window);
+
+            window.Show("first");
+            Submit(window);
+            Assert.AreEqual(1, completed);
+
+            window.Show("again");
+            Assert.AreEqual(0, window.pageIndex);
+            Submit(window);
+            Assert.AreEqual(2, completed);
+        }
+
+        // 送りの途中で Show すると、1 ページ目から出し直す。前の送りは残らない（速さを 0 にすると全文が出て、そこで止まる）
+        [UnityTest]
+        public IEnumerator Show_WhileRevealing_RestartsFromFirstPage()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow { charactersPerSecond = 10 };
+            root.Add(window);
+            window.Show("first page 0123456789", "first page 2");
+            Submit(window);
+            Submit(window);
+            Assert.AreEqual(1, window.pageIndex);
+
+            window.Show("next", "next 2");
+
+            Assert.AreEqual(0, window.pageIndex);
+            Assert.AreEqual(2, window.pageCount);
+            Assert.IsTrue(window.ClassListContains("is-revealing"));
+            window.charactersPerSecond = 0;
+            yield return Settle();
+            Assert.IsFalse(window.ClassListContains("is-revealing"));
+            Assert.AreEqual(0, window.pageIndex);
+            Assert.AreEqual("next", TextOf(window).parsedText);
+        }
+
+        // 送りの途中で速さを下げても、出ていた文字は減らない
+        [UnityTest]
+        public IEnumerator Reveal_SpeedDecrease_DoesNotHideShownCharacters()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow { charactersPerSecond = 40 };
+            root.Add(window);
+            window.Show("0123456789012345678901234567890123456789012345678901234567890123456789"); // 70 文字 = 1.75 秒
+
+            yield return WaitRealtime(0.5f);
+            Assert.IsTrue(window.ClassListContains("is-revealing"));
+            var before = HiddenStart(window);
+            Assert.Greater(before, 0, "some characters must be shown before the speed changes");
+
+            window.charactersPerSecond = 1;
+            yield return Settle();
+
+            Assert.IsTrue(window.ClassListContains("is-revealing"));
+            Assert.GreaterOrEqual(HiddenStart(window), before);
+        }
+
+        // 速さが NaN・無限大・極端に大きい値でも、文字送りが終わらないまま残らない
+        [UnityTest]
+        public IEnumerator Reveal_NonFiniteOrHugeSpeed_EndsWithFullText()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            const string page = "01234567890123456789";
+
+            // 無限大は即時表示
+            var infinite = new MessageWindow { charactersPerSecond = float.PositiveInfinity };
+            root.Add(infinite);
+            infinite.Show(page);
+            Assert.IsFalse(infinite.ClassListContains("is-revealing"));
+
+            // 送りの途中で NaN にすると全文が出る
+            var nan = new MessageWindow { charactersPerSecond = 10 };
+            root.Add(nan);
+            nan.Show(page);
+            nan.charactersPerSecond = float.NaN;
+
+            // 極端に大きい値は次の tick で出きる
+            var huge = new MessageWindow { charactersPerSecond = 1e30f };
+            root.Add(huge);
+            huge.Show(page);
+
+            var deadline = Time.realtimeSinceStartup + 2f;
+            while ((nan.ClassListContains("is-revealing") || huge.ClassListContains("is-revealing")) && Time.realtimeSinceStartup < deadline)
+                yield return null;
+
+            Assert.IsFalse(nan.ClassListContains("is-revealing"), "NaN left the reveal running");
+            Assert.IsFalse(huge.ClassListContains("is-revealing"), "a huge speed left the reveal running");
+            Assert.AreEqual(-1, HiddenStart(nan));
+            Assert.AreEqual(-1, HiddenStart(huge));
+        }
+
+        // panel に attach する前に Show しても、attach までの待ち時間で送りが進まない
+        [UnityTest]
+        public IEnumerator Show_BeforeAttach_RevealStartsOnAttach()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow { charactersPerSecond = 10 };
+            window.Show("01234567890123456789"); // 20 文字 = 2 秒
+
+            yield return WaitRealtime(2.5f);
+            root.Add(window);
+            yield return Settle();
+
+            Assert.IsTrue(window.ClassListContains("is-revealing"), "the time before attaching was counted");
         }
     }
 }

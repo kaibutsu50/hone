@@ -1,7 +1,7 @@
-/* 色・角丸・余白・フォントサイズ・枠の太さは Tokens.uss のトークン。見た目は Dialog の content と同じトークンで組む。
+/* 色・角丸・余白・フォントサイズ・枠の太さは Tokens.uss のトークン。背景・枠・角丸は Dialog の content と同じトークン。
  * 幅は親に従い、高さは内容に従う（固定しない）。ページで行数が変わると高さが変わる。
  * 既定の Label は折り返さない（white-space: nowrap）ので、text は折り返す。
- * ▼ は次のページがあるとき（.is-waiting）だけ見える。点滅などの演出は持たない。.is-waiting と .is-revealing を使って利用者が書く。 */
+ * ▼ は .is-waiting の間（全文が出ていて、次のページがあるとき）だけ見える。点滅などの演出は持たない。.is-waiting と .is-revealing を使って利用者が書く。 */
 .hone-message-window {
     background-color: var(--hone-color-background);
     border-width: var(--hone-border-width);
