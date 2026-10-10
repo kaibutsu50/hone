@@ -23,6 +23,8 @@ namespace Hone.Sandbox.Tests
         const string RoomB = "room-test-b";
         const int MaxWaitFrames = 60;
 
+        const string RoomFontPath = "Assets/Hone/Sandbox/Fonts/MPLUSRounded1c.asset";
+
         // Register は static で、Domain Reload 無効の Editor では Play をまたいで残る。他のテストや撮影に混ざらないよう、登録した className を必ず消す
         readonly List<string> m_Registered = new List<string>();
         Scene m_Scene;
@@ -35,12 +37,22 @@ namespace Hone.Sandbox.Tests
             public int PageIndex;
         }
 
+        // クラシック JRPG 風は BeforeSceneLoad で登録される。基盤のテストは「登録したルームだけがある」前提なので、外してから始め、終わったら登録を戻す
+        // （戻すと末尾に付くので、ルームが 2 つ以上あると登録の順は戻らない）。クラシック JRPG 風のテストは、自分で Register する。
+        // BeforeSceneLoad で登録するルームを足したら、ここで同じように外し、TearDown で戻す
+        [SetUp]
+        public void SetUp()
+        {
+            ModelRoomsController.Unregister(ClassicJrpgRoom.ClassName);
+        }
+
         [UnityTearDown]
         public IEnumerator TearDown()
         {
             foreach (var className in m_Registered)
                 ModelRoomsController.Unregister(className);
             m_Registered.Clear();
+            ModelRoomsController.Register(ClassicJrpgRoom.Room);
             if (m_Scene.IsValid() && m_Scene.isLoaded)
                 yield return SceneManager.UnloadSceneAsync(m_Scene);
         }
@@ -125,7 +137,7 @@ namespace Hone.Sandbox.Tests
             }
         }
 
-        // ルーム 0 件。ルームを BeforeSceneLoad で登録するファイルが入ったら、この前提（何も登録されていない）が崩れるので書き直す
+        // ルーム 0 件（BeforeSceneLoad で登録されるルームは SetUp で外してある）
         [UnityTest]
         public IEnumerator NoRoom_DropdownShowsPlaceholder_StagesHaveNoRoomClass()
         {
@@ -314,6 +326,99 @@ namespace Hone.Sandbox.Tests
             AdvanceToCompleted(MessageOf(column));
 
             Assert.IsTrue(DialogOf(column).isOpen);
+        }
+
+        // ルームの pages は 3 列とも（素の列も）に出る。「もう一度」でも同じ pages の 1 ページ目に戻る
+        [UnityTest]
+        public IEnumerator SelectRoom_WithPages_ShowsRoomPagesInAllColumns()
+        {
+            var pages = new[] { "page one", "page two" };
+            Register(new ModelRoom { displayName = "A", className = RoomA });
+            Register(new ModelRoom { displayName = "B", className = RoomB, pages = pages });
+            ModelRoomsController controller = null;
+            yield return LoadScene(c => controller = c);
+
+            controller.SelectRoom(RoomB);
+
+            foreach (var column in Columns(controller))
+            {
+                var message = MessageOf(column);
+                Assert.AreEqual(pages.Length, message.pageCount);
+                Assert.AreEqual(pages[0], message.text);
+                AdvanceToCompleted(message);
+                Submit(column.Q<UnityEngine.UIElements.Button>("again"));
+                Assert.AreEqual(pages[0], message.text);
+            }
+        }
+
+        // pages を持たないルームは、既定の文面を出す（pages を持つルームから選び直しても残らない）
+        [UnityTest]
+        public IEnumerator SelectRoom_WithoutPages_ShowsDefaultPages()
+        {
+            Register(new ModelRoom { displayName = "A", className = RoomA, pages = new[] { "page one" } });
+            Register(new ModelRoom { displayName = "B", className = RoomB });
+            ModelRoomsController controller = null;
+            yield return LoadScene(c => controller = c);
+
+            controller.SelectRoom(RoomB);
+
+            foreach (var column in Columns(controller))
+                Assert.AreNotEqual("page one", MessageOf(column).text);
+        }
+
+        // クラシック JRPG 風を、先頭ではないルームとして選ぶ（最初の組み立てではなく、選び直した結果を見る）
+        IEnumerator LoadAndSelectClassicJrpg(Action<ModelRoomsController> onReady)
+        {
+            Register(new ModelRoom { displayName = "A", className = RoomA });
+            Register(ClassicJrpgRoom.Room);
+            ModelRoomsController controller = null;
+            yield return LoadScene(c => controller = c);
+            controller.SelectRoom(ClassicJrpgRoom.ClassName);
+            onReady(controller);
+        }
+
+        // 本文の Label（.hone-text）が使っているフォント
+        static UnityEngine.TextCore.Text.FontAsset BodyFont(VisualElement column) =>
+            MessageOf(column).Q(className: "hone-text").resolvedStyle.unityFontDefinition.fontAsset;
+
+        // (A) 2 列目と 3 列目の本文だけが、ルームのフォントになる。組み直した列のスタイルは後の update で解決されるので、ルームのフォントになるまで待つ
+        [UnityTest]
+        public IEnumerator ClassicJrpg_Select_AppliesRoomFontToColumns2And3Only()
+        {
+            ModelRoomsController controller = null;
+            yield return LoadAndSelectClassicJrpg(c => controller = c);
+            var expected = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.TextCore.Text.FontAsset>(RoomFontPath);
+            Assert.IsNotNull(expected, $"{RoomFontPath} was not found");
+            var columns = Columns(controller);
+            var frames = 0;
+            while (BodyFont(columns[1]) != expected && frames < MaxWaitFrames)
+            {
+                frames++;
+                yield return null;
+            }
+
+            Assert.AreNotSame(expected, BodyFont(columns[0]));
+            Assert.AreSame(expected, BodyFont(columns[1]));
+            Assert.AreSame(expected, BodyFont(columns[2]));
+        }
+
+        // (C) 演出の設定（文字送りと確定の間）が入るのは 3 列目だけ。2 列目（USS だけ）は動かない
+        [UnityTest]
+        public IEnumerator ClassicJrpg_Select_InjectsRevealAndCommitDelayToColumn3Only()
+        {
+            ModelRoomsController controller = null;
+            yield return LoadAndSelectClassicJrpg(c => controller = c);
+
+            var columns = Columns(controller);
+            Assert.AreEqual(0f, MessageOf(columns[0]).charactersPerSecond);
+            Assert.AreEqual(0f, MessageOf(columns[1]).charactersPerSecond);
+            Assert.Greater(MessageOf(columns[2]).charactersPerSecond, 0f);
+            foreach (var buttonName in new[] { "yes", "no" })
+            {
+                Assert.AreEqual(0f, columns[0].Q<Hone.Button>(buttonName).commitDelay, buttonName);
+                Assert.AreEqual(0f, columns[1].Q<Hone.Button>(buttonName).commitDelay, buttonName);
+                Assert.Greater(columns[2].Q<Hone.Button>(buttonName).commitDelay, 0f, buttonName);
+            }
         }
     }
 }

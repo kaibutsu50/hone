@@ -13,6 +13,9 @@ namespace Hone.Sandbox.ModelRooms
         // 2 列目と 3 列目の舞台に付ける USS クラス（例: "room-classic-jrpg"）。登録の識別子でもあるので、Register の後で変えない（Unregister が効かなくなる）
         public string className;
 
+        // メッセージのページ（ルームを選んだとき、3 列とも同じ文面を出す）。null か空なら既定の文面
+        public string[] pages;
+
         // 3 列目の舞台を受け取り、演出を足す。舞台が panel に attach された後に、組むたびに 1 回呼ぶ。null なら何もしない
         public Action<VisualElement> inject;
     }

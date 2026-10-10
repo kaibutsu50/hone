@@ -1,0 +1,165 @@
+/* クラシック JRPG 風のモデルルーム（段階 2: USS だけ）。ModelRoomsTheme.tss から @import する。
+ * すべての規則を .room-classic-jrpg（舞台に付くクラス）で始め、1 列目（素）と他のルームに漏らさない。
+ * トークンで表せる値は先頭の規則でトークンを上書きし、表せない値だけを部品の規則の上書きに書く。
+ *
+ * 大きさは、舞台を 4:3 の画面とみなして割合から px に換算した。基準は舞台の高さ 320px（ModelRooms.uss の .model-room-stage の height）と、その 4:3 の幅 427px。
+ * 舞台の余白（同じ規則の padding）は差し引かない。舞台の高さや余白が変わったら、この USS の px を換算し直す。
+ * 舞台の実際の幅は 4:3 より広いので、横の値も % ではなく px で書き、舞台の中央を基準に置く（行の折り返しを舞台の幅に左右されないようにする）。 */
+
+.room-classic-jrpg {
+    --hone-font-body: url("project://database/Assets/Hone/Sandbox/Fonts/MPLUSRounded1c.asset?fileID=11400000&guid=ec7996271a9a2714baf639e3706fc3d2&type=2#MPLUSRounded1c");
+
+    /* 地は不透明な黒（背後を透かすのは、下の .model-room-layer の opacity で窓をまとめて掛ける）。文字は白、枠は白よりわずかに暗い明るい灰 */
+    --hone-color-background: rgb(0, 0, 0);
+    --hone-color-foreground: rgb(255, 255, 255);
+    --hone-color-primary-foreground: rgb(255, 255, 255);
+    --hone-color-muted-foreground: rgb(255, 255, 255);
+    --hone-color-accent: rgba(0, 0, 0, 0);
+    --hone-color-accent-foreground: rgb(255, 255, 255);
+    --hone-color-border: rgb(224, 224, 224);
+    /* overlay は透明（背後の画面を暗くしない） */
+    --hone-color-overlay: rgba(0, 0, 0, 0);
+
+    /* ring を枠と同じ色・同じ太さにして、MessageWindow（.hone-focusable）はフォーカスしても枠が変わらないようにする（Button の ring は下の規則で消す） */
+    --hone-color-ring: rgb(224, 224, 224);
+    --hone-ring-width: 2px;
+
+    /* 枠は 2px（参考と見比べて、Issue の 0.4% より太くした。外側の暗い縁取りは下の filter）。
+     * 角丸は 4px（参考と見比べて、Issue の 0.7% より少し丸くした） */
+    --hone-border-width: 2px;
+    --hone-radius-md: 4px;
+    --hone-radius-lg: 4px;
+
+    /* 文字の高さは舞台の高さの 4.4% */
+    --hone-font-size-sm: 14px;
+    --hone-font-size-md: 14px;
+}
+
+/* 舞台の背景。参考は 3D の画面に窓を重ねる構成なので、白い舞台の代わりに暗い単色を背後に置く（半透明の地と、枠の外にはみ出す ▼ が見えるように）。
+ * 部品の規則ではなく舞台（sandbox）の見た目で、黒の地と見分けられるよう黒より明るい色にする */
+.room-classic-jrpg {
+    background-color: rgb(56, 72, 104);
+}
+
+/* 窓は不透明に描いて重ねてから、窓の層ごと 80% にする（グループの不透明度）。背後の画面は透けるが、重なった下の窓（枠や文字）は上の窓に隠れて透けない。
+ * 親の filter: opacity() は、子をまとめて描いてから半透明にする（6000.7.0b2、Screen Space で確認。World Space は未確認）。
+ * 窓 1 枚ずつを半透明にすると、重なった部分で下の窓の枠が透け、地も二重に暗くなる。
+ * 文字と枠も同じ割合で薄くなるので、Issue の黒 60% ではなく、文字が白く見える 80% にした */
+.room-classic-jrpg .model-room-layer {
+    filter: opacity(0.8);
+}
+
+/* 窓の立体感。明るい枠の外側を暗く縁取る（メッセージと はい / いいえ の窓で共通） */
+.room-classic-jrpg .hone-message-window,
+.room-classic-jrpg .hone-dialog__content {
+    filter: drop-shadow(0px 0px 1px rgb(0, 0, 0));
+}
+
+/* ---- メッセージウィンドウ ---- */
+
+/* 下寄せで左右中央。幅 87%（371px）、高さ 22%（70px）、下の余白 6%（19px）。内側の左右の余白は字 1.5 個分。
+ * 上下の余白 2px は、3 行（M PLUS Rounded 1c の 14px で 1 行 約 21px）が高さ 70px（枠 2px を含む）に収まるように決めた */
+.room-classic-jrpg .hone-message-window {
+    align-self: center;
+    width: 371px;
+    height: 70px;
+    margin-bottom: 19px;
+    padding: 2px 21px;
+}
+
+/* 文面の全角の空白（語の区切り）を、1 文字分の幅のまま出す。部品の white-space: normal は、続く空白をまとめ、行頭の空白を消す */
+.room-classic-jrpg .hone-message-window__text {
+    white-space: pre-wrap;
+}
+
+/* ▼ は字の半分の大きさで、下の枠の中央に重ねる */
+.room-classic-jrpg .hone-message-window__indicator {
+    position: absolute;
+    left: 50%;
+    bottom: -5px;
+    translate: -50% 0;
+    font-size: 7px;
+    padding: 0;
+    margin: 0;
+    transition-property: opacity;
+    transition-duration: 0.1s;
+}
+
+/* ---- はい / いいえ ---- */
+
+/* 質問文はメッセージ側に出るので、はい / いいえ の窓には出さない */
+.room-classic-jrpg .hone-dialog__description {
+    display: none;
+}
+
+/* メッセージの上の枠に少し重ねて、右寄せに置く。大きさと位置は参考と見比べて、文字の大きさの比で合わせた（Issue の割合より横長）:
+ * 幅 97px、メッセージの右端より 13px 内側、メッセージの上の枠に 6px 重ねる。
+ * 舞台の幅は 4:3 より広いので、舞台の中央から測る: 窓の中心は中央から 371 / 2 - 13 - 97 / 2 ≒ 124px 右。
+ * 下からの位置は、メッセージの下の余白 19px + 高さ 70px - 重なり 6px（メッセージと Dialog は同じ層の中にあるので、同じ基準で測れる） */
+.room-classic-jrpg .hone-dialog {
+    justify-content: flex-end;
+}
+
+.room-classic-jrpg .hone-dialog__content {
+    width: 97px;
+    margin-bottom: 83px;
+    translate: 124px 0;
+    padding: 3px 8px 3px 0;
+}
+
+/* 縦並びで左寄せ */
+.room-classic-jrpg .hone-dialog__footer {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    margin-top: 0;
+}
+
+.room-classic-jrpg .hone-dialog__footer > * {
+    margin-left: 0;
+}
+
+/* Button は枠も塗りも無い白文字。文字は窓の外側の端から 23px（参考と見比べて、字 1.5 個分強）空け、その左の余白に ▶ を置く。
+ * 行の間隔はフォントの行の高さそのまま（上下の余白なし） */
+.room-classic-jrpg .hone-button {
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    padding: 0 8px 0 21px;
+    -unity-text-align: middle-left;
+}
+
+/* Button.uss の hover（0.9）と active（0.8）の薄まりを消す。disabled の半透明にも勝つが、このルームの Button は disabled にならない */
+.room-classic-jrpg .hone-button:hover,
+.room-classic-jrpg .hone-button:active {
+    opacity: 1;
+}
+
+/* フォーカスした Button の文字のすぐ左に ▶（▶ の先と文字の間は約 1px）。ring は出さない。
+ * Core.uss の ring（.hone-focusable.hone-focusable:focus）に勝つよう、クラス 3 つ + :focus で書く */
+.room-classic-jrpg .hone-button.hone-focusable:focus {
+    border-width: 0;
+    background-image: url("Cursor.png");
+    background-position-x: left 8px;
+    background-position-y: center;
+    background-repeat: no-repeat;
+    background-size: 14px 14px;
+    transition-property: background-position-x;
+    transition-duration: 0.08s;
+}
+
+/* ---- 段階 3 の演出の状態（ClassicJrpgRoom.cs が舞台に付け外しする） ---- */
+
+/* ▼ の点滅 */
+.room-classic-jrpg.is-blink-off .hone-message-window__indicator {
+    opacity: 0;
+}
+
+/* ▶ の揺れ（文字から 2px 離れる側へ動かす） */
+.room-classic-jrpg.is-sway .hone-button.hone-focusable:focus {
+    background-position-x: left 6px;
+}
+
+/* 確定の間（.is-holding）は ▶ を揺れない位置に止める */
+.room-classic-jrpg.is-sway .hone-button.hone-focusable.is-holding:focus {
+    background-position-x: left 8px;
+}

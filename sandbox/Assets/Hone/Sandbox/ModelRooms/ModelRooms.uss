@@ -55,14 +55,19 @@
     margin-right: 8px;
 }
 
-/* 舞台。Dialog（absolute で上下左右 0）は親の舞台の全面を覆う。
- * 高さは固定する（メッセージのページで高さが変わっても、列の見た目が揺れないように）。メッセージは下に寄せる。
+/* 舞台。高さは固定する（メッセージのページで高さが変わっても、列の見た目が揺れないように）。
  * 余白と枠は実値で書く。ルームのクラスは舞台そのものに付くので、トークンで書くと、ルームがトークンを上書きしたときに sandbox の枠まで変わる */
 .model-room-stage {
-    position: relative;
     height: 320px;
-    justify-content: flex-end;
     padding: 16px;
     border-width: 1px;
     border-color: rgb(228, 228, 231);
+}
+
+/* 窓（メッセージと Dialog）をまとめる層。舞台の余白の内側を埋め、メッセージは下に寄せる。
+ * Dialog（absolute で上下左右 0）は層の全面を覆う */
+.model-room-layer {
+    flex-grow: 1;
+    position: relative;
+    justify-content: flex-end;
 }
