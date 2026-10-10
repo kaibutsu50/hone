@@ -147,9 +147,13 @@ namespace Hone.Sandbox.ModelRooms
             stage.AddToClassList("model-room-stage");
             if (room != null)
                 stage.AddToClassList(room.className);
-            m_Message.CloneTree(stage);
-            // Dialog は舞台の全面を覆う absolute なので、舞台の最後の子にする（後ろの兄弟は Dialog の上に描かれる）
-            m_YesNo.CloneTree(stage);
+            // 窓（メッセージと Dialog）は舞台の中の層にまとめる。層は窓の共通の親で、ルームが窓をまとめて扱う規則（グループの不透明度など）を掛ける先になる
+            var layer = new VisualElement();
+            layer.AddToClassList("model-room-layer");
+            m_Message.CloneTree(layer);
+            // Dialog は層の全面を覆う absolute なので、層の最後の子にする（後ろの兄弟は Dialog の上に描かれる）
+            m_YesNo.CloneTree(layer);
+            stage.Add(layer);
             column.Add(stage);
 
             // inject の例外はログに出して続ける。止めると、残りの列のメッセージが出ないまま組み立てが終わる
