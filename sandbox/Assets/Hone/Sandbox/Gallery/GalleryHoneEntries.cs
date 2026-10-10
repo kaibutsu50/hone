@@ -64,12 +64,13 @@ namespace Hone.Sandbox.Gallery
             });
             // 2 ページにして、1 ページ目で次のページがある状態（.is-waiting の ▼）を写す。charactersPerSecond は 0（即時表示）のまま。
             // MessageWindow は親の幅に従うので、セルの幅は Gallery.uss の .gallery-message-window で確定させる。
-            // Show は Dialog の Open と揃えて attach の時点で呼ぶ（即時表示なので attach 前に呼んでも同じに出る）
+            // Show は Dialog の Open と揃えて attach の時点で呼ぶ（即時表示なので attach 前に呼んでも同じに出る）。
+            // 1 ページ目は話者を text にして名札を写す（長い文字列では省略記号で切れる）。2 ページ目は話者なし
             GalleryController.Register("Hone.MessageWindow", text =>
             {
                 var window = new MessageWindow();
                 window.AddToClassList("gallery-message-window");
-                window.RegisterCallbackOnce<AttachToPanelEvent>(evt => window.Show(text, text));
+                window.RegisterCallbackOnce<AttachToPanelEvent>(evt => window.Show(new MessageWindow.Page(text, text), new MessageWindow.Page(null, text)));
                 return window;
             });
         }
