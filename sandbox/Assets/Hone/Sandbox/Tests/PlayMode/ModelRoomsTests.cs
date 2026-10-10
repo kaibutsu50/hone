@@ -132,7 +132,7 @@ namespace Hone.Sandbox.Tests
             ModelRoomsController controller = null;
             yield return LoadScene(c => controller = c);
 
-            CollectionAssert.AreEqual(new[] { "（ルームなし）" }, RoomDropdown(controller).choices);
+            CollectionAssert.AreEqual(new[] { "デフォルト" }, RoomDropdown(controller).choices);
             foreach (var stage in Columns(controller).Select(StageOf))
                 CollectionAssert.AreEqual(new[] { "model-room-stage" }, stage.GetClasses().ToList());
         }

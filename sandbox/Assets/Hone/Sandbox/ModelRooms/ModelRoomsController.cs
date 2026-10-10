@@ -17,7 +17,8 @@ namespace Hone.Sandbox.ModelRooms
     [RequireComponent(typeof(PanelRenderer))]
     public class ModelRoomsController : MonoBehaviour
     {
-        const string NoRoomName = "（ルームなし）";
+        // ルームが 1 つも無いときの dropdown の項目。何も当てていない（registry の既定のまま）ことが分かる名前にする
+        const string NoRoomName = "デフォルト";
 
         static readonly string[] StageNames = { "素", "USS だけ", "注入あり" };
 
@@ -33,7 +34,7 @@ namespace Hone.Sandbox.ModelRooms
         [SerializeField] VisualTreeAsset m_Message;
         [SerializeField] VisualTreeAsset m_YesNo;
 
-        // dropdown の選択肢（ルームなしの項目は含まない）。index が dropdown の index と対応する
+        // dropdown の選択肢（ルームが無いときの「デフォルト」は含まない）。index が dropdown の index と対応する
         readonly List<ModelRoom> m_Selectable = new List<ModelRoom>();
         DropdownField m_Room;
 
