@@ -25,7 +25,7 @@
       "name": "Button",
       "type": "registry:ui",
       "title": "Button",
-      "description": "variant（default / outline / ghost / destructive）を持つボタン",
+      "description": "variant（default / outline / ghost / destructive）と、確定までの間（commit-delay）を持つボタン",
       "files": [
         { "path": "UI/Button/Button.cs", "type": "registry:ui" },
         { "path": "UI/Button/Button.uxml", "type": "registry:ui" },

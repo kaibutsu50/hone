@@ -24,6 +24,33 @@ button.clicked += OnSave;
 
 `variant` を変えると、前の variant のクラスが外れて新しいクラスが付く。
 
+## 確定までの間（Hold）
+
+押した瞬間（Press）と確定（Commit）の間に間を置ける。既定（`commit-delay` が 0）では何も変わらない。
+
+```xml
+<hone:Button variant="destructive" commit-delay="0.5" text="Delete" />
+```
+
+```csharp
+var button = new Hone.Button { text = "Delete", commitDelay = 0.5f };
+button.committed += OnDelete;
+```
+
+| 名前 | 意味 |
+|---|---|
+| `commit-delay`（`commitDelay`） | 押してから確定までの秒数。0 以下なら押した瞬間に確定する |
+| `committed` | 確定。`commitDelay` が 0 以下なら押した処理の中で、そうでなければ `commitDelay` 秒後に 1 回出る |
+| `isHolding` | Hold の間 true（読み取りのみ） |
+| `.is-holding` | Hold の間だけ付くクラス。`Button.uss` は何も書かないので、見た目は利用者が付ける |
+
+- `clicked` は今までどおり押した瞬間に出る。Hold 中に押し直しても出る。`committed` を遅らせたいときは `clicked` ではなく `committed` を購読する。
+- Hold 中の再押下は `committed` に影響しない（Hold は延びず、`committed` は 1 回のまま）。
+- Hold の途中で `commitDelay` を変えても、進行中の Hold には効かない。次の押下から効く。
+- Hold の途中で panel から外れると、Hold をやめて `.is-holding` を外す。`committed` は出ない。
+- 止めるのは同じ Button の再押下の確定だけ。Dialog など他の部品や panel の入力は止めない。
+- 時間は `schedule` で数える。
+
 ## 名前の衝突
 
 `UnityEngine.UIElements` にも `Button` がある。同じファイルで `using UnityEngine.UIElements;` と Hone の `Button` を併用するときは、エイリアスで解く。

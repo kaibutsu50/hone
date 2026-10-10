@@ -76,10 +76,8 @@ namespace Hone.Sandbox.Tests
             Assert.IsTrue(button.ClassListContains("hone-text"));
         }
 
-        // (D) 基底の挙動が残っている。NavigationSubmitEvent で clicked が 1 回発火する。
-        // SendEvent は panel に付いた要素でないと届かないので、PanelRenderer を 1 つ作って載せる
-        [UnityTest]
-        public IEnumerator Clicked_FiresOnNavigationSubmit()
+        // panel に付いた要素でないと SendEvent が届かないので、PanelRenderer を 1 つ作って root を返す
+        IEnumerator CreatePanel(System.Action<VisualElement> onReady)
         {
             var panelSettings = Object.Instantiate(AssetDatabase.LoadAssetAtPath<PanelSettings>(PanelSettingsPath));
             m_Created.Add(panelSettings);
@@ -100,6 +98,24 @@ namespace Hone.Sandbox.Tests
                 yield return null;
             }
             Assert.IsNotNull(root?.panel, $"panel was not ready within {MaxWaitFrames} frames");
+            onReady(root);
+        }
+
+        static void Submit(VisualElement target)
+        {
+            using (var evt = NavigationSubmitEvent.GetPooled())
+            {
+                evt.target = target;
+                target.SendEvent(evt);
+            }
+        }
+
+        // (D) 基底の挙動が残っている。NavigationSubmitEvent で clicked が 1 回発火する
+        [UnityTest]
+        public IEnumerator Clicked_FiresOnNavigationSubmit()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
 
             var button = new Button { text = "submit" };
             var clicks = 0;
@@ -107,14 +123,123 @@ namespace Hone.Sandbox.Tests
             root.Add(button);
             yield return null;
 
-            using (var evt = NavigationSubmitEvent.GetPooled())
-            {
-                evt.target = button;
-                button.SendEvent(evt);
-            }
+            Submit(button);
             yield return null;
 
             Assert.AreEqual(1, clicks);
+        }
+
+        // (Hold A) commitDelay が 0 のとき、Submit で committed が 1 回出て、is-holding は付かない
+        [UnityTest]
+        public IEnumerator Committed_FiresImmediately_WhenDelayIsZero()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+
+            var button = new Button();
+            var commits = 0;
+            button.committed += () => commits++;
+            root.Add(button);
+            yield return null;
+
+            Submit(button);
+
+            Assert.AreEqual(1, commits);
+            Assert.IsFalse(button.isHolding);
+            Assert.IsFalse(button.ClassListContains("is-holding"));
+        }
+
+        // (Hold B) commitDelay が 0.2 のとき、直後は Hold 中で committed は 0 回。待つと 1 回出て Hold が終わる
+        [UnityTest]
+        public IEnumerator Committed_FiresAfterDelay_AndHoldingClassToggles()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+
+            var button = new Button { commitDelay = 0.2f };
+            var commits = 0;
+            button.committed += () => commits++;
+            root.Add(button);
+            yield return null;
+
+            Submit(button);
+
+            Assert.IsTrue(button.isHolding);
+            Assert.IsTrue(button.ClassListContains("is-holding"));
+            Assert.AreEqual(0, commits);
+
+            yield return new WaitForSeconds(0.4f);
+
+            Assert.AreEqual(1, commits);
+            Assert.IsFalse(button.isHolding);
+            Assert.IsFalse(button.ClassListContains("is-holding"));
+        }
+
+        // (Hold C) Hold の間にもう一度押すと、clicked は 2 回出るが、committed は最終的に 1 回
+        [UnityTest]
+        public IEnumerator Press_DuringHold_FiresClickedButCommitsOnce()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+
+            var button = new Button { commitDelay = 0.5f };
+            var clicks = 0;
+            var commits = 0;
+            button.clicked += () => clicks++;
+            button.committed += () => commits++;
+            root.Add(button);
+            yield return null;
+
+            Submit(button);
+            yield return null;
+            Submit(button);
+
+            Assert.AreEqual(2, clicks);
+
+            yield return new WaitForSeconds(0.8f);
+
+            Assert.AreEqual(1, commits);
+            Assert.IsFalse(button.isHolding);
+        }
+
+        // (Hold D) Hold の途中で panel から外すと、is-holding が外れ、待っても committed は出ない
+        [UnityTest]
+        public IEnumerator Detach_DuringHold_CancelsCommit()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+
+            var button = new Button { commitDelay = 0.2f };
+            var commits = 0;
+            button.committed += () => commits++;
+            root.Add(button);
+            yield return null;
+
+            Submit(button);
+            Assert.IsTrue(button.isHolding);
+
+            button.RemoveFromHierarchy();
+
+            Assert.IsFalse(button.isHolding);
+            Assert.IsFalse(button.ClassListContains("is-holding"));
+
+            yield return new WaitForSeconds(0.4f);
+
+            Assert.AreEqual(0, commits);
+        }
+
+        // (Hold E) UXML の commit-delay="0.5" が commitDelay 0.5 になる
+        [Test]
+        public void Uxml_CommitDelay_IsParsed()
+        {
+            var tree = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(ButtonUxmlPath);
+            Assert.IsNotNull(tree, $"{ButtonUxmlPath} was not found");
+
+            var root = tree.Instantiate();
+            var delayed = root.Q<Button>(className: "hone-button--destructive");
+
+            Assert.IsNotNull(delayed, "no Hone.Button with hone-button--destructive");
+            Assert.AreEqual(0.5f, delayed.commitDelay);
         }
     }
 }
