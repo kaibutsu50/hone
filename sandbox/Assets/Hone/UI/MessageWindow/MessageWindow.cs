@@ -18,7 +18,7 @@ namespace Hone
     [UxmlElement]
     public partial class MessageWindow : VisualElement
     {
-        // 1 ページ分。speaker が null か空文字列なら話者なし（名札は出ない）。text が null なら空文字列として扱う
+        // 1 ページ分。値は渡したまま持つ。Show は、speaker が null か空文字列のページを話者なし（名札は出ない）、text が null のページを空文字列として扱う
         public readonly struct Page
         {
             public readonly string speaker;
@@ -118,7 +118,8 @@ namespace Hone
             Show(converted);
         }
 
-        // 1 ページ目から出し直す。送りの途中でも最初からやり直す。null と空の配列はページ無し。text が null のページは空文字列として扱う
+        // 1 ページ目から出し直す。送りの途中でも最初からやり直す。null と空の配列はページ無し。text が null のページは空文字列として扱う。
+        // null は型を付けて渡す（Show(null) と引数なしの Show() は、2 つの Show のどちらか決まらずコンパイルエラー）
         public void Show(params Page[] pages)
         {
             StopReveal();

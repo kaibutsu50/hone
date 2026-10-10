@@ -17,9 +17,11 @@ window.completed += OnMessageCompleted;
 window.Show("最初のページ", "次のページ", "最後のページ");
 // 話者を付けるときは Page で渡す。speaker が null か空文字列のページは名札が出ない
 window.Show(
-    new MessageWindow.Page("ジョシュ", "あ、ハシゴだ。"),
-    new MessageWindow.Page("タンテイ", "それはキャタツだよ。"),
-    new MessageWindow.Page(null, "（地の文）"));
+    new Hone.MessageWindow.Page("ジョシュ", "あ、ハシゴだ。"),
+    new Hone.MessageWindow.Page("タンテイ", "それはキャタツだよ。"),
+    new Hone.MessageWindow.Page(null, "（地の文）"));
+// ページを消す（ページ無しにする）ときは型を付ける。Show(null) と Show() は、2 つの Show のどちらか決まらずコンパイルエラーになる
+window.Show((string[])null);
 // Submit で送るには、ウィンドウにフォーカスが要る（クリックはフォーカスが無くても届く）
 window.Focus();
 ```
@@ -33,10 +35,19 @@ slot は持たず、UXML の子要素は想定しない（入れると ▼ の�
 
 | 場面 | 渡し方 | 名札 |
 |---|---|---|
-| 話者が別の欄にあるシナリオ | `Show(new MessageWindow.Page("ジョシュ", "あ、ハシゴだ。"), ...)` | ページごとに替わる |
+| 話者が別の欄にあるシナリオ | `Show(new Hone.MessageWindow.Page("ジョシュ", "あ、ハシゴだ。"), ...)` | ページごとに替わる |
 | 地の文（話者なし） | `Page` の `speaker` を `null` か空文字列にする | 出ない |
 | 話者を本文に混ぜる書き方（「＊「」など） | 今までどおり `Show("＊「...", ...)` | 一度も出ない |
-| データには話者があるが、名札を出さない見た目 | `Page` で渡し、利用者の USS で `.hone-message-window__speaker` を `display: none` にする | 出ない |
+| データには話者があるが、名札を出さない見た目 | `Page` で渡し、利用者の USS で名札を `display: none` にする（下の例） | 出ない |
+
+名札を出す既定の規則は `.hone-message-window.is-speaker-set > .hone-message-window__speaker`（クラス 3 つ）なので、`.hone-message-window__speaker` だけの規則では詳細度で負けて隠れない。
+隠すときは同じセレクターに範囲のクラスを足して書く（`.my-screen` は利用者が親に付けるクラス）:
+
+```css
+.my-screen .hone-message-window.is-speaker-set > .hone-message-window__speaker {
+    display: none;
+}
+```
 
 ## API
 
@@ -44,8 +55,8 @@ slot は持たず、UXML の子要素は想定しない（入れると ▼ の�
 |---|---|
 | `text` | 属性。set は `Show(value)` と同じだが、空文字列と `null` はページ無しになる（`Show("")` は空のページが 1 つになり、`Advance()` で `completed` が出る）。get は今のページの文字列（ページが無ければ空文字列） |
 | `charactersPerSecond` | 属性。文字送りの速さ。既定 0。ページの開始時に 0 以下（NaN と無限大も）なら即時表示。文字送りの途中で変えると、その時点から新しい速さで進む（出ている文字は減らない）。0 以下にすると全文が出る |
-| `Page` | `MessageWindow` の中の型（`speaker` と `text`）。`speaker` が `null` か空文字列なら話者なし。`text` が `null` なら空文字列 |
-| `Show(params Page[] pages)` | 1 ページ目から出し直す。送りの途中でも最初からやり直す。`null` と空の配列はページ無し |
+| `Page` | `MessageWindow` の中の型（`speaker` と `text`）。値は渡したまま持つ。`Show` は、`speaker` が `null` か空文字列のページを話者なし、`text` が `null` のページを空文字列として扱う |
+| `Show(params Page[] pages)` | 1 ページ目から出し直す。送りの途中でも最初からやり直す。`null` と空の配列はページ無し。`null` は型を付けて渡す（`Show((Page[])null)`。`Show(null)` と引数なしの `Show()` は 2 つの `Show` のどちらか決まらずコンパイルエラー） |
 | `Show(params string[] pages)` | 話者なしのページとして `Show(params Page[])` と同じに扱う。`null` のページは空文字列 |
 | `Advance()` | Submit とクリックと同じ処理（下の表） |
 | `pageIndex` | 今のページ。ページが無いときは -1（読み取りのみ） |
