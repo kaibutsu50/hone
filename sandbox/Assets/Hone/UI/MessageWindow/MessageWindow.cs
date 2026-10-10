@@ -11,11 +11,26 @@ namespace Hone
     // 未表示の文字も描かれる（透明なだけ）ので、行の折り返しと高さは送りの途中でも全文のときと同じになる。
     // 演出（速さ、▼ の点滅、送りの音）は持たない。.is-revealing と .is-waiting の状態クラスを付け外しするだけで、速さは charactersPerSecond で受け取る。
     //
-    // 構造: MessageWindow（.hone-message-window）> text の Label（.hone-message-window__text）+ ▼ の Label（.hone-message-window__indicator）。
+    // 話者の名札は、ページごとに Page で渡す。名札は文字送りせず、ページの開始時に全文を出す。表示の切り替えは .is-speaker-set と USS に任せる（C# から display を書かない）。
+    //
+    // 構造: MessageWindow（.hone-message-window）> 名札の Label（.hone-message-window__speaker）+ text の Label（.hone-message-window__text）+ ▼ の Label（.hone-message-window__indicator）。
     // slot は持たず、UXML の子要素は想定しない（contentContainer は自分自身なので、入れると ▼ の後ろに並ぶ）。
     [UxmlElement]
     public partial class MessageWindow : VisualElement
     {
+        // 1 ページ分。値は渡したまま持つ。Show は、speaker が null か空文字列のページを話者なし（名札は出ない）、text が null のページを空文字列として扱う
+        public readonly struct Page
+        {
+            public readonly string speaker;
+            public readonly string text;
+
+            public Page(string speaker, string text)
+            {
+                this.speaker = speaker;
+                this.text = text;
+            }
+        }
+
         const long TickIntervalMs = 16;
 
         // 文字送りの速さ（1 秒あたりに出す文字数）。ページの開始時に 0 以下（NaN、無限大を含む）なら即時表示。
@@ -29,11 +44,11 @@ namespace Hone
         [UxmlAttribute]
         public string text
         {
-            get => m_PageIndex >= 0 ? m_Pages[m_PageIndex] : "";
+            get => m_PageIndex >= 0 ? m_Pages[m_PageIndex].text : "";
             set
             {
                 if (string.IsNullOrEmpty(value))
-                    Show(null);
+                    Show((string[])null);
                 else
                     Show(value);
             }
@@ -47,9 +62,10 @@ namespace Hone
         // 最後のページで、全文が出た後に Advance() されたとき 1 回。次の Show まで再び出ない
         public event Action completed;
 
+        readonly Label m_Speaker;
         readonly Label m_Text;
 
-        string[] m_Pages = Array.Empty<string>();
+        Page[] m_Pages = Array.Empty<Page>();
         int m_PageIndex = -1;
         // 今のページの text element の先頭の UTF-16 位置。数が text element の数
         int[] m_ElementStarts = Array.Empty<int>();
@@ -67,6 +83,12 @@ namespace Hone
             focusable = true;
             tabIndex = 0;
 
+            // 話者は rich text として解釈しない（<b> などのタグの形も文字のまま出す）
+            m_Speaker = new Label { enableRichText = false };
+            m_Speaker.AddToClassList("hone-message-window__speaker");
+            m_Speaker.AddToClassList("hone-text");
+            Add(m_Speaker);
+
             m_Text = new Label();
             m_Text.AddToClassList("hone-message-window__text");
             m_Text.AddToClassList("hone-text");
@@ -82,23 +104,39 @@ namespace Hone
             RegisterCallback<DetachFromPanelEvent>(OnDetachFromPanel);
         }
 
-        // 1 ページ目から出し直す。送りの途中でも最初からやり直す。null と空の配列はページ無し。null のページは空文字列として扱う
+        // 話者なしのページとして Show(params Page[]) と同じに扱う。null のページは空文字列として扱う
         public void Show(params string[] pages)
+        {
+            if (pages == null)
+            {
+                Show((Page[])null);
+                return;
+            }
+            var converted = new Page[pages.Length];
+            for (var i = 0; i < pages.Length; i++)
+                converted[i] = new Page(null, pages[i]);
+            Show(converted);
+        }
+
+        // 1 ページ目から出し直す。送りの途中でも最初からやり直す。null と空の配列はページ無し。text が null のページは空文字列として扱う。
+        // null は型を付けて渡す（Show(null) と引数なしの Show() は、2 つの Show のどちらか決まらずコンパイルエラー）
+        public void Show(params Page[] pages)
         {
             StopReveal();
             m_Completed = false;
             if (pages == null || pages.Length == 0)
             {
-                m_Pages = Array.Empty<string>();
+                m_Pages = Array.Empty<Page>();
                 m_PageIndex = -1;
                 m_ElementStarts = Array.Empty<int>();
+                m_Speaker.text = "";
                 m_Text.text = "";
                 UpdateStateClasses();
                 return;
             }
-            m_Pages = new string[pages.Length];
+            m_Pages = new Page[pages.Length];
             for (var i = 0; i < pages.Length; i++)
-                m_Pages[i] = pages[i] ?? "";
+                m_Pages[i] = new Page(pages[i].speaker, pages[i].text ?? "");
             StartPage(0);
         }
 
@@ -131,7 +169,8 @@ namespace Hone
         {
             StopReveal();
             m_PageIndex = index;
-            var page = m_Pages[index];
+            var page = m_Pages[index].text;
+            m_Speaker.text = m_Pages[index].speaker ?? "";
             m_ElementStarts = StringInfo.ParseCombiningCharacters(page);
             if (RevealsGradually && m_ElementStarts.Length > 0)
             {
@@ -187,7 +226,7 @@ namespace Hone
         void Render(int visibleElements)
         {
             m_Visible = visibleElements;
-            var page = m_Pages[m_PageIndex];
+            var page = m_Pages[m_PageIndex].text;
             if (visibleElements >= m_ElementStarts.Length)
             {
                 m_Text.text = NoParse(page);
@@ -206,6 +245,7 @@ namespace Hone
 
         void UpdateStateClasses()
         {
+            EnableInClassList("is-speaker-set", m_PageIndex >= 0 && !string.IsNullOrEmpty(m_Pages[m_PageIndex].speaker));
             EnableInClassList("is-revealing", m_Revealing);
             EnableInClassList("is-waiting", !m_Revealing && m_PageIndex >= 0 && m_PageIndex < m_Pages.Length - 1);
         }

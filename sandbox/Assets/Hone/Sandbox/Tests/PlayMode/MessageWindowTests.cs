@@ -480,6 +480,131 @@ namespace Hone.Sandbox.Tests
 
             Assert.IsTrue(window.ClassListContains("is-revealing"), "the time before attaching was counted");
         }
+
+        static Label SpeakerOf(MessageWindow window) => window.Q<Label>(className: "hone-message-window__speaker");
+
+        // 名札が出ていること: .is-speaker-set が付き、USS で display が Flex になる。
+        // C# は名札の inline の display を書かない（書くと利用者の USS で隠せなくなる）
+        static void AssertSpeakerShown(MessageWindow window, string speaker, string label)
+        {
+            Assert.IsTrue(window.ClassListContains("is-speaker-set"), $"{label}: is-speaker-set");
+            Assert.AreEqual(speaker, SpeakerOf(window).text, $"{label}: speaker text");
+            Assert.AreEqual(DisplayStyle.Flex, SpeakerOf(window).resolvedStyle.display, $"{label}: display");
+            Assert.AreEqual(StyleKeyword.Null, SpeakerOf(window).style.display.keyword, $"{label}: inline display");
+        }
+
+        static void AssertSpeakerHidden(MessageWindow window, string label)
+        {
+            Assert.IsFalse(window.ClassListContains("is-speaker-set"), $"{label}: is-speaker-set");
+            Assert.AreEqual(DisplayStyle.None, SpeakerOf(window).resolvedStyle.display, $"{label}: display");
+            Assert.AreEqual(StyleKeyword.Null, SpeakerOf(window).style.display.keyword, $"{label}: inline display");
+        }
+
+        // (A) Page で話者を渡すと、ページごとに名札が替わる
+        [UnityTest]
+        public IEnumerator Show_PagesWithSpeaker_ShowsSpeakerPerPage()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow();
+            root.Add(window);
+
+            window.Show(new MessageWindow.Page("first speaker", "first"), new MessageWindow.Page("second speaker", "second"));
+            yield return Settle();
+            AssertSpeakerShown(window, "first speaker", "page 1");
+            Assert.AreEqual("first", TextOf(window).parsedText);
+
+            window.Advance();
+            yield return Settle();
+            AssertSpeakerShown(window, "second speaker", "page 2");
+            Assert.AreEqual("second", TextOf(window).parsedText);
+        }
+
+        // (B) 話者が null と空文字列のページ、string のページ、ページ無しでは名札が出ない。
+        // 話者ありの状態から各ケースへ移って外れることを見る（前の話者が残るバグを捕まえるため）
+        [UnityTest]
+        public IEnumerator Show_NoSpeaker_HidesSpeaker()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow();
+            root.Add(window);
+            var withSpeaker = new MessageWindow.Page("speaker", "with speaker");
+
+            yield return Settle();
+            AssertSpeakerHidden(window, "before Show");
+
+            window.Show(withSpeaker, new MessageWindow.Page(null, "null speaker"), new MessageWindow.Page("", "empty speaker"));
+            yield return Settle();
+            AssertSpeakerShown(window, "speaker", "speaker page");
+            window.Advance();
+            yield return Settle();
+            AssertSpeakerHidden(window, "null speaker after speaker page");
+            window.Advance();
+            yield return Settle();
+            AssertSpeakerHidden(window, "empty speaker");
+
+            window.Show(withSpeaker);
+            yield return Settle();
+            window.Show("string page");
+            yield return Settle();
+            AssertSpeakerHidden(window, "string page after speaker page");
+
+            window.Show(withSpeaker);
+            yield return Settle();
+            window.Show((string[])null);
+            yield return Settle();
+            AssertSpeakerHidden(window, "no pages after speaker page");
+            Assert.AreEqual("", SpeakerOf(window).text, "no pages: speaker text");
+        }
+
+        // Page の text が null なら、本文は空文字列として出る（例外にならない）
+        [UnityTest]
+        public IEnumerator Show_PageWithNullText_ShowsEmptyText()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow();
+            root.Add(window);
+
+            window.Show(new MessageWindow.Page("speaker", null));
+            yield return Settle();
+
+            Assert.AreEqual("", window.text);
+            AssertSpeakerShown(window, "speaker", "null text");
+        }
+
+        // (C) 文字送りの途中でも、名札は全文が出ている（名札は文字送りしない）
+        [UnityTest]
+        public IEnumerator Reveal_Midway_SpeakerIsShownInFull()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow { charactersPerSecond = 10 };
+            root.Add(window);
+
+            window.Show(new MessageWindow.Page("long speaker name", "01234567890123456789"));
+            yield return Settle();
+
+            Assert.IsTrue(window.ClassListContains("is-revealing"), "the reveal ended before the measurement");
+            AssertSpeakerShown(window, "long speaker name", "mid reveal");
+        }
+
+        // (D) 話者がタグの形でも、名札には文字のまま出る
+        [UnityTest]
+        public IEnumerator Show_TagLikeSpeaker_IsShownLiterally()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow();
+            root.Add(window);
+
+            window.Show(new MessageWindow.Page("<b>bold</b>", "text"));
+            yield return Settle();
+
+            Assert.AreEqual("<b>bold</b>", SpeakerOf(window).parsedText);
+            AssertSpeakerShown(window, "<b>bold</b>", "tag-like speaker");
+        }
     }
 }
 #endif

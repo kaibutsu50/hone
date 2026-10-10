@@ -1,4 +1,5 @@
 /* 色・角丸・余白・フォントサイズ・枠の太さは Tokens.uss のトークン。背景・枠・角丸は Dialog の content と同じトークン。
+ * 太字（-unity-font-style: bold）と省略記号の指定はトークンを持たない。
  * 幅は親に従い、高さは内容に従う（固定しない）。ページで行数が変わると高さが変わる。
  * 既定の Label は折り返さない（white-space: nowrap）ので、text は折り返す。
  * ▼ は .is-waiting の間（全文が出ていて、次のページがあるとき）だけ見える。点滅などの演出は持たない。.is-waiting と .is-revealing を使って利用者が書く。 */
@@ -8,6 +9,23 @@
     border-color: var(--hone-color-border);
     border-radius: var(--hone-radius-lg);
     padding: var(--hone-space-4);
+}
+
+/* 名札は、話者があるページ（.is-speaker-set）の間だけ出る。本文の上の小さな太字で、長い名前は省略記号で切る。
+ * 窓の縁に乗るタブの形は既定にしない（利用者が USS で付ける） */
+.hone-message-window__speaker {
+    display: none;
+    font-size: var(--hone-font-size-sm);
+    -unity-font-style: bold;
+    color: var(--hone-color-foreground);
+    margin-bottom: var(--hone-space-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.hone-message-window.is-speaker-set > .hone-message-window__speaker {
+    display: flex;
 }
 
 .hone-message-window__text {
