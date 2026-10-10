@@ -5,7 +5,8 @@ namespace Hone.Sandbox.ModelRooms
 {
     // クラシック JRPG 風のモデルルーム。段階 2 の見た目は ClassicJrpg.uss、段階 3 の演出は Inject が足す。
     // ループする演出（▼ の点滅、▶ の揺れ）は、schedule で舞台に状態クラスを付け外しし、動きは USS の transition に任せる。
-    // 部品は演出を持たないので、使う口は部品の設定（charactersPerSecond、commitDelay）と状態クラス（.is-waiting、.is-holding、:focus）だけ。
+    // 部品は演出を持たないので、使う口は部品の設定（charactersPerSecond、commitDelay）と状態（.is-holding、:focus）だけ。
+    // ▼ の点滅は常に回し、▼ が見えるかどうかは部品の .is-waiting（MessageWindow.uss の visibility）に任せる。
     public static class ClassicJrpgRoom
     {
         public const string ClassName = "room-classic-jrpg";

@@ -44,7 +44,7 @@ Assets/Hone/
                       （「RoomExp の検証」の (c) の推奨値。RASTER_HINTED、sampling 16、padding 1、atlas の Filter Mode は Point、multi atlas は無効）。
                       MPLUSRounded1c-Medium.ttf（SIL OFL 1.1、google/fonts の ofl/mplusrounded1c）とその MPLUSRounded1c-OFL.txt、そこから作った Dynamic の MPLUSRounded1c.asset
                       （Hone > Sync と同じ設定。SDFAA、sampling 90、padding 9、multi atlas 有効）。ModelRooms のクラシック JRPG 風が使う。
-                      google/fonts のこのフォルダには OFL.txt が無いので、MPLUSRounded1c-OFL.txt は、フォントの name table と METADATA.pb の著作権表記に、OFL 1.1 の本文（OFL.txt と同じ）を付けたもの
+                      取得した時点（2026-10）の google/fonts のこのフォルダには OFL.txt が無かったので、MPLUSRounded1c-OFL.txt は、フォントの name table と METADATA.pb の著作権表記に、OFL 1.1 の本文（OFL.txt と同じ）を付けたもの
     Experiments/<Name>/   Issue ごとの検証。FontVar/ は `-unity-font-definition` を USS 変数経由で差し替えられるかの検証
                       FontVar/Resources/Fonts/ は case 3（`resource()`）用の Fonts/RobotoMono.asset の複製。元を作り直したら同期する。
                       Resources 配下なので sandbox のすべての Player ビルドに入る

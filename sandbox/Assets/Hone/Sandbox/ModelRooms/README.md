@@ -68,8 +68,8 @@ static void Register()
 - dropdown は UI が読み込まれた時点の登録内容で作る。それより後の `Register` は dropdown に出ない
 - 登録した後も、registry の既定の見た目にルームの見た目を持ち込まない。2 つ以上のルームに同じ規則の上書きが出たらトークンの候補、同じ画面の型が出たら block の候補にする
 - ルームの USS は theme（`ModelRoomsTheme.tss`）から読まれるので、`ModelRooms.uss`（`ModelRooms.uxml` の Style）の規則には、詳細度を上げても勝てない（舞台の `padding` で確認。6000.7.0b2）。
-  舞台の枠（`.model-room-stage` の余白 16px と枠線）はルームから変えられない前提で置く。`ModelRooms.uss` が書いていないプロパティ（舞台の `background-color` など）は、ルームの USS で付けられる
-- メッセージは舞台の余白の内側に並ぶが、Dialog は absolute なので余白を含めた舞台の全面を覆う。両者の位置を合わせるときは、Dialog 側に舞台の余白 16px を足す
+  舞台の枠（`.model-room-stage` の `padding` と枠線）はルームから変えられない前提で置く。`ModelRooms.uss` が書いていないプロパティ（舞台の `background-color` など）は、ルームの USS で付けられる
+- メッセージは舞台の余白の内側に並ぶが、Dialog は absolute なので余白を含めた舞台の全面を覆う。両者の位置を合わせるときは、Dialog 側に `.model-room-stage` の `padding` の分を足す
 
 ## 差分の表
 
@@ -77,7 +77,7 @@ static void Register()
 
 | ルーム | 段階 2 で部品の規則を上書きした箇所（トークンの候補） | 構造を変えたかった点 | 注入で足りなかった口 | 他のルームと共通の型 |
 |---|---|---|---|---|
-| クラシック JRPG 風（`ClassicJrpg/`） | MessageWindow: 幅・高さ・下寄せの位置・内側の余白（`width` `height` `margin-bottom` `align-self` `padding`）。<br>▼: 下の枠の中央に重ねる（`position: absolute` `left` `bottom` `translate`）、字の半分の大きさ（`font-size`）。<br>Dialog: content をメッセージの上の右寄せに置く（`justify-content` `margin-bottom` `translate`）、幅（`width`）、内側の余白（`padding`）。footer を縦並び・左寄せ（`flex-direction` `align-items` `flex-wrap` `margin`）。<br>Button: 塗りと枠を消す（`background-color` `border-width`）、文字の左寄せと余白（`-unity-text-align` `padding`）、`:hover` `:active` の `opacity`。<br>カーソル: フォーカスした Button の `background-image`（▶）。窓の枠に半分重ねるため Button の `margin-left` を負にする。Button の ring を消す（`border-width: 0`）。<br>舞台の背景色（sandbox の見た目。参考の 3D の画面の代わり） | 質問文を はい / いいえ の窓ではなくメッセージ側に出したかった（Dialog の description を `display: none` で隠した）。<br>▶ を窓の枠にまたがる位置に、Button の外の要素として置きたかった（背景画像は Button の箱の外に描けないので、Button の箱を負の margin で窓の外へ出した） | 演出の注入ではなし（文字送りは `charactersPerSecond`、確定の間は `commitDelay` と `.is-holding`、▼ は `.is-waiting`、▶ は `:focus` で書けた）。<br>参考にあり、このルームの構造では再現しない振る舞い: 行があふれると上へスクロールする（MessageWindow にページ内のスクロールが無い）、子メニューを開いても親メニューのカーソルが灰色で残る（フォーカスを失った選択を表す状態クラスが無い） | |
+| クラシック JRPG 風（`ClassicJrpg/`） | MessageWindow: 幅・高さ・下寄せの位置・内側の余白（`width` `height` `margin-bottom` `align-self` `padding`）。<br>▼: 下の枠の中央に重ねる（`position: absolute` `left` `bottom` `translate`）、字の半分の大きさ（`font-size`）、Label の余白を消す（`padding` `margin`）、点滅の `transition`。<br>Dialog: content を下に寄せる（`.hone-dialog` の `justify-content`）。content をメッセージの上の右寄せに置く（`margin-bottom` `translate`）、幅（`width`）、内側の余白（`padding`）。footer を縦並び・左寄せ（`flex-direction` `align-items` `flex-wrap` `margin-top`）、footer の子の `margin-left` を消す。<br>Button: 塗りと枠を消す（`background-color` `border-width`）、文字の左寄せと余白（`-unity-text-align` `padding`）、`:hover` `:active` の `opacity`。<br>カーソル: フォーカスした Button の `background-image`（▶）と、揺れの `transition`（`background-position-x`）。窓の枠に半分重ねるため Button の `margin-left` を負にする。Button の ring を消す（`border-width: 0`）。<br>舞台の背景色（sandbox の見た目。参考の 3D の画面の代わり） | 質問文を はい / いいえ の窓ではなくメッセージ側に出したかった（Dialog の description を `display: none` で隠した）。<br>▶ を窓の枠にまたがる位置に、Button の外の要素として置きたかった（背景画像は Button の箱の外に描けないので、Button の箱を負の margin で窓の外へ出した） | 演出の注入ではなし（文字送りは `charactersPerSecond`、確定の間は `commitDelay` と `.is-holding`、▼ は `.is-waiting`、▶ は `:focus` で書けた）。<br>参考にあり、このルームの構造では再現しない振る舞い: 行があふれると上へスクロールする（MessageWindow にページ内のスクロールが無い）、子メニューを開いても親メニューのカーソルが灰色で残る（フォーカスを失った選択を表す状態クラスが無い） | |
 
 ## 撮影
 

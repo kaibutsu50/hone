@@ -2,7 +2,8 @@
  * すべての規則を .room-classic-jrpg（舞台に付くクラス）で始め、1 列目（素）と他のルームに漏らさない。
  * トークンで表せる値は先頭の規則でトークンを上書きし、表せない値だけを部品の規則の上書きに書く。
  *
- * 大きさは、舞台を 4:3 の画面とみなして割合から px に換算した。基準は舞台の高さ 320px と、その 4:3 の幅 427px（舞台の余白 16px は差し引かない）。
+ * 大きさは、舞台を 4:3 の画面とみなして割合から px に換算した。基準は舞台の高さ 320px（ModelRooms.uss の .model-room-stage の height）と、その 4:3 の幅 427px。
+ * 舞台の余白（同じ規則の padding）は差し引かない。舞台の高さや余白が変わったら、この USS の px を換算し直す。
  * 舞台の実際の幅は 4:3 より広いので、横の値も % ではなく px で書き、舞台の中央を基準に置く（行の折り返しを舞台の幅に左右されないようにする）。 */
 
 .room-classic-jrpg {
@@ -19,7 +20,7 @@
     /* overlay は透明（背後の画面を暗くしない） */
     --hone-color-overlay: rgba(0, 0, 0, 0);
 
-    /* ring を枠と同じ色・同じ太さにして、フォーカスしても窓の見た目を変えない（Button の ring は下の規則で消す） */
+    /* ring を枠と同じ色・同じ太さにして、MessageWindow（.hone-focusable）はフォーカスしても枠が変わらないようにする（Button の ring は下の規則で消す） */
     --hone-color-ring: rgb(224, 224, 224);
     --hone-ring-width: 1px;
 
@@ -40,7 +41,8 @@
 
 /* ---- メッセージウィンドウ ---- */
 
-/* 下寄せで左右中央。幅 87%（371px）、高さ 22%（70px）、下の余白 6%（19px）。3 行。内側の左右の余白は字 1.5 個分 */
+/* 下寄せで左右中央。幅 87%（371px）、高さ 22%（70px）、下の余白 6%（19px）。内側の左右の余白は字 1.5 個分。
+ * 上下の余白 3px は、3 行（M PLUS Rounded 1c の 14px で 1 行 約 21px）が高さ 70px に収まるように決めた */
 .room-classic-jrpg .hone-message-window {
     align-self: center;
     width: 371px;
@@ -96,7 +98,7 @@
     margin-left: 0;
 }
 
-/* Button は枠も塗りも無い白文字。▶ を窓の左の枠に半分重ねるため、Button の箱を窓の外へ 8px はみ出させる
+/* Button は枠も塗りも無い白文字。▶ を窓の左の枠に半分重ねるため、Button の箱を窓の内側の端から 8px 外へはみ出させる
  * （背景画像は Button の箱の外に描けない）。文字は窓の内側から字 1 個分ほど空ける */
 .room-classic-jrpg .hone-button {
     background-color: rgba(0, 0, 0, 0);
@@ -106,6 +108,7 @@
     -unity-text-align: middle-left;
 }
 
+/* Button.uss の hover（0.9）と active（0.8）の薄まりを消す。disabled の半透明にも勝つが、このルームの Button は disabled にならない */
 .room-classic-jrpg .hone-button:hover,
 .room-classic-jrpg .hone-button:active {
     opacity: 1;
