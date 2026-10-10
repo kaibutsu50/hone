@@ -41,7 +41,10 @@ Assets/Hone/
     WorldSpacePanelSettings2.asset  WorldSpacePanelSettings.asset の複製（中身は同じ）。同じ asset を 2 枚の PanelRenderer に割り当てると同じ panel になるので、WorldSpace/ の 2 枚目の panel 用に分けてある
     Fonts/            検証用フォント。RobotoMono-Regular.ttf（Apache-2.0、Unity Editor 同梱）とその LICENSE、そこから作った Dynamic の FontAsset。
                       DotGothic16-Regular.ttf（SIL OFL 1.1、google/fonts の ofl/dotgothic16）とその OFL.txt、そこから作った Dynamic の DotGothic16.asset
-                      （「RoomExp の検証」の (c) の推奨値。RASTER_HINTED、sampling 16、padding 1、atlas の Filter Mode は Point、multi atlas は無効）
+                      （「RoomExp の検証」の (c) の推奨値。RASTER_HINTED、sampling 16、padding 1、atlas の Filter Mode は Point、multi atlas は無効）。
+                      MPLUSRounded1c-Medium.ttf（SIL OFL 1.1、google/fonts の ofl/mplusrounded1c）とその MPLUSRounded1c-OFL.txt、そこから作った Dynamic の MPLUSRounded1c.asset
+                      （Hone > Sync と同じ設定。SDFAA、sampling 90、padding 9、multi atlas 有効）。ModelRooms のクラシック JRPG 風が使う。
+                      google/fonts のこのフォルダには OFL.txt が無いので、MPLUSRounded1c-OFL.txt は、フォントの name table と METADATA.pb の著作権表記に、OFL 1.1 の本文（OFL.txt と同じ）を付けたもの
     Experiments/<Name>/   Issue ごとの検証。FontVar/ は `-unity-font-definition` を USS 変数経由で差し替えられるかの検証
                       FontVar/Resources/Fonts/ は case 3（`resource()`）用の Fonts/RobotoMono.asset の複製。元を作り直したら同期する。
                       Resources 配下なので sandbox のすべての Player ビルドに入る
@@ -57,7 +60,8 @@ Assets/Hone/
                       Hone.Sandbox.Gallery.asmdef（Tests/PlayMode が参照する。Hone.Sandbox.UI を参照する）
     ModelRooms/       モデルルームの基盤。同じ構造（はい / いいえ の Dialog とメッセージ）を「素」「USS だけ」「注入あり」の 3 列に並べ、dropdown で選んだルームを 2 列目と 3 列目に当てる。ModelRooms.unity（Screen Space の PanelRenderer が 1 枚）/ ModelRooms.uxml / ModelRooms.uss、
                       Message.uxml と YesNo.uxml（全ルーム共通の構造）、ModelRoom（ルームの定義）、ModelRoomsController（登録、列の組み立て、流れ）、ModelRoomsTheme.tss（ModelRooms 専用の theme。HoneTheme.tss と同じ @import に、ルームの USS の @import を足す）、
-                      ModelRoomsPanelSettings.asset（PanelSettings.asset の複製で、Theme Style Sheet だけ ModelRoomsTheme.tss）、Hone.Sandbox.ModelRooms.asmdef（Tests/PlayMode が参照する。Hone.Sandbox.UI と Hone.Core を参照し、autoReferenced は false）。使い方は ModelRooms/README.md
+                      ModelRoomsPanelSettings.asset（PanelSettings.asset の複製で、Theme Style Sheet だけ ModelRoomsTheme.tss）、Hone.Sandbox.ModelRooms.asmdef（Tests/PlayMode が参照する。Hone.Sandbox.UI と Hone.Core を参照し、autoReferenced は false）。
+                      ClassicJrpg/ はクラシック JRPG 風のルーム（ClassicJrpg.uss、ClassicJrpgRoom.cs、Cursor.png）。使い方は ModelRooms/README.md
     Tests/EditMode/   EditMode テスト。HoneSyncTests（`Assets/HoneSyncTestsTmp/` に manifest と PanelSettings を作って `HoneSync.Run` を呼び、終わったら消す）
     Tests/PlayMode/   PlayMode テスト。BackStackTests、FocusScopeTests、DialogTests、MessageWindowTests（ページの無い状態の 1 件を除く）、ButtonTests の 1 件（NavigationSubmitEvent）は PanelRenderer を GameObject で作って panel を得る（`UNITY_EDITOR` のときだけコンパイルされる。Editor で実行する）。
                       DialogTests の `_WorldSpace` が付く 2 件（初期フォーカスと overlay の PointerDown）だけは、World Space の panel（`CreateWorldSpacePanel`）でも回す。`SendEvent` で送るので入力経路は通らない

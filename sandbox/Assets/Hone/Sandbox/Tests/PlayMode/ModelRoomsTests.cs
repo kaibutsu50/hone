@@ -23,6 +23,8 @@ namespace Hone.Sandbox.Tests
         const string RoomB = "room-test-b";
         const int MaxWaitFrames = 60;
 
+        const string RoomFontPath = "Assets/Hone/Sandbox/Fonts/MPLUSRounded1c.asset";
+
         // Register は static で、Domain Reload 無効の Editor では Play をまたいで残る。他のテストや撮影に混ざらないよう、登録した className を必ず消す
         readonly List<string> m_Registered = new List<string>();
         Scene m_Scene;
@@ -35,12 +37,21 @@ namespace Hone.Sandbox.Tests
             public int PageIndex;
         }
 
+        // クラシック JRPG 風は BeforeSceneLoad で登録される（先頭のルームになる）。基盤のテストは「登録したルームだけがある」前提なので、
+        // 外してから始め、終わったら戻す（撮影や他のテストから見える状態を変えない）。クラシック JRPG 風のテストは、自分で Register する
+        [SetUp]
+        public void SetUp()
+        {
+            ModelRoomsController.Unregister(ClassicJrpgRoom.ClassName);
+        }
+
         [UnityTearDown]
         public IEnumerator TearDown()
         {
             foreach (var className in m_Registered)
                 ModelRoomsController.Unregister(className);
             m_Registered.Clear();
+            ModelRoomsController.Register(ClassicJrpgRoom.Room);
             if (m_Scene.IsValid() && m_Scene.isLoaded)
                 yield return SceneManager.UnloadSceneAsync(m_Scene);
         }
@@ -125,7 +136,7 @@ namespace Hone.Sandbox.Tests
             }
         }
 
-        // ルーム 0 件。ルームを BeforeSceneLoad で登録するファイルが入ったら、この前提（何も登録されていない）が崩れるので書き直す
+        // ルーム 0 件（SetUp でクラシック JRPG 風を外してある）
         [UnityTest]
         public IEnumerator NoRoom_DropdownShowsPlaceholder_StagesHaveNoRoomClass()
         {
@@ -314,6 +325,57 @@ namespace Hone.Sandbox.Tests
             AdvanceToCompleted(MessageOf(column));
 
             Assert.IsTrue(DialogOf(column).isOpen);
+        }
+
+        // クラシック JRPG 風を、先頭ではないルームとして選ぶ（最初の組み立てではなく、選び直した結果を見る）
+        IEnumerator LoadAndSelectClassicJrpg(Action<ModelRoomsController> onReady)
+        {
+            Register(new ModelRoom { displayName = "A", className = RoomA });
+            Register(ClassicJrpgRoom.Room);
+            ModelRoomsController controller = null;
+            yield return LoadScene(c => controller = c);
+            controller.SelectRoom(ClassicJrpgRoom.ClassName);
+            onReady(controller);
+        }
+
+        // 本文の Label（.hone-text）が使っているフォント
+        static UnityEngine.TextCore.Text.FontAsset BodyFont(VisualElement column) =>
+            MessageOf(column).Q(className: "hone-text").resolvedStyle.unityFontDefinition.fontAsset;
+
+        // (A) 2 列目と 3 列目の本文だけが、ルームのフォントになる。スタイルの解決は次の update なので、フレームを待つ
+        [UnityTest]
+        public IEnumerator ClassicJrpg_Select_AppliesRoomFontToColumns2And3Only()
+        {
+            ModelRoomsController controller = null;
+            yield return LoadAndSelectClassicJrpg(c => controller = c);
+            yield return null;
+            yield return null;
+
+            var expected = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.TextCore.Text.FontAsset>(RoomFontPath);
+            Assert.IsNotNull(expected, $"{RoomFontPath} was not found");
+            var columns = Columns(controller);
+            Assert.AreNotSame(expected, BodyFont(columns[0]));
+            Assert.AreSame(expected, BodyFont(columns[1]));
+            Assert.AreSame(expected, BodyFont(columns[2]));
+        }
+
+        // (C) 演出の設定（文字送りと確定の間）が入るのは 3 列目だけ。2 列目（USS だけ）は動かない
+        [UnityTest]
+        public IEnumerator ClassicJrpg_Select_InjectsRevealAndCommitDelayToColumn3Only()
+        {
+            ModelRoomsController controller = null;
+            yield return LoadAndSelectClassicJrpg(c => controller = c);
+
+            var columns = Columns(controller);
+            Assert.AreEqual(0f, MessageOf(columns[0]).charactersPerSecond);
+            Assert.AreEqual(0f, MessageOf(columns[1]).charactersPerSecond);
+            Assert.Greater(MessageOf(columns[2]).charactersPerSecond, 0f);
+            foreach (var buttonName in new[] { "yes", "no" })
+            {
+                Assert.AreEqual(0f, columns[0].Q<Hone.Button>(buttonName).commitDelay, buttonName);
+                Assert.AreEqual(0f, columns[1].Q<Hone.Button>(buttonName).commitDelay, buttonName);
+                Assert.Greater(columns[2].Q<Hone.Button>(buttonName).commitDelay, 0f, buttonName);
+            }
         }
     }
 }
