@@ -1,0 +1,9 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:hone="Hone">
+    <hone:Dialog name="yes-no" dismiss-on-overlay="false" dismiss-on-cancel="false">
+        <ui:Label class="hone-dialog__description hone-text" text="この内容で 記録しますか？" />
+        <ui:VisualElement class="hone-dialog__footer">
+            <hone:Button name="yes" text="はい" />
+            <hone:Button name="no" variant="outline" text="いいえ" />
+        </ui:VisualElement>
+    </hone:Dialog>
+</ui:UXML>
