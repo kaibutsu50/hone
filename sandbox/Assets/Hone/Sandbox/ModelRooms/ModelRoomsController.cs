@@ -112,18 +112,20 @@ namespace Hone.Sandbox.ModelRooms
         // room（null なら素）で 3 列を組み直す。2 列目と 3 列目の舞台にルームの className を付け、3 列目の舞台には attach の時点で inject を 1 回呼ぶ。
         // container は panel に付いているので、attach は Add の中で起きる。メッセージの Show は 3 列とも Add した後
         // （inject が MessageWindow の設定を変えても、1 ページ目から効く）
+        // 文面はルームの pages（無ければ既定）を 3 列とも（素の列も）に出す。見比べるのは見た目なので、文面は揃える
         void BuildColumns(VisualElement container, ModelRoom room)
         {
+            var pages = room?.pages is { Length: > 0 } roomPages ? roomPages : Pages;
             container.Clear();
-            container.Add(BuildColumn(StageNames[0], null, false));
-            container.Add(BuildColumn(StageNames[1], room, false));
-            container.Add(BuildColumn(StageNames[2], room, true));
+            container.Add(BuildColumn(StageNames[0], null, false, pages));
+            container.Add(BuildColumn(StageNames[1], room, false, pages));
+            container.Add(BuildColumn(StageNames[2], room, true, pages));
 
             foreach (var message in container.Query<MessageWindow>().ToList())
-                message.Show(Pages);
+                message.Show(pages);
         }
 
-        VisualElement BuildColumn(string stageName, ModelRoom room, bool inject)
+        VisualElement BuildColumn(string stageName, ModelRoom room, bool inject, string[] pages)
         {
             var column = new VisualElement();
             column.AddToClassList("model-room-column");
@@ -172,7 +174,7 @@ namespace Hone.Sandbox.ModelRooms
             again.clicked += () =>
             {
                 dialog.Close();
-                message.Show(Pages);
+                message.Show(pages);
             };
 
             return column;

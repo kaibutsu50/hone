@@ -21,6 +21,12 @@ namespace Hone.Sandbox.ModelRooms
         {
             displayName = "クラシック JRPG 風",
             className = ClassName,
+            // 語の区切りは全角の空白。2 ページ目は「＊「」の幅だけ字下げし、1 ページ目の続きの発言として揃える
+            pages = new[]
+            {
+                "＊「たのもしき　神のしもべよ",
+                "　　わが教会に　どんな　ご用じゃな？",
+            },
             inject = Inject,
         };
 

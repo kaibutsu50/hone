@@ -51,6 +51,11 @@
     padding: 3px 21px;
 }
 
+/* 文面の全角の空白（語の区切りと、続きのページの字下げ）をそのまま出す。部品の white-space: normal は、空白をまとめ、行頭の空白を消す */
+.room-classic-jrpg .hone-message-window__text {
+    white-space: pre-wrap;
+}
+
 /* ▼ は字の半分の大きさで、下の枠の中央に重ねる */
 .room-classic-jrpg .hone-message-window__indicator {
     position: absolute;

@@ -33,7 +33,7 @@
 | `ModelRoomsTheme.tss` | `Assets/Hone/HoneTheme.tss` と同じ `@import` に続けてルームの USS の `@import` を並べ、`:root`（HoneTheme.tss と同じ）はその後 |
 | `ModelRooms.uxml` / `ModelRooms.uss` | 画面の枠（dropdown と 3 列）。sandbox の枠なので、幅や高さは実値で書いてある |
 | `Message.uxml` / `YesNo.uxml` | 全ルーム共通の構造。特定のルームのためのクラスや要素は足さない |
-| `ModelRoom.cs` | ルームの定義（`displayName` `className` `inject`） |
+| `ModelRoom.cs` | ルームの定義（`displayName` `className` `pages` `inject`） |
 | `ModelRoomsController.cs` | 登録、列の組み立て、流れ |
 | `Hone.Sandbox.ModelRooms.asmdef` | `Hone.Sandbox.UI` と `Hone.Core` を参照。`autoReferenced` は false。ルームのスクリプトもこのアセンブリに入る |
 | `ClassicJrpg/` | クラシック JRPG 風のルーム。`ClassicJrpg.uss`（段階 2）、`ClassicJrpgRoom.cs`（登録と段階 3 の `inject`）、`Cursor.png`（自作の ▶）。フォントは `Sandbox/Fonts/` の M PLUS Rounded 1c |
@@ -56,11 +56,14 @@ static void Register()
     {
         displayName = "クラシック JRPG 風",
         className = "room-classic-jrpg",
+        pages = new[] { "1 ページ目", "2 ページ目" },
         inject = stage => { /* 3 列目の舞台に演出を足す */ },
     });
 }
 ```
 
+- `pages` はメッセージの文面。ルームを選ぶと 3 列とも（素の列も）この文面になる（見比べるのは見た目なので、文面は揃える）。null か空なら既定の文面。
+  そのゲームらしい、キャラクター個人のものではない印象的なセリフにする。送り待ちの ▼ を見せるため、2 ページ以上にする
 - 同じ `className` の再登録は置き換わる。dropdown には登録順に並ぶ
 - `displayName` と `className` は空にできない（`Register` が例外を投げる）。`className` は登録の識別子なので、`Register` の後で変えない
 - `inject` は 3 列目の舞台が panel に attach された後に、組むたびに 1 回呼ばれる。メッセージの `Show` は `inject` の後なので、`inject` で `MessageWindow` の設定（`charactersPerSecond` など）を変えれば 1 ページ目から効く
@@ -77,7 +80,7 @@ static void Register()
 
 | ルーム | 段階 2 で部品の規則を上書きした箇所（トークンの候補） | 構造を変えたかった点 | 注入で足りなかった口 | 他のルームと共通の型 |
 |---|---|---|---|---|
-| クラシック JRPG 風（`ClassicJrpg/`） | MessageWindow: 幅・高さ・下寄せの位置・内側の余白（`width` `height` `margin-bottom` `align-self` `padding`）。<br>▼: 下の枠の中央に重ねる（`position: absolute` `left` `bottom` `translate`）、字の半分の大きさ（`font-size`）、Label の余白を消す（`padding` `margin`）、点滅の `transition`。<br>Dialog: content を下に寄せる（`.hone-dialog` の `justify-content`）。content をメッセージの上の右寄せに置く（`margin-bottom` `translate`）、幅（`width`）、内側の余白（`padding`）。footer を縦並び・左寄せ（`flex-direction` `align-items` `flex-wrap` `margin-top`）、footer の子の `margin-left` を消す。<br>Button: 塗りと枠を消す（`background-color` `border-width`）、文字の左寄せと余白（`-unity-text-align` `padding`）、`:hover` `:active` の `opacity`。<br>カーソル: フォーカスした Button の `background-image`（▶）と、揺れの `transition`（`background-position-x`）。窓の枠に半分重ねるため Button の `margin-left` を負にする。Button の ring を消す（`border-width: 0`）。<br>舞台の背景色（sandbox の見た目。参考の 3D の画面の代わり） | 質問文を はい / いいえ の窓ではなくメッセージ側に出したかった（Dialog の description を `display: none` で隠した）。<br>▶ を窓の枠にまたがる位置に、Button の外の要素として置きたかった（背景画像は Button の箱の外に描けないので、Button の箱を負の margin で窓の外へ出した） | 演出の注入ではなし（文字送りは `charactersPerSecond`、確定の間は `commitDelay` と `.is-holding`、▼ は `.is-waiting`、▶ は `:focus` で書けた）。<br>参考にあり、このルームの構造では再現しない振る舞い: 行があふれると上へスクロールする（MessageWindow にページ内のスクロールが無い）、子メニューを開いても親メニューのカーソルが灰色で残る（フォーカスを失った選択を表す状態クラスが無い） | |
+| クラシック JRPG 風（`ClassicJrpg/`） | MessageWindow: 幅・高さ・下寄せの位置・内側の余白（`width` `height` `margin-bottom` `align-self` `padding`）。本文の空白をそのまま出す（`white-space: pre-wrap`。文面の全角の空白と、続きのページの字下げ）。<br>▼: 下の枠の中央に重ねる（`position: absolute` `left` `bottom` `translate`）、字の半分の大きさ（`font-size`）、Label の余白を消す（`padding` `margin`）、点滅の `transition`。<br>Dialog: content を下に寄せる（`.hone-dialog` の `justify-content`）。content をメッセージの上の右寄せに置く（`margin-bottom` `translate`）、幅（`width`）、内側の余白（`padding`）。footer を縦並び・左寄せ（`flex-direction` `align-items` `flex-wrap` `margin-top`）、footer の子の `margin-left` を消す。<br>Button: 塗りと枠を消す（`background-color` `border-width`）、文字の左寄せと余白（`-unity-text-align` `padding`）、`:hover` `:active` の `opacity`。<br>カーソル: フォーカスした Button の `background-image`（▶）と、揺れの `transition`（`background-position-x`）。窓の枠に半分重ねるため Button の `margin-left` を負にする。Button の ring を消す（`border-width: 0`）。<br>舞台の背景色（sandbox の見た目。参考の 3D の画面の代わり） | 質問文を はい / いいえ の窓ではなくメッセージ側に出したかった（Dialog の description を `display: none` で隠した）。<br>▶ を窓の枠にまたがる位置に、Button の外の要素として置きたかった（背景画像は Button の箱の外に描けないので、Button の箱を負の margin で窓の外へ出した） | 演出の注入ではなし（文字送りは `charactersPerSecond`、確定の間は `commitDelay` と `.is-holding`、▼ は `.is-waiting`、▶ は `:focus` で書けた）。<br>参考にあり、このルームの構造では再現しない振る舞い: 行があふれると上へスクロールする（MessageWindow にページ内のスクロールが無い）、子メニューを開いても親メニューのカーソルが灰色で残る（フォーカスを失った選択を表す状態クラスが無い） | |
 
 ## 撮影
 
@@ -127,6 +130,8 @@ foreach (var c in controllers)
 return controllers.Length;
 ```
 
+- Editor のウィンドウが背面にあると、Play のフレームが進まず、文字送りや点滅が止まったまま、送った後の画面も描き直されない（6000.7.0b2）。
+  Play に入った後、eval から `UnityEngine.Application.runInBackground = true;` を実行してから撮る（実行中だけ効き、プロジェクト設定は変わらない）
 - フォーカスで変わる見た目（カーソルなど）は、panel のフォーカスが 1 つなので、写したい列の Button に eval から `Focus()` を当ててから、列ごとに撮る
 - 回数はページ数の 2 倍。文字送りの速さ（`charactersPerSecond`）が 0 より大きいルームでは、ページごとに `Advance()` の 1 回目が文字送りの完了に使われるため。`completed` の後の `Advance()` は何もしないので、即時表示のルームで余っても害はない
 - eval の本文は `using` を書けず、`Query` などの拡張メソッドは `UQueryExtensions` を通して呼ぶ（`c.columns.Query<...>()` と書くとコンパイルに失敗する。6000.7.0b2）

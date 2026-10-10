@@ -328,6 +328,44 @@ namespace Hone.Sandbox.Tests
             Assert.IsTrue(DialogOf(column).isOpen);
         }
 
+        // ルームの pages は 3 列とも（素の列も）に出る。「もう一度」でも同じ pages の 1 ページ目に戻る
+        [UnityTest]
+        public IEnumerator SelectRoom_WithPages_ShowsRoomPagesInAllColumns()
+        {
+            var pages = new[] { "page one", "page two" };
+            Register(new ModelRoom { displayName = "A", className = RoomA });
+            Register(new ModelRoom { displayName = "B", className = RoomB, pages = pages });
+            ModelRoomsController controller = null;
+            yield return LoadScene(c => controller = c);
+
+            controller.SelectRoom(RoomB);
+
+            foreach (var column in Columns(controller))
+            {
+                var message = MessageOf(column);
+                Assert.AreEqual(pages.Length, message.pageCount);
+                Assert.AreEqual(pages[0], message.text);
+                AdvanceToCompleted(message);
+                Submit(column.Q<UnityEngine.UIElements.Button>("again"));
+                Assert.AreEqual(pages[0], message.text);
+            }
+        }
+
+        // pages を持たないルームは、既定の文面を出す（pages を持つルームから選び直しても残らない）
+        [UnityTest]
+        public IEnumerator SelectRoom_WithoutPages_ShowsDefaultPages()
+        {
+            Register(new ModelRoom { displayName = "A", className = RoomA, pages = new[] { "page one" } });
+            Register(new ModelRoom { displayName = "B", className = RoomB });
+            ModelRoomsController controller = null;
+            yield return LoadScene(c => controller = c);
+
+            controller.SelectRoom(RoomB);
+
+            foreach (var column in Columns(controller))
+                Assert.AreNotEqual("page one", MessageOf(column).text);
+        }
+
         // クラシック JRPG 風を、先頭ではないルームとして選ぶ（最初の組み立てではなく、選び直した結果を見る）
         IEnumerator LoadAndSelectClassicJrpg(Action<ModelRoomsController> onReady)
         {
