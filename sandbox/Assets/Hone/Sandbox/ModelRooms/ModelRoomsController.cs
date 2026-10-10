@@ -22,11 +22,11 @@ namespace Hone.Sandbox.ModelRooms
 
         static readonly string[] StageNames = { "素", "USS だけ", "注入あり" };
 
-        static readonly string[] Pages =
+        static readonly MessageWindow.Page[] Pages =
         {
-            "ここは はじまりの村です。",
-            "北の森には 近づかないほうが いいでしょう。夜になると 道が わからなくなります。",
-            "旅の記録を 残していきますか？",
+            new MessageWindow.Page(null, "ここは はじまりの村です。"),
+            new MessageWindow.Page(null, "北の森には 近づかないほうが いいでしょう。夜になると 道が わからなくなります。"),
+            new MessageWindow.Page(null, "旅の記録を 残していきますか？"),
         };
 
         static readonly List<ModelRoom> s_Rooms = new List<ModelRoom>();
@@ -112,20 +112,21 @@ namespace Hone.Sandbox.ModelRooms
         // room（null なら素）で 3 列を組み直す。2 列目と 3 列目の舞台にルームの className を付け、3 列目の舞台には attach の時点で inject を 1 回呼ぶ。
         // container は panel に付いているので、attach は Add の中で起きる。メッセージの Show は 3 列とも Add した後
         // （inject が MessageWindow の設定を変えても、1 ページ目から効く）
-        // 文面はルームの pages（無ければ既定）を 3 列とも（素の列も）に出す。見比べるのは見た目なので、文面は揃える
+        // 文面はルームの pages（無ければ既定）と、Dialog の問いとボタンの文面（無ければ YesNo.uxml のまま）を 3 列とも（素の列も）に出す。見比べるのは見た目なので、文面は揃える
         void BuildColumns(VisualElement container, ModelRoom room)
         {
             var pages = room?.pages is { Length: > 0 } roomPages ? roomPages : Pages;
             container.Clear();
-            container.Add(BuildColumn(StageNames[0], null, false, pages));
-            container.Add(BuildColumn(StageNames[1], room, false, pages));
-            container.Add(BuildColumn(StageNames[2], room, true, pages));
+            container.Add(BuildColumn(StageNames[0], room, false, false, pages));
+            container.Add(BuildColumn(StageNames[1], room, true, false, pages));
+            container.Add(BuildColumn(StageNames[2], room, true, true, pages));
 
             foreach (var message in container.Query<MessageWindow>().ToList())
                 message.Show(pages);
         }
 
-        VisualElement BuildColumn(string stageName, ModelRoom room, bool inject, string[] pages)
+        // room は選ばれているルーム（文面はどの列にも渡す）。themed の列だけ舞台にルームの className を付け、inject の列だけ演出を足す
+        VisualElement BuildColumn(string stageName, ModelRoom room, bool themed, bool inject, MessageWindow.Page[] pages)
         {
             var column = new VisualElement();
             column.AddToClassList("model-room-column");
@@ -145,7 +146,7 @@ namespace Hone.Sandbox.ModelRooms
 
             var stage = new VisualElement();
             stage.AddToClassList("model-room-stage");
-            if (room != null)
+            if (themed && room != null)
                 stage.AddToClassList(room.className);
             // 窓（メッセージと Dialog）は舞台の中の層にまとめる。層は窓の共通の親で、ルームが窓をまとめて扱う規則（グループの不透明度など）を掛ける先になる
             var layer = new VisualElement();
@@ -155,6 +156,19 @@ namespace Hone.Sandbox.ModelRooms
             m_YesNo.CloneTree(layer);
             stage.Add(layer);
             column.Add(stage);
+
+            var message = Require<MessageWindow>(stage, "message");
+            var dialog = Require<Dialog>(stage, "yes-no");
+            var yes = Require<Hone.Button>(stage, "yes");
+            var no = Require<Hone.Button>(stage, "no");
+            // 選択肢の文面は、ルームが持っていれば差し替える（UXML は変えない）
+            if (room?.question != null)
+                (stage.Q<Label>(className: "hone-dialog__description") ?? throw new InvalidOperationException(
+                    "ModelRooms: Label with class 'hone-dialog__description' was not found (YesNo is not YesNo.uxml, or it has no such element)")).text = room.question;
+            if (room?.yes != null)
+                yes.text = room.yes;
+            if (room?.no != null)
+                no.text = room.no;
 
             // inject の例外はログに出して続ける。止めると、残りの列のメッセージが出ないまま組み立てが終わる
             if (inject && room?.inject != null)
@@ -170,11 +184,10 @@ namespace Hone.Sandbox.ModelRooms
                     }
                 });
 
-            var message = Require<MessageWindow>(stage, "message");
-            var dialog = Require<Dialog>(stage, "yes-no");
             message.completed += dialog.Open;
-            Require<Hone.Button>(stage, "yes").committed += () => Commit(dialog, status, "はい");
-            Require<Hone.Button>(stage, "no").committed += () => Commit(dialog, status, "いいえ");
+            // 見出しの結果は、押したボタンの文面
+            yes.committed += () => Commit(dialog, status, yes.text);
+            no.committed += () => Commit(dialog, status, no.text);
             again.clicked += () =>
             {
                 dialog.Close();

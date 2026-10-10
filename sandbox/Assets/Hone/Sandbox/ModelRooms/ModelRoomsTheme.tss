@@ -5,6 +5,7 @@
 @import url("../../UI/Dialog/Dialog.uss");
 @import url("../../UI/MessageWindow/MessageWindow.uss");
 @import url("ClassicJrpg/ClassicJrpg.uss");
+@import url("TextAdventure/TextAdventure.uss");
 /* ルームの USS の @import は、この行の直前に並べる。HoneTheme.tss には足さない */
 
 /* ModelRooms 専用の theme。HoneTheme.tss と同じ @import と :root に、ルームの USS の @import を足したもの。

@@ -7,4 +7,9 @@
     <ui:Label class="room-exp-font room-exp-font--16 room-exp-font--raster16point" text="RASTER_HINTED/16 Point 16 ドット文字 ABC" />
     <ui:Label class="room-exp-font room-exp-font--16 room-exp-font--raster16point room-exp-font--standard" text="RASTER_HINTED/16 Point standard 16 ドット文字 ABC" />
     <ui:Label class="room-exp-font room-exp-font--32 room-exp-font--raster16point room-exp-font--standard" text="RASTER_HINTED/16 Point standard 32 ドット文字" />
+    <ui:Label class="room-exp-font room-exp-font--28 room-exp-font--ttf" text="TTF 28 ドット文字 ABC" />
+    <ui:Label class="room-exp-font room-exp-font--32 room-exp-font--ttf" text="TTF 32 ドット文字 ABC" />
+    <ui:Label class="room-exp-font room-exp-font--28 room-exp-font--raster28" text="RASTER_HINTED/28 28 ドット文字 ABC" />
+    <ui:Label class="room-exp-font room-exp-font--28 room-exp-font--raster28 room-exp-font--standard" text="RASTER_HINTED/28 standard 28 ドット文字" />
+    <ui:Label class="room-exp-font room-exp-font--28 room-exp-font--color28" text="COLOR_HINTED/28 28 ドット文字 ABC" />
 </ui:UXML>
