@@ -1,0 +1,17 @@
+{
+    "name": "Hone.Sandbox.ModelRooms",
+    "rootNamespace": "Hone.Sandbox.ModelRooms",
+    "references": [
+        "Hone.Sandbox.UI",
+        "Hone.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

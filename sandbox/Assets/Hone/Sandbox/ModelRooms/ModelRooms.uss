@@ -1,0 +1,65 @@
+/* sandbox の撮影用の画面の枠。コンポーネントの USS ではないので、トークン規約（実値を書かない）の対象外。幅や高さは実値でよい。
+ * 背景と文字色は Hone のトークン（light の 1 セット）に合わせる（Gallery.uss と同じ）。
+ * 見出しは舞台の外に置く。ルームのテーマ（.room-<genre>）は舞台にだけ掛かる。 */
+
+/* dropdown と 3 列を包む。背景をここに置かないと、dropdown の背後にシーンのカメラ映像が透ける */
+.model-rooms-page {
+    flex-grow: 1;
+    padding: 8px;
+    background-color: var(--hone-color-background);
+}
+
+.model-rooms-page Label {
+    color: var(--hone-color-foreground);
+}
+
+/* ルームの選択。3 列の上に置き、幅は中身に合わせる */
+.model-rooms-room {
+    align-self: flex-start;
+    margin-bottom: 8px;
+}
+
+/* 3 列の並び */
+.model-rooms-columns {
+    flex-direction: row;
+    flex-grow: 1;
+}
+
+/* 3 列は同じ幅で分ける。中身の幅に引きずられて偏らないよう、基準を 0 にして min-width も 0 にする。
+ * 列の間は左右の余白で空ける（:last-child は USS に無い。6000.7.0b2） */
+.model-room-column {
+    flex-grow: 1;
+    flex-basis: 0;
+    min-width: 0;
+    margin-left: 4px;
+    margin-right: 4px;
+}
+
+/* 段階名、結果、「もう一度」の並び。結果が余白を取って、ボタンを右に寄せる */
+.model-room-column__header {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.model-room-column__title {
+    -unity-font-style: bold;
+}
+
+.model-room-status {
+    flex-grow: 1;
+    margin-left: 8px;
+    margin-right: 8px;
+}
+
+/* 舞台。Dialog は舞台の全面を覆う absolute なので、position: relative にして舞台を基準にする。
+ * 高さは固定する（メッセージのページで高さが変わっても、列の見た目が揺れないように）。
+ * メッセージは下に寄せる。余白と枠の色は、舞台の外の見出しと区別が付くようにトークンで持つ */
+.model-room-stage {
+    position: relative;
+    height: 320px;
+    justify-content: flex-end;
+    padding: var(--hone-space-4);
+    border-width: var(--hone-border-width);
+    border-color: var(--hone-color-border);
+}

@@ -55,9 +55,13 @@ Assets/Hone/
     Gallery/          多言語スクリーンショットの撮影基盤。TestStrings.json（スクリプトごとの表示名・短文・長文）、Gallery.unity（PanelRenderer が 2 枚。Screen Space の `PanelRenderer` と World Space の `PanelRendererWorldSpace`）/ Gallery.uxml / Gallery.uss、GalleryController（左のリストで選んだ 1 コンポーネントを右に出す）、
                       GalleryHoneEntries（Hone.Button、Core.uss のクラスを付けた列、開いた状態の Hone.Dialog、2 ページの 1 ページ目を出した Hone.MessageWindow を登録する）、GalleryFocus（ring を写すため、読み込み時と言語の切り替え時に最初の .hone-focusable にフォーカスを当てる。撮影用に、eval から同じ当て直しを呼ぶ `RefocusLater` を持つ）、
                       Hone.Sandbox.Gallery.asmdef（Tests/PlayMode が参照する。Hone.Sandbox.UI を参照する）
+    ModelRooms/       モデルルームの基盤。同じ構造（はい / いいえ の Dialog とメッセージ）を「素」「USS だけ」「注入あり」の 3 列に並べ、dropdown で選んだルームを 2 列目と 3 列目に当てる。ModelRooms.unity（Screen Space の PanelRenderer が 1 枚）/ ModelRooms.uxml / ModelRooms.uss、
+                      Message.uxml と YesNo.uxml（全ルーム共通の構造）、ModelRoom（ルームの定義）、ModelRoomsController（登録、列の組み立て、流れ）、ModelRoomsTheme.tss（ModelRooms 専用の theme。HoneTheme.tss と同じ @import に、ルームの USS の @import を足す）、
+                      ModelRoomsPanelSettings.asset（PanelSettings.asset の複製で、Theme Style Sheet だけ ModelRoomsTheme.tss）、Hone.Sandbox.ModelRooms.asmdef（Tests/PlayMode が参照する。Hone.Sandbox.UI と Hone.Core を参照し、autoReferenced は false）。使い方は ModelRooms/README.md
     Tests/EditMode/   EditMode テスト。HoneSyncTests（`Assets/HoneSyncTestsTmp/` に manifest と PanelSettings を作って `HoneSync.Run` を呼び、終わったら消す）
     Tests/PlayMode/   PlayMode テスト。BackStackTests、FocusScopeTests、DialogTests、MessageWindowTests（ページの無い状態の 1 件を除く）、ButtonTests の 1 件（NavigationSubmitEvent）は PanelRenderer を GameObject で作って panel を得る（`UNITY_EDITOR` のときだけコンパイルされる。Editor で実行する）。
                       DialogTests の `_WorldSpace` が付く 2 件（初期フォーカスと overlay の PointerDown）だけは、World Space の panel（`CreateWorldSpacePanel`）でも回す。`SendEvent` で送るので入力経路は通らない
+                      ModelRoomsTests は、ModelRooms.unity を additive で読み込んで ModelRoomsController が組んだ 3 列を操作する（Screen Space のみ）
 ```
 
 `registry/` の内容は手でコピーしている。`hone add` ができたら CLI に置き換える。

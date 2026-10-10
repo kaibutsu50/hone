@@ -1,0 +1,7 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:hone="Hone">
+    <Style src="ModelRooms.uss" />
+    <ui:VisualElement class="model-rooms-page">
+        <ui:DropdownField name="room" label="Room" class="model-rooms-room" />
+        <ui:VisualElement name="columns" class="model-rooms-columns" />
+    </ui:VisualElement>
+</ui:UXML>
