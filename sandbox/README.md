@@ -61,7 +61,10 @@ Assets/Hone/
     ModelRooms/       モデルルームの基盤。同じ構造（はい / いいえ の Dialog とメッセージ）を「素」「USS だけ」「注入あり」の 3 列に並べ、dropdown で選んだルームを 2 列目と 3 列目に当てる。ModelRooms.unity（Screen Space の PanelRenderer が 1 枚）/ ModelRooms.uxml / ModelRooms.uss、
                       Message.uxml と YesNo.uxml（全ルーム共通の構造）、ModelRoom（ルームの定義）、ModelRoomsController（登録、列の組み立て、流れ）、ModelRoomsTheme.tss（ModelRooms 専用の theme。HoneTheme.tss と同じ @import に、ルームの USS の @import を足す）、
                       ModelRoomsPanelSettings.asset（PanelSettings.asset の複製で、Theme Style Sheet だけ ModelRoomsTheme.tss）、Hone.Sandbox.ModelRooms.asmdef（Tests/PlayMode が参照する。Hone.Sandbox.UI と Hone.Core を参照し、autoReferenced は false）。
-                      ClassicJrpg/ はクラシック JRPG 風のルーム（ClassicJrpg.uss、ClassicJrpgRoom.cs、Cursor.png）。使い方は ModelRooms/README.md
+                      ClassicJrpg/ はクラシック JRPG 風のルーム（ClassicJrpg.uss、ClassicJrpgRoom.cs、Cursor.png）。
+                      TextAdventure/ はテキストアドベンチャー風のルーム（TextAdventure.uss、TextAdventureRoom.cs、名札の背景の Nameplate.svg と、それを ImageMagick で変換した Nameplate.png）。使い方は ModelRooms/README.md
+    Icons/            検証用アイコン。hand-finger-right.svg（Tabler Icons、MIT。線の色だけ白に改変）とその TablerIcons-LICENSE.txt。
+                      Texture2D として import する（.meta の svgType: 2）。理由は「既知の事項」の SVG の項。ModelRooms のテキストアドベンチャー風が使う
     Tests/EditMode/   EditMode テスト。HoneSyncTests（`Assets/HoneSyncTestsTmp/` に manifest と PanelSettings を作って `HoneSync.Run` を呼び、終わったら消す）
     Tests/PlayMode/   PlayMode テスト。BackStackTests、FocusScopeTests、DialogTests、MessageWindowTests（ページの無い状態の 1 件を除く）、ButtonTests の 1 件（NavigationSubmitEvent）は PanelRenderer を GameObject で作って panel を得る（`UNITY_EDITOR` のときだけコンパイルされる。Editor で実行する）。
                       DialogTests の `_WorldSpace` が付く 2 件（初期フォーカスと overlay の PointerDown）だけは、World Space の panel（`CreateWorldSpacePanel`）でも回す。`SendEvent` で送るので入力経路は通らない
@@ -460,6 +463,9 @@ unity command editor_stop --project-path <sandbox の絶対パス>
   消すと atlas は 1×1 に戻るが、atlas の Filter Mode は残り、次に描いたときに作り直される（6000.7.0b2）。
 - `capture_game_view` の `--width` `--height` は、Game view が描画した画像を拡大・縮小するだけで、その解像度で描画し直すわけではない（6000.7.0b2）。
   Game view の描画解像度がウィンドウの大きさのままだと、文字のにじみや 1px の線を判定できない画像になる。画素を見る撮影では、先に `UnityEditor.PlayModeWindow.SetCustomRenderingResolution(<幅>, <高さ>, <名前>)` で描画解像度を撮影の大きさに合わせる。
+- SVG は、パッケージを足さなくても Unity 内蔵の SVG importer（`UnityEditor.VectorGraphicsModule` の `SVGImporter`）で import される。既定は UI Toolkit の Vector Image（.meta の `svgType: 3`）。
+  ただし Vector Image を `Hone.Button` の `background-image` にすると、そのボタンの文字が描かれなかった（`:focus` のときだけ付けた場合。画像は出る。6000.7.0b2、Screen Space。World Space は未確認）。
+  同じ SVG を Texture2D として import する（`svgType: 2`、大きさは `textureWidth` / `textureHeight`）と、画像と文字の両方が出た。`background-image` に使う SVG は Texture2D で import する。
 - `Hone.Core` / `Hone.Core.Editor` は `.cs` が 1 本も無い間は Unity がアセンブリを生成しない。
   `Core/` に最初のスクリプトが入った時点で `Library/ScriptAssemblies/` に現れる。
   `Hone.Core.Editor` は asmdef の `includePlatforms` が `Editor` のみなので、Player ビルドには含まれない。

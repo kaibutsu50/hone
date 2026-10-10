@@ -1,0 +1,16 @@
+<!--
+  テキストアドベンチャー風の名札の背景（自作）。右端を斜めに切った紺のタブで、上の辺と斜めの辺に明るい線を引く。
+  TextAdventure.uss が 9-slice（左 2 / 右 10 / 上 3 / 下 2）で名前の長さに伸ばす。斜めの辺は右の 10px に収める。
+  PNG への変換（このディレクトリで実行）: magick -background none Nameplate.svg PNG32:Nameplate.png
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="24" viewBox="0 0 48 24">
+  <defs>
+    <linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2b5fa8"/>
+      <stop offset="1" stop-color="#0f3470"/>
+    </linearGradient>
+  </defs>
+  <path d="M0 0 H39 L47 24 H0 Z" fill="url(#fill)"/>
+  <path d="M0 1 H39" stroke="#d4e2f6" stroke-width="2" fill="none"/>
+  <path d="M39 0 L47 24" stroke="#d4e2f6" stroke-width="2" fill="none"/>
+</svg>

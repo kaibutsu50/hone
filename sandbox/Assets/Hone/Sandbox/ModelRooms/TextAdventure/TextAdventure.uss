@@ -1,0 +1,165 @@
+/* テキストアドベンチャー風のモデルルーム（段階 2: USS だけ）。ModelRoomsTheme.tss から @import する。
+ * すべての規則を .room-text-adventure（舞台に付くクラス）で始め、1 列目（素）と他のルームに漏らさない。
+ * トークンで表せる値は先頭の規則でトークンを上書きし、表せない値だけを部品の規則の上書きに書く。
+ *
+ * 大きさは、参考の携帯機の画面（240×160）を舞台の高さ 320px に合わせた 2 倍の px で書く。画面の幅は 480px で、舞台の中央に置く。
+ * 舞台の余白（ModelRooms.uss の .model-room-stage の padding）は差し引かない（#60 のクラシック JRPG 風と同じ）。舞台の高さや余白が変わったら換算し直す。
+ * 測った値は手元の .local/reference/text-adventure.md（リポジトリには置かない）。 */
+
+.room-text-adventure {
+    --hone-font-body: url("project://database/Assets/Hone/Sandbox/Fonts/MPLUSRounded1c.asset?fileID=11400000&guid=ec7996271a9a2714baf639e3706fc3d2&type=2#MPLUSRounded1c");
+
+    /* 窓の地は下の .hone-message-window で半透明の黒にする。文字はすべて白 */
+    --hone-color-foreground: rgb(255, 255, 255);
+    --hone-color-primary-foreground: rgb(255, 255, 255);
+    --hone-color-muted-foreground: rgb(255, 255, 255);
+    --hone-color-accent: rgba(0, 0, 0, 0);
+    --hone-color-accent-foreground: rgb(255, 255, 255);
+    /* 窓の縁は半透明の白の細い線 */
+    --hone-color-border: rgba(255, 255, 255, 0.55);
+    --hone-border-width: 2px;
+    --hone-radius-lg: 2px;
+    /* 選択肢の場面は、舞台全体を少し暗くする */
+    --hone-color-overlay: rgba(0, 0, 0, 0.35);
+
+    /* ring は窓の縁と同じ色と太さ（MessageWindow はフォーカスしても縁が変わらない。Button の ring は下の規則で消す） */
+    --hone-color-ring: rgba(255, 255, 255, 0.55);
+    --hone-ring-width: 2px;
+
+    /* 本文の行の間隔が 32px（参考の 16）になる大きさ。名札は本文より小さい */
+    --hone-font-size-md: 22px;
+    --hone-font-size-sm: 18px;
+}
+
+/* 舞台の背景。参考は法廷の絵の上に窓を重ねる構成なので、白い舞台の代わりに木目に近い茶色の単色を置く（半透明の窓と、窓の外の名札が見えるように）。
+ * 部品の規則ではなく舞台（sandbox）の見た目 */
+.room-text-adventure {
+    background-color: rgb(122, 98, 58);
+}
+
+/* ---- メッセージウィンドウ ---- */
+
+/* 画面の下の 30%（高さ 96px）、画面の幅いっぱい（480px）で、層の下端に接する。地は黒の 67%。
+ * #60 は窓を不透明に描いて層ごと半透明にしたが、このルームは Dialog に窓の地が無く窓が重ならないので、地だけを半透明にする（文字の白が薄まらない）。
+ * 本文の書き出しは左から 20px、1 行目の上は 10px（参考の 1 行目の中心は窓の上から 32px だが、2 行のページで 2 行目が ▼ に重ならないよう上に寄せた） */
+.room-text-adventure .hone-message-window {
+    align-self: center;
+    width: 480px;
+    height: 96px;
+    margin-bottom: 0;
+    padding: 10px 20px;
+    background-color: rgba(0, 0, 0, 0.67);
+}
+
+/* 改行（\n）と全角の空白をそのまま出す */
+.room-text-adventure .hone-message-window__text {
+    white-space: pre-wrap;
+}
+
+/* 名札: 窓の左上の縁の外に乗るタブ。背景は自作の画像（Nameplate.svg を PNG に変換したもの）の 9-slice で、名前の長さに伸びる。
+ * 斜めの辺は画像の右の 10px にあるので、右の余白をそれより広く取る。
+ * absolute の基準は窓の枠の内側なので、窓の枠（2px）の分だけ外へ出す。表示（display）は MessageWindow.uss の .is-speaker-set の規則に任せる */
+.room-text-adventure .hone-message-window__speaker {
+    position: absolute;
+    left: -2px;
+    top: -26px;
+    height: 24px;
+    margin: 0;
+    padding: 0 16px 0 8px;
+    background-image: url("Nameplate.png");
+    -unity-slice-left: 2;
+    -unity-slice-right: 10;
+    -unity-slice-top: 3;
+    -unity-slice-bottom: 2;
+    -unity-text-align: middle-left;
+}
+
+/* ▼ は窓の下辺の中央（下の枠の内側に接する） */
+.room-text-adventure .hone-message-window__indicator {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    translate: -50% 0;
+    font-size: 14px;
+    padding: 0;
+    margin: 0;
+}
+
+/* ---- 選択肢（はい / いいえ の Dialog） ---- */
+
+/* 参考の選択肢の場面は、窓が無く、暗くした画面の上に問いと選択肢の文字だけが出る。
+ * content を画面の幅（480px）で上に寄せ、地と枠を消す。問いの書き出しは画面の左から 50px。
+ * 共通の構造では Dialog が開いてもメッセージの窓と名札を隠せない（差分の表）ので、問いと選択肢を名札（窓の上の 26px）より上に収める。
+ * そのため上の余白は参考の 60px より詰めて 8px、選択肢との間は 12px、選択肢の行の高さは 36px（参考は 40px） */
+.room-text-adventure .hone-dialog {
+    justify-content: flex-start;
+}
+
+.room-text-adventure .hone-dialog__content {
+    width: 480px;
+    max-width: 480px;
+    padding: 8px 0 0 38px;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+}
+
+/* 問いは心の声（水色の括弧書き 2 行）。2 行目の頭の全角の空白（字下げ）をそのまま出す */
+.room-text-adventure .hone-dialog__description {
+    font-size: 22px;
+    color: rgb(128, 204, 248);
+    white-space: pre-wrap;
+    margin-left: 12px;
+}
+
+/* 選択肢は縦に 2 行、左寄せ */
+.room-text-adventure .hone-dialog__footer {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    margin-top: 12px;
+}
+
+.room-text-adventure .hone-dialog__footer > * {
+    margin-left: 0;
+}
+
+/* 選択肢は地も枠も無い白い文字。左の 24px に ☞ を置く */
+.room-text-adventure .hone-button {
+    height: 36px;
+    padding: 0 0 0 24px;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    font-size: 22px;
+    -unity-text-align: middle-left;
+}
+
+/* Button.uss の hover（0.9）と active（0.8）の薄まりを消す */
+.room-text-adventure .hone-button:hover,
+.room-text-adventure .hone-button:active {
+    opacity: 1;
+}
+
+/* フォーカスした選択肢の左に ☞（Tabler Icons の hand-finger-right。MIT）。ring は出さない。
+ * SVG は Texture2D として import している（.meta の svgType: 2、40×40）。既定の UI Toolkit の Vector Image のままだと、
+ * それを background-image にした Button の文字が描かれなかった（6000.7.0b2、Screen Space。sandbox/README.md）。
+ * Core.uss の ring（.hone-focusable.hone-focusable:focus）に勝つよう、クラス 3 つ + :focus で書く */
+.room-text-adventure .hone-button.hone-focusable:focus {
+    border-width: 0;
+    background-image: url("../../Icons/hand-finger-right.svg");
+    background-position-x: left 0;
+    background-position-y: center;
+    background-repeat: no-repeat;
+    background-size: 20px 20px;
+}
+
+/* ---- 段階 3 の演出の状態 ---- */
+
+/* ▼ の点滅（TextAdventureRoom.cs が舞台に付け外しする） */
+.room-text-adventure.is-blink-off .hone-message-window__indicator {
+    opacity: 0;
+}
+
+/* 確定の間（.is-holding）は、選んだ選択肢が一瞬光る（commitDelay が 0 の 2 列目では付かない） */
+.room-text-adventure .hone-button.is-holding {
+    color: rgb(255, 236, 140);
+}

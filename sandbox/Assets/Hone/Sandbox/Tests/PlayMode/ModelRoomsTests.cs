@@ -37,13 +37,14 @@ namespace Hone.Sandbox.Tests
             public int PageIndex;
         }
 
-        // クラシック JRPG 風は BeforeSceneLoad で登録される。基盤のテストは「登録したルームだけがある」前提なので、外してから始め、終わったら登録を戻す
-        // （戻すと末尾に付くので、ルームが 2 つ以上あると登録の順は戻らない）。クラシック JRPG 風のテストは、自分で Register する。
+        // クラシック JRPG 風とテキストアドベンチャー風は BeforeSceneLoad で登録される。基盤のテストは「登録したルームだけがある」前提なので、外してから始め、終わったら登録を戻す
+        // （戻すと末尾に付くので、ルームが 2 つ以上あると登録の順は戻らない）。ルームのテストは、自分で Register する。
         // BeforeSceneLoad で登録するルームを足したら、ここで同じように外し、TearDown で戻す
         [SetUp]
         public void SetUp()
         {
             ModelRoomsController.Unregister(ClassicJrpgRoom.ClassName);
+            ModelRoomsController.Unregister(TextAdventureRoom.ClassName);
         }
 
         [UnityTearDown]
@@ -53,6 +54,7 @@ namespace Hone.Sandbox.Tests
                 ModelRoomsController.Unregister(className);
             m_Registered.Clear();
             ModelRoomsController.Register(ClassicJrpgRoom.Room);
+            ModelRoomsController.Register(TextAdventureRoom.Room);
             if (m_Scene.IsValid() && m_Scene.isLoaded)
                 yield return SceneManager.UnloadSceneAsync(m_Scene);
         }
@@ -332,7 +334,7 @@ namespace Hone.Sandbox.Tests
         [UnityTest]
         public IEnumerator SelectRoom_WithPages_ShowsRoomPagesInAllColumns()
         {
-            var pages = new[] { "page one", "page two" };
+            var pages = new[] { new MessageWindow.Page(null, "page one"), new MessageWindow.Page(null, "page two") };
             Register(new ModelRoom { displayName = "A", className = RoomA });
             Register(new ModelRoom { displayName = "B", className = RoomB, pages = pages });
             ModelRoomsController controller = null;
@@ -344,10 +346,10 @@ namespace Hone.Sandbox.Tests
             {
                 var message = MessageOf(column);
                 Assert.AreEqual(pages.Length, message.pageCount);
-                Assert.AreEqual(pages[0], message.text);
+                Assert.AreEqual(pages[0].text, message.text);
                 AdvanceToCompleted(message);
                 Submit(column.Q<UnityEngine.UIElements.Button>("again"));
-                Assert.AreEqual(pages[0], message.text);
+                Assert.AreEqual(pages[0].text, message.text);
             }
         }
 
@@ -355,7 +357,7 @@ namespace Hone.Sandbox.Tests
         [UnityTest]
         public IEnumerator SelectRoom_WithoutPages_ShowsDefaultPages()
         {
-            Register(new ModelRoom { displayName = "A", className = RoomA, pages = new[] { "page one" } });
+            Register(new ModelRoom { displayName = "A", className = RoomA, pages = new[] { new MessageWindow.Page(null, "page one") } });
             Register(new ModelRoom { displayName = "B", className = RoomB });
             ModelRoomsController controller = null;
             yield return LoadScene(c => controller = c);
@@ -366,16 +368,62 @@ namespace Hone.Sandbox.Tests
                 Assert.AreNotEqual("page one", MessageOf(column).text);
         }
 
-        // クラシック JRPG 風を、先頭ではないルームとして選ぶ（最初の組み立てではなく、選び直した結果を見る）
-        IEnumerator LoadAndSelectClassicJrpg(Action<ModelRoomsController> onReady)
+        static Label QuestionOf(VisualElement column) => DialogOf(column).Q<Label>(className: "hone-dialog__description");
+
+        // (F) 選択肢の文面（問い、yes、no）を持つルームは、3 列とも（素の列も）その文面になる。押したボタンの文面が見出しの結果に出る
+        [UnityTest]
+        public IEnumerator SelectRoom_WithChoiceTexts_AppliesToAllColumns()
         {
             Register(new ModelRoom { displayName = "A", className = RoomA });
-            Register(ClassicJrpgRoom.Room);
+            Register(new ModelRoom { displayName = "B", className = RoomB, question = "question?", yes = "yes text", no = "no text" });
             ModelRoomsController controller = null;
             yield return LoadScene(c => controller = c);
-            controller.SelectRoom(ClassicJrpgRoom.ClassName);
+
+            controller.SelectRoom(RoomB);
+
+            var columns = Columns(controller);
+            for (var i = 0; i < columns.Count; i++)
+            {
+                Assert.AreEqual("question?", QuestionOf(columns[i]).text, $"column {i}");
+                Assert.AreEqual("yes text", columns[i].Q<Hone.Button>("yes").text, $"column {i}");
+                Assert.AreEqual("no text", columns[i].Q<Hone.Button>("no").text, $"column {i}");
+            }
+            AdvanceToCompleted(MessageOf(columns[0]));
+            Submit(columns[0].Q<Hone.Button>("no"));
+            Assert.AreEqual("no text", StatusOf(columns[0]).text);
+        }
+
+        // (F) 選択肢の文面を持たないルームに選び直すと、YesNo.uxml の文面に戻る
+        [UnityTest]
+        public IEnumerator SelectRoom_WithoutChoiceTexts_RestoresUxmlTexts()
+        {
+            Register(new ModelRoom { displayName = "A", className = RoomA, question = "question?", yes = "yes text", no = "no text" });
+            Register(new ModelRoom { displayName = "B", className = RoomB });
+            ModelRoomsController controller = null;
+            yield return LoadScene(c => controller = c);
+
+            controller.SelectRoom(RoomB);
+
+            foreach (var column in Columns(controller))
+            {
+                Assert.AreEqual("この内容で 記録しますか？", QuestionOf(column).text);
+                Assert.AreEqual("はい", column.Q<Hone.Button>("yes").text);
+                Assert.AreEqual("いいえ", column.Q<Hone.Button>("no").text);
+            }
+        }
+
+        // ルームを、先頭ではないルームとして選ぶ（最初の組み立てではなく、選び直した結果を見る）
+        IEnumerator LoadAndSelect(ModelRoom room, Action<ModelRoomsController> onReady)
+        {
+            Register(new ModelRoom { displayName = "A", className = RoomA });
+            Register(room);
+            ModelRoomsController controller = null;
+            yield return LoadScene(c => controller = c);
+            controller.SelectRoom(room.className);
             onReady(controller);
         }
+
+        IEnumerator LoadAndSelectClassicJrpg(Action<ModelRoomsController> onReady) => LoadAndSelect(ClassicJrpgRoom.Room, onReady);
 
         // 本文の Label（.hone-text）が使っているフォント
         static UnityEngine.TextCore.Text.FontAsset BodyFont(VisualElement column) =>
@@ -408,6 +456,46 @@ namespace Hone.Sandbox.Tests
         {
             ModelRoomsController controller = null;
             yield return LoadAndSelectClassicJrpg(c => controller = c);
+
+            var columns = Columns(controller);
+            Assert.AreEqual(0f, MessageOf(columns[0]).charactersPerSecond);
+            Assert.AreEqual(0f, MessageOf(columns[1]).charactersPerSecond);
+            Assert.Greater(MessageOf(columns[2]).charactersPerSecond, 0f);
+            foreach (var buttonName in new[] { "yes", "no" })
+            {
+                Assert.AreEqual(0f, columns[0].Q<Hone.Button>(buttonName).commitDelay, buttonName);
+                Assert.AreEqual(0f, columns[1].Q<Hone.Button>(buttonName).commitDelay, buttonName);
+                Assert.Greater(columns[2].Q<Hone.Button>(buttonName).commitDelay, 0f, buttonName);
+            }
+        }
+
+        // (A) テキストアドベンチャー風: 2 列目と 3 列目の本文だけが、ルームのフォントになる（クラシック JRPG 風と同じフォントなので、素の列と違うことを見る）
+        [UnityTest]
+        public IEnumerator TextAdventure_Select_AppliesRoomFontToColumns2And3Only()
+        {
+            ModelRoomsController controller = null;
+            yield return LoadAndSelect(TextAdventureRoom.Room, c => controller = c);
+            var expected = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.TextCore.Text.FontAsset>(RoomFontPath);
+            Assert.IsNotNull(expected, $"{RoomFontPath} was not found");
+            var columns = Columns(controller);
+            var frames = 0;
+            while (BodyFont(columns[1]) != expected && frames < MaxWaitFrames)
+            {
+                frames++;
+                yield return null;
+            }
+
+            Assert.AreNotSame(expected, BodyFont(columns[0]));
+            Assert.AreSame(expected, BodyFont(columns[1]));
+            Assert.AreSame(expected, BodyFont(columns[2]));
+        }
+
+        // (B) テキストアドベンチャー風: 演出の設定（文字送りと確定の間）が入るのは 3 列目だけ
+        [UnityTest]
+        public IEnumerator TextAdventure_Select_InjectsRevealAndCommitDelayToColumn3Only()
+        {
+            ModelRoomsController controller = null;
+            yield return LoadAndSelect(TextAdventureRoom.Room, c => controller = c);
 
             var columns = Columns(controller);
             Assert.AreEqual(0f, MessageOf(columns[0]).charactersPerSecond);

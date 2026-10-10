@@ -21,11 +21,11 @@ namespace Hone.Sandbox.ModelRooms
         {
             displayName = "クラシック JRPG 風",
             className = ClassName,
-            // 語の区切りは全角の空白。話し手の印「＊「」は、ページを送っても毎回ページの頭に出す（書き出しの位置はページによらず同じ）
+            // 語の区切りは全角の空白。話し手の印「＊「」は名札ではなく本文に混ぜ、ページを送っても毎回ページの頭に出す（書き出しの位置はページによらず同じ）
             pages = new[]
             {
-                "＊「たのもしき　神のしもべよ",
-                "＊「わが教会に　どんな　ご用じゃな？",
+                new MessageWindow.Page(null, "＊「たのもしき　神のしもべよ"),
+                new MessageWindow.Page(null, "＊「わが教会に　どんな　ご用じゃな？"),
             },
             inject = Inject,
         };
