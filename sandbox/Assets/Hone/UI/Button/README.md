@@ -26,7 +26,7 @@ button.clicked += OnSave;
 
 ## 確定までの間（Hold）
 
-押した瞬間（Press）と確定（Commit）の間に間を置ける。既定（`commit-delay` が 0）では何も変わらない。
+押した瞬間（Press）と確定（Commit）の間に間を置ける。既定（`commit-delay` が 0）では、`clicked` と見た目は今までと変わらず、`committed` は押した処理の中ですぐ出る。
 
 ```xml
 <hone:Button variant="destructive" commit-delay="0.5" text="Delete" />
@@ -40,16 +40,15 @@ button.committed += OnDelete;
 | 名前 | 意味 |
 |---|---|
 | `commit-delay`（`commitDelay`） | 押してから確定までの秒数。0 以下なら押した瞬間に確定する |
-| `committed` | 確定。`commitDelay` が 0 以下なら押した処理の中で、そうでなければ `commitDelay` 秒後に 1 回出る |
+| `committed` | 確定。`commitDelay` が 0 以下なら押した処理の中で、そうでなければ `commitDelay` 秒以降の最初の更新で 1 回出る |
 | `isHolding` | Hold の間 true（読み取りのみ） |
 | `.is-holding` | Hold の間だけ付くクラス。`Button.uss` は何も書かないので、見た目は利用者が付ける |
 
-- `clicked` は今までどおり押した瞬間に出る。Hold 中に押し直しても出る。`committed` を遅らせたいときは `clicked` ではなく `committed` を購読する。
+- `clicked` は今までどおり押した瞬間に出る。Hold 中に押し直しても出る。確定を待ってから走らせたい処理は、`clicked` ではなく `committed` に登録する。
 - Hold 中の再押下は `committed` に影響しない（Hold は延びず、`committed` は 1 回のまま）。
 - Hold の途中で `commitDelay` を変えても、進行中の Hold には効かない。次の押下から効く。
 - Hold の途中で panel から外れると、Hold をやめて `.is-holding` を外す。`committed` は出ない。
 - 止めるのは同じ Button の再押下の確定だけ。Dialog など他の部品や panel の入力は止めない。
-- 時間は `schedule` で数える。
 
 ## 名前の衝突
 

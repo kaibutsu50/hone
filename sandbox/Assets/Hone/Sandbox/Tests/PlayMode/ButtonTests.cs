@@ -76,7 +76,7 @@ namespace Hone.Sandbox.Tests
             Assert.IsTrue(button.ClassListContains("hone-text"));
         }
 
-        // panel に付いた要素でないと SendEvent が届かないので、PanelRenderer を 1 つ作って root を返す
+        // panel に付いた要素でないと SendEvent が届かないので、PanelRenderer を 1 つ作り、panel に付いた root を onReady に渡す
         IEnumerator CreatePanel(System.Action<VisualElement> onReady)
         {
             var panelSettings = Object.Instantiate(AssetDatabase.LoadAssetAtPath<PanelSettings>(PanelSettingsPath));
@@ -149,6 +149,25 @@ namespace Hone.Sandbox.Tests
             Assert.IsFalse(button.ClassListContains("is-holding"));
         }
 
+        // commitDelay が負のときは 0 と同じく、Submit の処理の中で committed が出る
+        [UnityTest]
+        public IEnumerator Committed_FiresImmediately_WhenDelayIsNegative()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+
+            var button = new Button { commitDelay = -1f };
+            var commits = 0;
+            button.committed += () => commits++;
+            root.Add(button);
+            yield return null;
+
+            Submit(button);
+
+            Assert.AreEqual(1, commits);
+            Assert.IsFalse(button.isHolding);
+        }
+
         // (Hold B) commitDelay が 0.2 のとき、直後は Hold 中で committed は 0 回。待つと 1 回出て Hold が終わる
         [UnityTest]
         public IEnumerator Committed_FiresAfterDelay_AndHoldingClassToggles()
@@ -195,6 +214,8 @@ namespace Hone.Sandbox.Tests
             Submit(button);
 
             Assert.AreEqual(2, clicks);
+            Assert.IsTrue(button.isHolding);
+            Assert.AreEqual(0, commits);
 
             yield return new WaitForSeconds(0.8f);
 
@@ -202,7 +223,8 @@ namespace Hone.Sandbox.Tests
             Assert.IsFalse(button.isHolding);
         }
 
-        // (Hold D) Hold の途中で panel から外すと、is-holding が外れ、待っても committed は出ない
+        // (Hold D) Hold の途中で panel から外すと、is-holding が外れ、待っても committed は出ない。
+        // 外したままだと予約は panel に付いていないので動かない。付け直してから待ち、予約が残っていないことを確かめる
         [UnityTest]
         public IEnumerator Detach_DuringHold_CancelsCommit()
         {
@@ -223,12 +245,66 @@ namespace Hone.Sandbox.Tests
             Assert.IsFalse(button.isHolding);
             Assert.IsFalse(button.ClassListContains("is-holding"));
 
+            root.Add(button);
             yield return new WaitForSeconds(0.4f);
 
             Assert.AreEqual(0, commits);
+
+            // 付け直した後の押下では、新しい Hold が始まる
+            Submit(button);
+            Assert.IsTrue(button.isHolding);
         }
 
-        // (Hold E) UXML の commit-delay="0.5" が commitDelay 0.5 になる
+        // Hold の途中で commitDelay を変えても、進行中の Hold は押した時点の値で確定する
+        [UnityTest]
+        public IEnumerator CommitDelay_ChangedDuringHold_DoesNotAffectCurrentHold()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+
+            var button = new Button { commitDelay = 0.2f };
+            var commits = 0;
+            button.committed += () => commits++;
+            root.Add(button);
+            yield return null;
+
+            Submit(button);
+            button.commitDelay = 5f;
+
+            yield return new WaitForSeconds(0.4f);
+
+            Assert.AreEqual(1, commits);
+            Assert.IsFalse(button.isHolding);
+        }
+
+        // Hold が終わった後にもう一度押すと、2 回目の Hold が始まり、committed は合計 2 回になる
+        [UnityTest]
+        public IEnumerator Press_AfterHold_StartsNewHold()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+
+            var button = new Button { commitDelay = 0.2f };
+            var commits = 0;
+            button.committed += () => commits++;
+            root.Add(button);
+            yield return null;
+
+            Submit(button);
+            yield return new WaitForSeconds(0.4f);
+            Assert.AreEqual(1, commits);
+
+            Submit(button);
+            Assert.IsTrue(button.isHolding);
+
+            yield return new WaitForSeconds(0.4f);
+
+            Assert.AreEqual(2, commits);
+            Assert.IsFalse(button.isHolding);
+        }
+
+        // (Hold E) UXML の commit-delay="0.5" が commitDelay 0.5 になる。
+        // Button.uxml の使用例のうち、destructive の例に commit-delay="0.5" を付けてあるのを読む
         [Test]
         public void Uxml_CommitDelay_IsParsed()
         {

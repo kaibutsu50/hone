@@ -33,7 +33,7 @@ namespace Hone
         [UxmlAttribute]
         public float commitDelay { get; set; }
 
-        // 確定。commitDelay が 0 以下なら押した処理の中で、そうでなければ commitDelay 秒後に 1 回出る
+        // 確定。commitDelay が 0 以下なら押した処理の中で、そうでなければ commitDelay 秒以降の最初の更新で 1 回出る
         public event Action committed;
 
         // Hold の間 true。見た目は .is-holding で付ける
