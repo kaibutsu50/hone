@@ -4,7 +4,7 @@
 @import url("../../UI/Button/Button.uss");
 @import url("../../UI/Dialog/Dialog.uss");
 @import url("../../UI/MessageWindow/MessageWindow.uss");
-/* ルームの USS の @import は、この行の直前に並べる（各ルームの Issue が足す。今は 0 行）。HoneTheme.tss には足さない */
+/* ルームの USS の @import は、この行の直前に並べる。HoneTheme.tss には足さない */
 
 /* ModelRooms 専用の theme。HoneTheme.tss と同じ @import と :root に、ルームの USS の @import を足したもの。
  * HoneTheme.tss を変えたら（コンポーネントの追加、フォントの変更）、この @import と :root も同じに直す。

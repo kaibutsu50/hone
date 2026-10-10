@@ -30,7 +30,7 @@
 |---|---|
 | `ModelRooms.unity` | `PanelRenderer` が 1 つ（Screen Space）。EventSystem は置かない |
 | `ModelRoomsPanelSettings.asset` | `Sandbox/PanelSettings.asset` の複製。Theme Style Sheet だけ `ModelRoomsTheme.tss` |
-| `ModelRoomsTheme.tss` | `Assets/Hone/HoneTheme.tss` と同じ `@import` と `:root`。その後にルームの USS の `@import` を並べる |
+| `ModelRoomsTheme.tss` | `Assets/Hone/HoneTheme.tss` と同じ `@import` に続けてルームの USS の `@import` を並べ、`:root`（HoneTheme.tss と同じ）はその後 |
 | `ModelRooms.uxml` / `ModelRooms.uss` | 画面の枠（dropdown と 3 列）。sandbox の枠なので、幅や高さは実値で書いてある |
 | `Message.uxml` / `YesNo.uxml` | 全ルーム共通の構造。特定のルームのためのクラスや要素は足さない |
 | `ModelRoom.cs` | ルームの定義（`displayName` `className` `inject`） |
@@ -61,6 +61,7 @@ static void Register()
 ```
 
 - 同じ `className` の再登録は置き換わる。dropdown には登録順に並ぶ
+- `displayName` と `className` は空にできない（`Register` が例外を投げる）。`className` は登録の識別子なので、`Register` の後で変えない
 - `inject` は 3 列目の舞台が panel に attach された後に、組むたびに 1 回呼ばれる。メッセージの `Show` は `inject` の後なので、`inject` で `MessageWindow` の設定（`charactersPerSecond` など）を変えれば 1 ページ目から効く
 - このプロジェクトは Domain Reload を無効にしているので、`Register` した内容は Play をまたいで残る。テストで一時的に登録したものは `Unregister(className)` で消す
 - dropdown は UI が読み込まれた時点の登録内容で作る。それより後の `Register` は dropdown に出ない
@@ -77,7 +78,7 @@ static void Register()
 
 Gallery の Screen Space の手順（`sandbox/README.md` の「Gallery」の撮影手順）と同じで、シーンが `ModelRooms.unity` になるだけ。Editor は `sandbox/README.md` の「Editor の開き方」で開いておく。
 
-3 列とも Dialog が開いた状態で撮る。各列のメッセージを最後まで送ってから撮る。送りは eval から各列の `MessageWindow.Advance()` を呼んでよい（3 ページなので 3 回）。ルームは `ModelRoomsController.SelectRoom(className)` で切り替える（dropdown の代わりに、eval から切り替えて撮るための入口）。
+3 列とも Dialog が開いた状態で撮る。各列のメッセージを最後まで送ってから撮る。送りは eval から各列の `MessageWindow.Advance()` を呼んでよい。ルームは `ModelRoomsController.SelectRoom(className)` で切り替える（dropdown の代わりに、eval から切り替えて撮るための入口）。
 
 ```bash
 unity command open_scene --path Assets/Hone/Sandbox/ModelRooms/ModelRooms.unity --project-path <sandbox の絶対パス>
@@ -102,6 +103,9 @@ foreach (var c in controllers)
 return controllers.Length;
 ```
 
+- `SelectRoom` は dropdown の `index` を変えて ChangeEvent を出す。すでに選ばれている `className` を渡すと何も起きない。切り替えると 3 列が組み直され、メッセージは 1 ページ目に戻る。切り替えてから `advance.cs` を実行する
+- 切り替えの中（組み直しと `inject`）で起きた例外は、ChangeEvent の callback の中で出るので eval には返らない。撮る前に Console に ModelRooms のエラーが出ていないことを確かめる
+
 メッセージを最後まで送る（`advance.cs`。3 列とも Dialog が開く）:
 
 ```csharp
@@ -112,13 +116,11 @@ foreach (var c in controllers)
     for (var i = 0; i < c.columns.childCount; i++)
     {
         var window = UnityEngine.UIElements.UQueryExtensions.Q<Hone.MessageWindow>(c.columns[i], (string)null, (string)null);
-        for (var page = 0; page < window.pageCount; page++)
+        for (var n = 0; n < window.pageCount * 2; n++)
             window.Advance();
     }
 return controllers.Length;
 ```
 
+- 回数はページ数の 2 倍。文字送りの速さ（`charactersPerSecond`）が 0 より大きいルームでは、ページごとに `Advance()` の 1 回目が文字送りの完了に使われるため。`completed` の後の `Advance()` は何もしないので、即時表示のルームで余っても害はない
 - eval の本文は `using` を書けず、`Query` などの拡張メソッドは `UQueryExtensions` を通して呼ぶ（`c.columns.Query<...>()` と書くとコンパイルに失敗する。6000.7.0b2）
-
-- `SelectRoom` は dropdown の `index` を変えて ChangeEvent を出す。すでに選ばれている `className` を渡すと何も起きない。切り替えると 3 列が組み直され、メッセージは 1 ページ目に戻る。切り替えてから `advance.cs` を実行する
-- 文字送りの速さ（`charactersPerSecond`）が 0 より大きいルームでは、`Advance()` の 1 回目が文字送りの完了に使われる。ページ数ぶんで足りないときは、`completed` が出る（Dialog が開く）まで回数を増やす

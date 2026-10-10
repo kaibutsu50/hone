@@ -9,7 +9,10 @@
     background-color: var(--hone-color-background);
 }
 
-.model-rooms-page Label {
+/* 文字色は舞台の外（dropdown と見出し）の Label にだけ当てる。舞台の中まで当てると、部品の Label の色（Dialog の説明文、MessageWindow の ▼ の muted）に
+ * 詳細度で勝ってしまい、「素」の列が registry の既定の見た目でなくなる */
+.model-rooms-room Label,
+.model-room-column__header Label {
     color: var(--hone-color-foreground);
 }
 
@@ -26,7 +29,7 @@
 }
 
 /* 3 列は同じ幅で分ける。中身の幅に引きずられて偏らないよう、基準を 0 にして min-width も 0 にする。
- * 列の間は左右の余白で空ける（:last-child は USS に無い。6000.7.0b2） */
+ * 列の間は左右の余白で空ける（列の間が 8px、外縁が 4px）。:last-child で外縁を消す書き方は、Unknown pseudo class の警告が出て効かない（6000.7.0b2） */
 .model-room-column {
     flex-grow: 1;
     flex-basis: 0;
@@ -52,14 +55,14 @@
     margin-right: 8px;
 }
 
-/* 舞台。Dialog は舞台の全面を覆う absolute なので、position: relative にして舞台を基準にする。
- * 高さは固定する（メッセージのページで高さが変わっても、列の見た目が揺れないように）。
- * メッセージは下に寄せる。余白と枠の色は、舞台の外の見出しと区別が付くようにトークンで持つ */
+/* 舞台。Dialog（absolute で上下左右 0）は親の舞台の全面を覆う。
+ * 高さは固定する（メッセージのページで高さが変わっても、列の見た目が揺れないように）。メッセージは下に寄せる。
+ * 余白と枠は実値で書く。ルームのクラスは舞台そのものに付くので、トークンで書くと、ルームがトークンを上書きしたときに sandbox の枠まで変わる */
 .model-room-stage {
     position: relative;
     height: 320px;
     justify-content: flex-end;
-    padding: var(--hone-space-4);
-    border-width: var(--hone-border-width);
-    border-color: var(--hone-color-border);
+    padding: 16px;
+    border-width: 1px;
+    border-color: rgb(228, 228, 231);
 }

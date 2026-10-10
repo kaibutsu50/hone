@@ -1,4 +1,5 @@
 #if UNITY_EDITOR
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,6 +27,14 @@ namespace Hone.Sandbox.Tests
         readonly List<string> m_Registered = new List<string>();
         Scene m_Scene;
 
+        // inject が呼ばれた時点の舞台の状態
+        struct InjectRecord
+        {
+            public VisualElement Stage;
+            public bool Attached;
+            public int PageIndex;
+        }
+
         [UnityTearDown]
         public IEnumerator TearDown()
         {
@@ -42,17 +51,21 @@ namespace Hone.Sandbox.Tests
             ModelRoomsController.Register(room);
         }
 
+        static Action<VisualElement> Recorder(List<InjectRecord> records) => stage =>
+            records.Add(new InjectRecord { Stage = stage, Attached = stage.panel != null, PageIndex = stage.Q<MessageWindow>().pageIndex });
+
         // ルームの登録は、シーンを読み込む前に済ませる（dropdown は UI が読み込まれた時点の登録内容で作る）
-        IEnumerator LoadScene(System.Action<ModelRoomsController> onReady)
+        IEnumerator LoadScene(Action<ModelRoomsController> onReady)
         {
-            var op = EditorSceneManager.LoadSceneAsyncInPlayMode(ScenePath, new LoadSceneParameters(LoadSceneMode.Additive));
-            yield return op;
-            m_Scene = SceneManager.GetSceneAt(SceneManager.sceneCount - 1);
-            var controller = Object.FindAnyObjectByType<ModelRoomsController>();
+            yield return EditorSceneManager.LoadSceneAsyncInPlayMode(ScenePath, new LoadSceneParameters(LoadSceneMode.Additive));
+            m_Scene = SceneManager.GetSceneByPath(ScenePath);
+            var controller = m_Scene.GetRootGameObjects()
+                .Select(go => go.GetComponentInChildren<ModelRoomsController>())
+                .FirstOrDefault(c => c != null);
             Assert.IsNotNull(controller, "ModelRoomsController was not found in the scene");
 
             var frames = 0;
-            while ((controller.columns == null || controller.columns.panel == null || controller.columns.childCount == 0) && frames < MaxWaitFrames)
+            while ((controller.columns == null || controller.columns.panel == null) && frames < MaxWaitFrames)
             {
                 frames++;
                 yield return null;
@@ -72,6 +85,8 @@ namespace Hone.Sandbox.Tests
 
         static Label StatusOf(VisualElement column) => column.Q<Label>(className: "model-room-status");
 
+        static DropdownField RoomDropdown(ModelRoomsController controller) => controller.columns.panel.visualTree.Q<DropdownField>("room");
+
         static void Submit(VisualElement target)
         {
             using (var evt = NavigationSubmitEvent.GetPooled())
@@ -81,12 +96,12 @@ namespace Hone.Sandbox.Tests
             }
         }
 
-        // 最後のページで completed が出るまで Advance する。ページ数より多く回しても出ないなら失敗
+        // 最後のページで completed が出るまで Advance する。ページ数の 2 倍（文字送りがあるとページごとに 2 回要る）回しても出ないなら失敗
         static void AdvanceToCompleted(MessageWindow window)
         {
             var completed = false;
             window.completed += () => completed = true;
-            for (var i = 0; i < window.pageCount + 1 && !completed; i++)
+            for (var i = 0; i < window.pageCount * 2 && !completed; i++)
                 window.Advance();
             Assert.IsTrue(completed, "completed was not raised");
         }
@@ -110,14 +125,26 @@ namespace Hone.Sandbox.Tests
             }
         }
 
+        // ルーム 0 件。ルームを BeforeSceneLoad で登録するファイルが入ったら、この前提（何も登録されていない）が崩れるので書き直す
+        [UnityTest]
+        public IEnumerator NoRoom_DropdownShowsPlaceholder_StagesHaveNoRoomClass()
+        {
+            ModelRoomsController controller = null;
+            yield return LoadScene(c => controller = c);
+
+            CollectionAssert.AreEqual(new[] { "（ルームなし）" }, RoomDropdown(controller).choices);
+            foreach (var stage in Columns(controller).Select(StageOf))
+                CollectionAssert.AreEqual(new[] { "model-room-stage" }, stage.GetClasses().ToList());
+        }
+
         // (B) 2 つ登録し、後ろのほうを SelectRoom で選ぶ。最初に組まれる先頭のルームではなく、選び直した結果を見る
         [UnityTest]
         public IEnumerator SelectRoom_AddsClassToColumns2And3Only_InjectsColumn3Once()
         {
-            var injectedA = new List<VisualElement>();
-            var injectedB = new List<VisualElement>();
-            Register(new ModelRoom { displayName = "A", className = RoomA, inject = injectedA.Add });
-            Register(new ModelRoom { displayName = "B", className = RoomB, inject = injectedB.Add });
+            var injectedA = new List<InjectRecord>();
+            var injectedB = new List<InjectRecord>();
+            Register(new ModelRoom { displayName = "A", className = RoomA, inject = Recorder(injectedA) });
+            Register(new ModelRoom { displayName = "B", className = RoomB, inject = Recorder(injectedB) });
             ModelRoomsController controller = null;
             yield return LoadScene(c => controller = c);
             Assert.AreEqual(0, injectedB.Count, "inject of an unselected room was called");
@@ -125,57 +152,168 @@ namespace Hone.Sandbox.Tests
             controller.SelectRoom(RoomB);
 
             var stages = Columns(controller).Select(StageOf).ToList();
-            Assert.IsFalse(stages[0].ClassListContains(RoomB));
+            CollectionAssert.AreEqual(new[] { "model-room-stage" }, stages[0].GetClasses().ToList());
             Assert.IsTrue(stages[1].ClassListContains(RoomB));
             Assert.IsTrue(stages[2].ClassListContains(RoomB));
             Assert.IsFalse(stages[1].ClassListContains(RoomA));
             Assert.IsFalse(stages[2].ClassListContains(RoomA));
             Assert.AreEqual(1, injectedB.Count);
-            Assert.AreSame(stages[2], injectedB[0]);
+            Assert.AreSame(stages[2], injectedB[0].Stage);
+            Assert.IsTrue(injectedB[0].Attached, "inject was called before the stage was attached");
         }
 
-        // (C)
+        // 最初の読み込みでも、inject は attach の後、メッセージの Show の前に呼ばれる（inject で MessageWindow を変えれば 1 ページ目から効く）
         [UnityTest]
-        public IEnumerator Advance_ToCompleted_OpensColumnDialog()
+        public IEnumerator FirstLoad_InjectRunsAfterAttachAndBeforeShow()
+        {
+            var injected = new List<InjectRecord>();
+            Register(new ModelRoom { displayName = "A", className = RoomA, inject = Recorder(injected) });
+            ModelRoomsController controller = null;
+            yield return LoadScene(c => controller = c);
+
+            Assert.AreEqual(1, injected.Count);
+            Assert.AreSame(StageOf(Columns(controller)[2]), injected[0].Stage);
+            Assert.IsTrue(injected[0].Attached, "inject was called before the stage was attached");
+            Assert.AreEqual(-1, injected[0].PageIndex, "inject was called after Show");
+            Assert.AreEqual(0, MessageOf(Columns(controller)[2]).pageIndex);
+        }
+
+        // 選び直すと 3 列とも新しい要素で組み直され、進めたメッセージと結果も初めに戻る
+        [UnityTest]
+        public IEnumerator SelectRoom_RebuildsAllColumns()
+        {
+            var injectedA = new List<InjectRecord>();
+            Register(new ModelRoom { displayName = "A", className = RoomA, inject = Recorder(injectedA) });
+            Register(new ModelRoom { displayName = "B", className = RoomB });
+            ModelRoomsController controller = null;
+            yield return LoadScene(c => controller = c);
+            var before = Columns(controller);
+            AdvanceToCompleted(MessageOf(before[0]));
+            Submit(before[0].Q<Hone.Button>("yes"));
+
+            controller.SelectRoom(RoomB);
+            controller.SelectRoom(RoomA);
+
+            var after = Columns(controller);
+            Assert.AreEqual(3, after.Count);
+            for (var i = 0; i < 3; i++)
+                Assert.AreNotSame(before[i], after[i]);
+            Assert.AreEqual(2, injectedA.Count);
+            Assert.AreSame(StageOf(after[2]), injectedA[1].Stage);
+            Assert.AreEqual(0, MessageOf(after[0]).pageIndex);
+            Assert.AreEqual("", StatusOf(after[0]).text);
+        }
+
+        // 同じ className の再登録は置き換え（dropdown に 1 つだけ、新しい displayName で出る）
+        [UnityTest]
+        public IEnumerator Register_SameClassNameReplaces()
+        {
+            Register(new ModelRoom { displayName = "Old", className = RoomA });
+            Register(new ModelRoom { displayName = "New", className = RoomA });
+            ModelRoomsController controller = null;
+            yield return LoadScene(c => controller = c);
+
+            CollectionAssert.AreEqual(new[] { "New" }, RoomDropdown(controller).choices);
+        }
+
+        [TestCase(null)]
+        [TestCase("")]
+        public void Register_EmptyDisplayName_Throws(string displayName)
+        {
+            Assert.Throws<ArgumentException>(() =>
+                ModelRoomsController.Register(new ModelRoom { displayName = displayName, className = RoomA }));
+        }
+
+        // inject の例外はログに出て、3 列とも組まれてメッセージが出る
+        [UnityTest]
+        public IEnumerator InjectThrows_OtherColumnsStillShowMessage()
+        {
+            Register(new ModelRoom { displayName = "A", className = RoomA, inject = stage => throw new InvalidOperationException("inject failed") });
+            LogAssert.Expect(LogType.Exception, "InvalidOperationException: inject failed");
+            ModelRoomsController controller = null;
+            yield return LoadScene(c => controller = c);
+
+            var columns = Columns(controller);
+            Assert.AreEqual(3, columns.Count);
+            foreach (var column in columns)
+                Assert.AreEqual(0, MessageOf(column).pageIndex);
+        }
+
+        // (C) 送り切った列の Dialog だけが開く
+        [UnityTest]
+        public IEnumerator Advance_ToCompleted_OpensColumnDialog([Values(0, 1, 2)] int index)
         {
             ModelRoomsController controller = null;
             yield return LoadScene(c => controller = c);
-            var column = Columns(controller)[0];
-            Assert.IsFalse(DialogOf(column).isOpen);
+            var columns = Columns(controller);
+            Assert.IsFalse(DialogOf(columns[index]).isOpen);
 
+            AdvanceToCompleted(MessageOf(columns[index]));
+
+            for (var i = 0; i < columns.Count; i++)
+                Assert.AreEqual(i == index, DialogOf(columns[i]).isOpen, $"column {i}");
+        }
+
+        // (D) その列の見出しにだけ「はい」が出る
+        [UnityTest]
+        public IEnumerator YesSubmit_ClosesDialog_StatusShowsYes([Values(0, 1, 2)] int index)
+        {
+            ModelRoomsController controller = null;
+            yield return LoadScene(c => controller = c);
+            var columns = Columns(controller);
+            AdvanceToCompleted(MessageOf(columns[index]));
+
+            Submit(columns[index].Q<Hone.Button>("yes"));
+
+            Assert.IsFalse(DialogOf(columns[index]).isOpen);
+            for (var i = 0; i < columns.Count; i++)
+                Assert.AreEqual(i == index ? "はい" : "", StatusOf(columns[i]).text, $"column {i}");
+        }
+
+        [UnityTest]
+        public IEnumerator NoSubmit_ClosesDialog_StatusShowsNo([Values(0, 1, 2)] int index)
+        {
+            ModelRoomsController controller = null;
+            yield return LoadScene(c => controller = c);
+            var column = Columns(controller)[index];
             AdvanceToCompleted(MessageOf(column));
 
-            Assert.IsTrue(DialogOf(column).isOpen);
-        }
-
-        // (D)
-        [UnityTest]
-        public IEnumerator YesSubmit_ClosesDialog_StatusShowsYes()
-        {
-            ModelRoomsController controller = null;
-            yield return LoadScene(c => controller = c);
-            var column = Columns(controller)[0];
-            AdvanceToCompleted(MessageOf(column));
-
-            Submit(column.Q<Hone.Button>("yes"));
+            Submit(column.Q<Hone.Button>("no"));
 
             Assert.IsFalse(DialogOf(column).isOpen);
-            Assert.AreEqual("はい", StatusOf(column).text);
+            Assert.AreEqual("いいえ", StatusOf(column).text);
         }
 
-        // (E)
+        // (E) 開いていた Dialog が閉じ、メッセージが 1 ページ目に戻る
         [UnityTest]
-        public IEnumerator AgainSubmit_ResetsPageIndexToZero()
+        public IEnumerator AgainSubmit_ResetsPageIndexToZero([Values(0, 1, 2)] int index)
         {
             ModelRoomsController controller = null;
             yield return LoadScene(c => controller = c);
-            var column = Columns(controller)[0];
+            var column = Columns(controller)[index];
             AdvanceToCompleted(MessageOf(column));
             Assert.AreNotEqual(0, MessageOf(column).pageIndex);
 
             Submit(column.Q<UnityEngine.UIElements.Button>("again"));
 
             Assert.AreEqual(0, MessageOf(column).pageIndex);
+            Assert.IsFalse(DialogOf(column).isOpen);
+        }
+
+        // 「もう一度」の後に最後まで送ると、Dialog がもう一度開く
+        [UnityTest]
+        public IEnumerator AgainSubmit_ThenAdvanceToCompleted_OpensDialogAgain()
+        {
+            ModelRoomsController controller = null;
+            yield return LoadScene(c => controller = c);
+            var column = Columns(controller)[0];
+            AdvanceToCompleted(MessageOf(column));
+            Submit(column.Q<Hone.Button>("yes"));
+            Submit(column.Q<UnityEngine.UIElements.Button>("again"));
+
+            AdvanceToCompleted(MessageOf(column));
+
+            Assert.IsTrue(DialogOf(column).isOpen);
         }
     }
 }
