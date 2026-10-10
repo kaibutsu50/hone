@@ -37,7 +37,7 @@
 | `ModelRoomsController.cs` | 登録、列の組み立て、流れ |
 | `Hone.Sandbox.ModelRooms.asmdef` | `Hone.Sandbox.UI` と `Hone.Core` を参照。`autoReferenced` は false。ルームのスクリプトもこのアセンブリに入る |
 | `ClassicJrpg/` | クラシック JRPG 風のルーム。`ClassicJrpg.uss`（段階 2）、`ClassicJrpgRoom.cs`（登録と段階 3 の `inject`）、`Cursor.png`（自作の ▶）。フォントは `Sandbox/Fonts/` の M PLUS Rounded 1c |
-| `TextAdventure/` | テキストアドベンチャー風のルーム。`TextAdventure.uss`（段階 2）、`TextAdventureRoom.cs`（登録と段階 3 の `inject`）、`Nameplate.svg`（自作の名札の背景）とそれを変換した `Nameplate.png`。☞ は `Sandbox/Icons/` の Tabler Icons。フォントはクラシック JRPG 風と同じ |
+| `TextAdventure/` | テキストアドベンチャー風のルーム。`TextAdventure.uss`（段階 2）、`TextAdventureRoom.cs`（登録と段階 3 の `inject`）、`Nameplate.svg`（自作の名札の背景）と `WindowFrame.svg`（自作の窓の枠と地）、それぞれを変換した PNG。☞ は `Sandbox/Icons/` の Tabler Icons。フォントは `Sandbox/Fonts/` の DotGothic16（本文は 28px 用の `DotGothic16-28.asset`、名札は `DotGothic16.asset`。Standard の生成器で描く） |
 
 `HoneTheme.tss` を変えたら（コンポーネントの追加、フォントの変更）、`ModelRoomsTheme.tss` の `@import` と `:root` も同じに直す。`HoneTheme.tss` にルームの `@import` は足さない（Gallery とテストが使うテーマを汚すため）。
 
@@ -55,8 +55,8 @@ static void Register()
 {
     ModelRoomsController.Register(new ModelRoom
     {
-        displayName = "クラシック JRPG 風",
-        className = "room-classic-jrpg",
+        displayName = "<ジャンル名> 風",
+        className = "room-<genre>",
         pages = new[] { new MessageWindow.Page(null, "1 ページ目"), new MessageWindow.Page("話者", "2 ページ目") },
         question = "問い",   // 省略すると YesNo.uxml の文面のまま
         yes = "はい",

@@ -24,6 +24,7 @@ namespace Hone.Sandbox.Tests
         const int MaxWaitFrames = 60;
 
         const string RoomFontPath = "Assets/Hone/Sandbox/Fonts/MPLUSRounded1c.asset";
+        const string TextAdventureFontPath = "Assets/Hone/Sandbox/Fonts/DotGothic16-28.asset";
 
         // Register は static で、Domain Reload 無効の Editor では Play をまたいで残る。他のテストや撮影に混ざらないよう、登録した className を必ず消す
         readonly List<string> m_Registered = new List<string>();
@@ -401,6 +402,8 @@ namespace Hone.Sandbox.Tests
             Register(new ModelRoom { displayName = "B", className = RoomB });
             ModelRoomsController controller = null;
             yield return LoadScene(c => controller = c);
+            // 前提: 最初に組まれたルーム A の文面が当たっている
+            Assert.AreEqual("yes text", Columns(controller)[0].Q<Hone.Button>("yes").text);
 
             controller.SelectRoom(RoomB);
 
@@ -425,9 +428,9 @@ namespace Hone.Sandbox.Tests
 
         IEnumerator LoadAndSelectClassicJrpg(Action<ModelRoomsController> onReady) => LoadAndSelect(ClassicJrpgRoom.Room, onReady);
 
-        // 本文の Label（.hone-text）が使っているフォント
+        // 本文の Label（.hone-message-window__text）が使っているフォント。先頭の .hone-text は名札なので、本文のクラスで引く
         static UnityEngine.TextCore.Text.FontAsset BodyFont(VisualElement column) =>
-            MessageOf(column).Q(className: "hone-text").resolvedStyle.unityFontDefinition.fontAsset;
+            MessageOf(column).Q(className: "hone-message-window__text").resolvedStyle.unityFontDefinition.fontAsset;
 
         // (A) 2 列目と 3 列目の本文だけが、ルームのフォントになる。組み直した列のスタイルは後の update で解決されるので、ルームのフォントになるまで待つ
         [UnityTest]
@@ -469,14 +472,14 @@ namespace Hone.Sandbox.Tests
             }
         }
 
-        // (A) テキストアドベンチャー風: 2 列目と 3 列目の本文だけが、ルームのフォントになる（クラシック JRPG 風と同じフォントなので、素の列と違うことを見る）
+        // (A) テキストアドベンチャー風: 2 列目と 3 列目の本文だけが、ルームのフォント（DotGothic16）になる
         [UnityTest]
         public IEnumerator TextAdventure_Select_AppliesRoomFontToColumns2And3Only()
         {
             ModelRoomsController controller = null;
             yield return LoadAndSelect(TextAdventureRoom.Room, c => controller = c);
-            var expected = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.TextCore.Text.FontAsset>(RoomFontPath);
-            Assert.IsNotNull(expected, $"{RoomFontPath} was not found");
+            var expected = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.TextCore.Text.FontAsset>(TextAdventureFontPath);
+            Assert.IsNotNull(expected, $"{TextAdventureFontPath} was not found");
             var columns = Columns(controller);
             var frames = 0;
             while (BodyFont(columns[1]) != expected && frames < MaxWaitFrames)
@@ -488,6 +491,21 @@ namespace Hone.Sandbox.Tests
             Assert.AreNotSame(expected, BodyFont(columns[0]));
             Assert.AreSame(expected, BodyFont(columns[1]));
             Assert.AreSame(expected, BodyFont(columns[2]));
+        }
+
+        // テキストアドベンチャー風: ページの話者が 3 列とも名札に出る（素の列も同じ文面）
+        [UnityTest]
+        public IEnumerator TextAdventure_Select_ShowsSpeakerInAllColumns()
+        {
+            ModelRoomsController controller = null;
+            yield return LoadAndSelect(TextAdventureRoom.Room, c => controller = c);
+
+            foreach (var column in Columns(controller))
+            {
+                var message = MessageOf(column);
+                Assert.IsTrue(message.ClassListContains("is-speaker-set"));
+                Assert.AreEqual(TextAdventureRoom.Room.pages[0].speaker, message.Q<Label>(className: "hone-message-window__speaker").text);
+            }
         }
 
         // (B) テキストアドベンチャー風: 演出の設定（文字送りと確定の間）が入るのは 3 列目だけ

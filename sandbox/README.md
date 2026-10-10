@@ -41,7 +41,8 @@ Assets/Hone/
     WorldSpacePanelSettings2.asset  WorldSpacePanelSettings.asset の複製（中身は同じ）。同じ asset を 2 枚の PanelRenderer に割り当てると同じ panel になるので、WorldSpace/ の 2 枚目の panel 用に分けてある
     Fonts/            検証用フォント。RobotoMono-Regular.ttf（Apache-2.0、Unity Editor 同梱）とその LICENSE、そこから作った Dynamic の FontAsset。
                       DotGothic16-Regular.ttf（SIL OFL 1.1、google/fonts の ofl/dotgothic16）とその OFL.txt、そこから作った Dynamic の DotGothic16.asset
-                      （「RoomExp の検証」の (c) の推奨値。RASTER_HINTED、sampling 16、padding 1、atlas の Filter Mode は Point、multi atlas は無効）。
+                      （「RoomExp の検証」の (c) の推奨値。RASTER_HINTED、sampling 16、padding 1、atlas の Filter Mode は Point、multi atlas は無効）と、
+                      28px で直接ラスタライズする DotGothic16-28.asset（sampling 28。ほかは同じ。行の高さを 35.5 に変えてある。ModelRooms のテキストアドベンチャー風が使う。「既知の事項」）。
                       MPLUSRounded1c-Medium.ttf（SIL OFL 1.1、google/fonts の ofl/mplusrounded1c）とその MPLUSRounded1c-OFL.txt、そこから作った Dynamic の MPLUSRounded1c.asset
                       （Hone > Sync と同じ設定。SDFAA、sampling 90、padding 9、multi atlas 有効）。ModelRooms のクラシック JRPG 風が使う。
                       取得した時点（2026-10）の google/fonts のこのフォルダには OFL.txt が無かったので、MPLUSRounded1c-OFL.txt は、フォントの name table と METADATA.pb の著作権表記に、OFL 1.1 の本文（OFL.txt と同じ）を付けたもの
@@ -62,7 +63,7 @@ Assets/Hone/
                       Message.uxml と YesNo.uxml（全ルーム共通の構造）、ModelRoom（ルームの定義）、ModelRoomsController（登録、列の組み立て、流れ）、ModelRoomsTheme.tss（ModelRooms 専用の theme。HoneTheme.tss と同じ @import に、ルームの USS の @import を足す）、
                       ModelRoomsPanelSettings.asset（PanelSettings.asset の複製で、Theme Style Sheet だけ ModelRoomsTheme.tss）、Hone.Sandbox.ModelRooms.asmdef（Tests/PlayMode が参照する。Hone.Sandbox.UI と Hone.Core を参照し、autoReferenced は false）。
                       ClassicJrpg/ はクラシック JRPG 風のルーム（ClassicJrpg.uss、ClassicJrpgRoom.cs、Cursor.png）。
-                      TextAdventure/ はテキストアドベンチャー風のルーム（TextAdventure.uss、TextAdventureRoom.cs、名札の背景の Nameplate.svg と、それを ImageMagick で変換した Nameplate.png）。使い方は ModelRooms/README.md
+                      TextAdventure/ はテキストアドベンチャー風のルーム（TextAdventure.uss、TextAdventureRoom.cs、名札の背景の Nameplate.svg と窓の枠と地の WindowFrame.svg、それぞれを ImageMagick で変換した PNG）。フォントは本文が DotGothic16-28.asset の 28px、名札が DotGothic16.asset の 16px。使い方は ModelRooms/README.md
     Icons/            検証用アイコン。hand-finger-right.svg（Tabler Icons、MIT。線の色だけ白に改変）とその TablerIcons-LICENSE.txt。
                       Texture2D として import する（.meta の svgType: 2）。理由は「既知の事項」の SVG の項。ModelRooms のテキストアドベンチャー風が使う
     Tests/EditMode/   EditMode テスト。HoneSyncTests（`Assets/HoneSyncTestsTmp/` に manifest と PanelSettings を作って `HoneSync.Run` を呼び、終わったら消す）
@@ -466,6 +467,17 @@ unity command editor_stop --project-path <sandbox の絶対パス>
 - SVG は、パッケージを足さなくても Unity 内蔵の SVG importer（`UnityEditor.VectorGraphicsModule` の `SVGImporter`）で import される。既定は UI Toolkit の Vector Image（.meta の `svgType: 3`）。
   ただし Vector Image を `Hone.Button` の `background-image` にすると、そのボタンの文字が描かれなかった（`:focus` のときだけ付けた場合。画像は出る。6000.7.0b2、Screen Space。World Space は未確認）。
   同じ SVG を Texture2D として import する（`svgType: 2`、大きさは `textureWidth` / `textureHeight`）と、画像と文字の両方が出た。`background-image` に使う SVG は Texture2D で import する。
+- DotGothic16 を 16 の整数倍でない大きさ（28px）で描くとき（Standard の生成器、6000.7.0b2）:
+  16px 用の `DotGothic16.asset`（sampling 16）を引き伸ばすと、字の横や下に別の字のかけらが出て字形が崩れた。TTF を `FontDefinition.FromFont` で直に指すと、崩れはないが縁がにじんだ。
+  その大きさで直接ラスタライズする FontAsset（`DotGothic16-28.asset`。RASTER_HINTED、sampling 28、padding 1、atlas 1024、Dynamic、multi atlas 無効、atlas は Point）を作ると、くっきり描けた。
+  作り方は HoneSync の `LoadOrCreateFontAsset` と同じ（`FontAsset.CreateFontAsset` の後に `CreateAsset`、atlas と material をサブアセットとして足す）
+- 行の間隔は USS では指定できないが、FontAsset の行の高さ（`faceInfo.lineHeight`。Inspector の Line Height）で変えられる。2 行目の位置は 1 行目から lineHeight だけ下がる。
+  `DotGothic16-28.asset` は 40.544 を 35.5 に変えた（テキストアドベンチャー風の参考の行の間隔に合わせた。6000.7.0b2、Standard の生成器）
+- Standard の生成器で描く Label に `overflow: hidden` があると、文字の位置は正しいのに文字が丸ごと描かれなかった（MessageWindow の名札。`text-overflow` や `letter-spacing` を変えても同じで、`overflow: visible` で出た。6000.7.0b2）。
+  Advanced の生成器に切り替えると、箱の下端の外にだけ文字のかけらが見えた
+- USS の `z-index` は 6000.7.0b1 で入った（警告なしで読み込まれる）。ただし子要素に `z-index: -1` を付けても、親の枠（border）より奥には描かれなかった。
+  MessageWindow の名札（子、`position: absolute`）に付けて、窓の上の枠と重なる部分の画素が、付けないときと完全に同じだった（6000.7.0b2、Screen Space）。
+  子を親の枠より奥に見せたいときは、子の画像に親の枠と同じ線を描き込む。兄弟どうしの重なり順に効くかは確かめていない
 - `Hone.Core` / `Hone.Core.Editor` は `.cs` が 1 本も無い間は Unity がアセンブリを生成しない。
   `Core/` に最初のスクリプトが入った時点で `Library/ScriptAssemblies/` に現れる。
   `Hone.Core.Editor` は asmdef の `includePlatforms` が `Editor` のみなので、Player ビルドには含まれない。

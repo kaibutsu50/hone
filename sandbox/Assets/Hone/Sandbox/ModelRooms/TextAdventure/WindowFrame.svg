@@ -1,0 +1,17 @@
+<!--
+  テキストアドベンチャー風のメッセージの窓の枠と地（自作）。角丸 8px。枠は 2 段（外 2px が明るい白の 60%、内 2px がその 45%）、
+  地は上がわずかに明るい縦のグラデーションの半透明の黒（立体感）。USS では 2 段の枠と linear-gradient を書けないので、まとめて画像にする。
+  TextAdventure.uss が 9-slice（四辺とも 10）で窓の大きさに伸ばす。
+  PNG への変換（このディレクトリで実行）: magick -background none WindowFrame.svg PNG32:WindowFrame.png
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="96" viewBox="0 0 64 96">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#25252d" stop-opacity="0.6"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.66"/>
+    </linearGradient>
+  </defs>
+  <path d="M8 4 H56 A4 4 0 0 1 60 8 V88 A4 4 0 0 1 56 92 H8 A4 4 0 0 1 4 88 V8 A4 4 0 0 1 8 4 Z" fill="url(#g)"/>
+  <path d="M8 0 H56 A8 8 0 0 1 64 8 V88 A8 8 0 0 1 56 96 H8 A8 8 0 0 1 0 88 V8 A8 8 0 0 1 8 0 Z M8 2 H56 A6 6 0 0 1 62 8 V88 A6 6 0 0 1 56 94 H8 A6 6 0 0 1 2 88 V8 A6 6 0 0 1 8 2 Z" fill="rgb(236,238,252)" fill-opacity="0.6" fill-rule="evenodd"/>
+  <path d="M8 2 H56 A6 6 0 0 1 62 8 V88 A6 6 0 0 1 56 94 H8 A6 6 0 0 1 2 88 V8 A6 6 0 0 1 8 2 Z M8 4 H56 A4 4 0 0 1 60 8 V88 A4 4 0 0 1 56 92 H8 A4 4 0 0 1 4 88 V8 A4 4 0 0 1 8 4 Z" fill="rgb(236,238,252)" fill-opacity="0.27" fill-rule="evenodd"/>
+</svg>

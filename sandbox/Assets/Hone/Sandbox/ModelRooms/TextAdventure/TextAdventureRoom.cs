@@ -6,7 +6,8 @@ namespace Hone.Sandbox.ModelRooms
     // テキストアドベンチャー風のモデルルーム。段階 2 の見た目は TextAdventure.uss、段階 3 の演出は Inject が足す。
     // 話者は名札（MessageWindow.Page の speaker）で出す。選択肢の場面の問いと文面は ModelRoom の question / yes / no で渡す。
     // ループする演出（▼ の点滅）は、schedule で舞台に状態クラスを付け外しし、見た目は USS に任せる。
-    // 部品は演出を持たないので、使う口は部品の設定（charactersPerSecond、commitDelay）と状態（.is-holding、.is-waiting）だけ。
+    // 部品は演出を持たないので、使う口は部品の設定（charactersPerSecond、commitDelay）と状態（.is-holding、:focus）だけ。
+    // ▼ が見えるかどうかは部品の .is-waiting（MessageWindow.uss の visibility）に、名札が見えるかどうかは .is-speaker-set に任せる。
     public static class TextAdventureRoom
     {
         public const string ClassName = "room-text-adventure";

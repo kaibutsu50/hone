@@ -1,7 +1,7 @@
 <!--
-Tabler Icons の hand-finger-right（version 3.10、MIT。ライセンスは同じディレクトリの TablerIcons-LICENSE.txt）。
-https://github.com/tabler/tabler-icons/blob/main/icons/outline/hand-finger-right.svg
-改変: 線の色を currentColor から白（#ffffff）に変えた（UI Toolkit の Vector Image は currentColor を解決しないため）。
+Tabler Icons の hand-finger-right（Tabler Icons 3.10 で入ったアイコン。MIT。ライセンスは同じディレクトリの TablerIcons-LICENSE.txt）。
+2026-10 に https://github.com/tabler/tabler-icons/blob/main/icons/outline/hand-finger-right.svg から取得した（path は取得時点のものと同じ）。
+改変: 線の色を currentColor から白（#ffffff）に変えた（色を受け取る口が無い背景画像として使うので、色を画像に焼き込む）。先頭の front-matter のコメントは外した。
 -->
 <svg
   xmlns="http://www.w3.org/2000/svg"
