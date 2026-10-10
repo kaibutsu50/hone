@@ -3,6 +3,6 @@
         <hone:Button text="Default" />
         <hone:Button variant="outline" text="Outline" />
         <hone:Button variant="ghost" text="Ghost" />
-        <hone:Button variant="destructive" text="Destructive" />
+        <hone:Button variant="destructive" commit-delay="0.5" text="Destructive" />
     </ui:VisualElement>
 </ui:UXML>
