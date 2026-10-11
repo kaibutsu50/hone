@@ -4,6 +4,7 @@ using UnityEngine.UIElements;
 namespace Hone.Sandbox.ModelRooms
 {
     // レトロインディー RPG 風のモデルルーム。段階 2 の見た目は RetroIndieRpg.uss、段階 3 の演出は Inject が足す。
+    // メッセージは会話の窓、はい / いいえ の Dialog はセーブの窓として見せる（文面は question / yes / no）。
     // ループする演出（ハートの揺れ）は、schedule で舞台に状態クラスを付け外しし、動きは USS に任せる。
     // 部品は演出を持たないので、使う口は部品の設定（charactersPerSecond、commitDelay）と状態（.is-holding、:focus）だけ。
     // ▼ が見えるかどうかは部品の .is-waiting（MessageWindow.uss の visibility）に任せる。
@@ -27,6 +28,11 @@ namespace Hone.Sandbox.ModelRooms
                 new MessageWindow.Page(null, "＊（いつかネズミは　すあなからでて\n　　チーズを　かじるかもしれない…）"),
                 new MessageWindow.Page(null, "＊（そうおもったら\n　　ケツイが　みなぎった）"),
             },
+            // はい / いいえ の Dialog はセーブの窓として使う。問いは 1 行目に記録の名前・LV・時間、1 行空けて中央に「―」。
+            // 桁は全角（14px）と半角（7px）の空白でそろえる（RetroIndieRpg.uss の pre-wrap）。参考の文言から少し変えてある
+            question = "きろくなし　　　 LV 1　　 0:00\n\n　　　　　　　 ―",
+            yes = "きろく",
+            no = "やめる",
             inject = Inject,
         };
 
