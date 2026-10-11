@@ -1,0 +1,14 @@
+JF-Dot-Shinonome14.ttf (JFドット東雲ゴシック14)
+
+License: Public Domain
+
+The original bitmap font is the Shinonome bitmap font family by The Electronic Font Open Laboratory,
+released into the public domain. The TrueType version was made by 自家製フォント工房 (jikasei),
+which claims no copyright and exercises no rights over the converted data.
+
+Per the distributor: personal use, commercial use, embedding in applications, modification and
+redistribution are all permitted without restriction, and no credit or license notice is required.
+Provided without warranty.
+
+Source: http://jikasei.me/font/jf-dotfont/ (jfdotfont-20150527.zip)
+The archive contains no license document; this file records the terms stated on the distributor's page.

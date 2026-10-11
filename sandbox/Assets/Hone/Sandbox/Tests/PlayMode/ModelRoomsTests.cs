@@ -25,7 +25,7 @@ namespace Hone.Sandbox.Tests
 
         const string RoomFontPath = "Assets/Hone/Sandbox/Fonts/MPLUSRounded1c.asset";
         const string TextAdventureFontPath = "Assets/Hone/Sandbox/Fonts/DotGothic16-28.asset";
-        const string RetroIndieRpgFontPath = "Assets/Hone/Sandbox/Fonts/DotGothic16.asset";
+        const string RetroIndieRpgFontPath = "Assets/Hone/Sandbox/Fonts/JF-Dot-Shinonome14.asset";
 
         // Register は static で、Domain Reload 無効の Editor では Play をまたいで残る。他のテストや撮影に混ざらないよう、登録した className を必ず消す
         readonly List<string> m_Registered = new List<string>();
@@ -530,7 +530,7 @@ namespace Hone.Sandbox.Tests
             }
         }
 
-        // (A) レトロインディー RPG 風: 2 列目と 3 列目の本文だけが、ルームのフォント（DotGothic16）になる
+        // (A) レトロインディー RPG 風: 2 列目と 3 列目の本文だけが、ルームのフォント（JF ドット東雲ゴシック 14）になる
         [UnityTest]
         public IEnumerator RetroIndieRpg_Select_AppliesRoomFontToColumns2And3Only()
         {

@@ -3,15 +3,16 @@
  * トークンで表せる値は先頭の規則でトークンを上書きし、表せない値だけを部品の規則の上書きに書く。
  *
  * 大きさは、参考の画面（640×480、4:3）を 1/2 倍（320×240）の px で書く。
- * 他のルームのように舞台の高さ 320px へ合わせると、参考の本文の字（32px）が 21px 前後になり、DotGothic16 の 16 の整数倍（sandbox/README.md の「RoomExp の検証」の (c)）にならない。
- * 1/2 倍なら 32px がちょうど 16px になるので、字の大きさから縮尺を決めた。窓の枠（6px）は 3px、ボタンの枠（約 3px）は 2px になる。
+ * 参考の本文は 14 ドットのドット文字を 2 倍（28px）で描いているので、1/2 倍ならちょうど 14px になり、FontAsset のドットの格子（sampling 14）と一致する。
+ * 他のルームのように舞台の高さ 320px へ合わせると、本文が 19px 前後になり、格子の整数倍にならない（sandbox/README.md の「RoomExp の検証」の (c)）。そのため字の大きさから縮尺を決めた。
+ * 窓の枠（6px）は 3px、ボタンの枠（約 3px）は 1.5px を整数に丸めて 2px にした。
  * 舞台の高さ 320px は 240px より大きいので、窓は舞台の下端に寄せる。舞台の余白（ModelRooms.uss の .model-room-stage の padding）は差し引かない。舞台の高さや余白が変わったら換算し直す。
  * 値は参考の画面の公開されたレイアウトからの目安で、人が参考と見比べて調整する。 */
 
 .room-retro-indie-rpg {
-    /* 参考はドット文字なので DotGothic16（16px 用。RASTER_HINTED、sampling 16、atlas は Point）。
-     * Advanced Text Generator では字形が壊れるので Standard の生成器で描く（sandbox/README.md の「RoomExp の検証」の (c)）。font-size は 16 の整数倍 */
-    --hone-font-body: url("project://database/Assets/Hone/Sandbox/Fonts/DotGothic16.asset?fileID=11400000&guid=0ca85d51ff7f9e14fa49cd7c1a1b0d09&type=2#DotGothic16");
+    /* 参考と同じ JF ドット東雲ゴシック 14（パブリックドメイン。14px 用の FontAsset で、RASTER_HINTED、sampling 14、atlas は Point）。
+     * Advanced Text Generator ではドット文字の字形が壊れるので Standard の生成器で描く（sandbox/README.md の「RoomExp の検証」の (c)）。font-size は 14 の整数倍 */
+    --hone-font-body: url("project://database/Assets/Hone/Sandbox/Fonts/JF-Dot-Shinonome14.asset?fileID=11400000&guid=8b07704abbbedb54e9b59d0a376e54c0&type=2#JF-Dot-Shinonome14");
     -unity-text-generator: standard;
 
     /* 黒地に白。文字はすべて白（▼ の muted も白）。ボタンの橙と黄は下の Button の規則に書く（トークンの primary は塗りに使う色で、このルームのボタンは塗らない） */
@@ -19,7 +20,8 @@
     --hone-color-foreground: rgb(255, 255, 255);
     --hone-color-muted-foreground: rgb(255, 255, 255);
     --hone-color-border: rgb(255, 255, 255);
-    /* outline の Button（いいえ）の :hover は accent を地と文字に使う。地は透明、文字は橙のままにして、:hover で見た目が変わらないようにする */
+    /* outline の Button（いいえ）の :hover は accent を地と文字に使う。地と文字はルームの Button の規則（同じ詳細度で後に読まれる）で既に決まるが、
+     * accent を参照するほかの規則でも同じ見た目になるよう、透明と橙に揃えておく */
     --hone-color-accent: rgba(0, 0, 0, 0);
     --hone-color-accent-foreground: rgb(255, 127, 39);
     /* overlay は透明（背後の画面を暗くしない） */
@@ -35,9 +37,9 @@
     --hone-radius-md: 0;
     --hone-radius-lg: 0;
 
-    /* 参考の本文 32px の 1/2 */
-    --hone-font-size-sm: 16px;
-    --hone-font-size-md: 16px;
+    /* 参考の本文 28px の 1/2 */
+    --hone-font-size-sm: 14px;
+    --hone-font-size-md: 14px;
 }
 
 /* 舞台の背景。参考の戦闘の画面は黒地なので、舞台も黒にする（窓の白い枠が地に浮く）。部品の規則ではなく舞台（sandbox）の見た目 */
@@ -49,7 +51,7 @@
 
 /* 画面の下の横長の白枠。幅 288px（参考の 576px）、高さ 70px（参考の 140px）で、下の ボタンの行と 23px 空ける（参考の 47px）。
  * 下の余白 51px = ボタンの行の下の余白 4px + ボタンの高さ 24px + 窓との間 23px（メッセージと Dialog は同じ層の中にあるので、同じ基準で測れる）。
- * 内側の余白は、3 行（DotGothic16 の 16px で 1 行 約 21px）が高さ 70px（枠 3px × 2 を含む）に収まるように決めた */
+ * 高さ 70px は枠を含むので、内側は 70 - 枠 3×2 - 余白 1×2 = 62px。FontAsset の行の高さは 14px なので、3 行（42px）が収まる */
 .room-retro-indie-rpg .hone-message-window {
     align-self: center;
     width: 288px;
@@ -58,7 +60,7 @@
     padding: 1px 10px;
 }
 
-/* 文面の全角の空白（語の区切り、行頭の字下げ）を、1 文字分の幅のまま出す。部品の white-space: normal は、続く空白をまとめ、行頭の空白を消す */
+/* 文面の全角の空白（語の区切り、改行した行の頭の字下げ）を、1 文字分の幅のまま出す。部品の white-space: normal は、続く空白をまとめ、行頭の空白を消す */
 .room-retro-indie-rpg .hone-message-window__text {
     white-space: pre-wrap;
 }
@@ -74,7 +76,7 @@
 
 /* ---- はい / いいえ ---- */
 
-/* 質問文はメッセージ側に出るので、はい / いいえ の窓には出さない */
+/* 参考の選択肢は問いの文を出さず、ボタンだけが並ぶので、問い（Dialog の description）を隠す */
 .room-retro-indie-rpg .hone-dialog__description {
     display: none;
 }
@@ -107,8 +109,8 @@
     margin-right: 20px;
 }
 
-/* Button は黒地に橙の枠（2px）と橙の文字。高さ 24px（参考の約 40px の 1/2 より、16px の字が入る高さに広げた）。幅は文字に従う（固定しない）。
- * 左の 27px にアイコン（下の #yes / #no）を置く。アイコンの左の余白 6px + アイコン 16px + 文字との間 5px */
+/* Button は黒地に橙の枠（2px）と橙の文字。高さ 24px（参考の約 40px の 1/2 より詰めた。内側は 24 - 枠 2×2 = 20px で、行の高さ 14px が収まる）。幅は文字に従う（固定しない）。
+ * 左の 27px にアイコン（下の #yes / #no）を置く。枠の内側から、アイコンの左の余白 6px + アイコン 16px + 文字との間 5px */
 .room-retro-indie-rpg .hone-button {
     height: 24px;
     padding: 0 8px 0 27px;
@@ -126,6 +128,7 @@
 }
 
 /* アイコン。8×7 の自作のドット絵を 2 倍（16×14）で、Button の左に置く。Point で拡大するので縁がにじまない（.meta の filterMode: 0）。
+ * 縦の位置は撮影で文字と見比べて決めた値（top 5px で、アイコンと字の縦の中央がそろう）。
  * 共通の構造では はい / いいえ に付くクラスが同じ（variant の違いだけ）なので、名前（#yes / #no）で書く。
  * 名前の規則は詳細度が高い（ID）ので、フォーカスでハートに替える下の規則にも名前を付ける */
 .room-retro-indie-rpg #yes,

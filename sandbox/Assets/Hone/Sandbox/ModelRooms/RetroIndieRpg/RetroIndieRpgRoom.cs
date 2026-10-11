@@ -20,12 +20,12 @@ namespace Hone.Sandbox.ModelRooms
         {
             displayName = "レトロインディー RPG 風",
             className = ClassName,
-            // 語の区切りは全角の空白。話し手の印「＊」は名札ではなく本文に混ぜ、折り返した行は 2 字下げる（書き出しの位置はページによらず同じ）。
-            // 文面は仮の表記（公式の日本語を確かめていない）。環境の描写の 1 行目は、このルームで書き足した
+            // 語の区切りは全角の空白。話し手の印「＊」は名札ではなく本文に混ぜ、改行した 2 行目は 2 字下げる（書き出しの位置はページによらず同じ）。
+            // 1 行は 18 字まで（窓の内側の幅 262px を 14px の字で割った数）。それより長い行は折り返して字下げが崩れるので、改行を入れる
             pages = new[]
             {
-                new MessageWindow.Page(null, "＊　ちいさな　ひかりが\n　　ゆれている。"),
-                new MessageWindow.Page(null, "＊　ケツイが　みなぎった。"),
+                new MessageWindow.Page(null, "＊（いつかネズミは　すあなからでて\n　　チーズを　かじるかもしれない…）"),
+                new MessageWindow.Page(null, "＊（そうおもったら\n　　ケツイが　みなぎった）"),
             },
             inject = Inject,
         };
