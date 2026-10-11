@@ -45,6 +45,8 @@ Assets/Hone/
                       28px で直接ラスタライズする DotGothic16-28.asset（sampling 28。ほかは同じ。行の高さを 35.5 に変えてある。ModelRooms のテキストアドベンチャー風が使う。「既知の事項」）。
                       MPLUSRounded1c-Medium.ttf（SIL OFL 1.1、google/fonts の ofl/mplusrounded1c）とその MPLUSRounded1c-OFL.txt、そこから作った Dynamic の MPLUSRounded1c.asset
                       （Hone > Sync と同じ設定。SDFAA、sampling 90、padding 9、multi atlas 有効）。ModelRooms のクラシック JRPG 風が使う。
+                      JF-Dot-Shinonome14.ttf（JF ドット東雲ゴシック 14。パブリックドメイン、自家製フォント工房の jfdotfont-20150527）とその JF-Dot-Shinonome14-LICENSE.txt（配布元のページに書かれた条件の記録。アーカイブにライセンス文書は入っていない）、
+                      そこから作った Dynamic の JF-Dot-Shinonome14.asset（RASTER_HINTED、sampling 14、padding 1、atlas 1024 の Filter Mode は Point、multi atlas は無効）。ModelRooms のレトロインディー RPG 風が使う。
                       取得した時点（2026-10）の google/fonts のこのフォルダには OFL.txt が無かったので、MPLUSRounded1c-OFL.txt は、フォントの name table と METADATA.pb の著作権表記に、OFL 1.1 の本文（OFL.txt と同じ）を付けたもの
     Experiments/<Name>/   Issue ごとの検証。FontVar/ は `-unity-font-definition` を USS 変数経由で差し替えられるかの検証
                       FontVar/Resources/Fonts/ は case 3（`resource()`）用の Fonts/RobotoMono.asset の複製。元を作り直したら同期する。
@@ -63,7 +65,8 @@ Assets/Hone/
                       Message.uxml と YesNo.uxml（全ルーム共通の構造）、ModelRoom（ルームの定義）、ModelRoomsController（登録、列の組み立て、流れ）、ModelRoomsTheme.tss（ModelRooms 専用の theme。HoneTheme.tss と同じ @import に、ルームの USS の @import を足す）、
                       ModelRoomsPanelSettings.asset（PanelSettings.asset の複製で、Theme Style Sheet だけ ModelRoomsTheme.tss）、Hone.Sandbox.ModelRooms.asmdef（Tests/PlayMode が参照する。Hone.Sandbox.UI と Hone.Core を参照し、autoReferenced は false）。
                       ClassicJrpg/ はクラシック JRPG 風のルーム（ClassicJrpg.uss、ClassicJrpgRoom.cs、Cursor.png）。
-                      TextAdventure/ はテキストアドベンチャー風のルーム（TextAdventure.uss、TextAdventureRoom.cs、名札の背景の Nameplate.svg と窓の枠と地の WindowFrame.svg、それぞれを ImageMagick で変換した PNG）。フォントは本文が DotGothic16-28.asset の 28px、名札が DotGothic16.asset の 16px。使い方は ModelRooms/README.md
+                      TextAdventure/ はテキストアドベンチャー風のルーム（TextAdventure.uss、TextAdventureRoom.cs、名札の背景の Nameplate.svg と窓の枠と地の WindowFrame.svg、それぞれを ImageMagick で変換した PNG）。フォントは本文が DotGothic16-28.asset の 28px、名札が DotGothic16.asset の 16px。
+                      RetroIndieRpg/ はレトロインディー RPG 風のルーム（RetroIndieRpg.uss、RetroIndieRpgRoom.cs、自作のドット絵の Heart.png。8×7 で、import は Point）。フォントは JF-Dot-Shinonome14.asset の 14px。使い方は ModelRooms/README.md
     Icons/            検証用アイコン。hand-finger-right.svg（Tabler Icons、MIT。線の色だけ白に改変）とその TablerIcons-LICENSE.txt。
                       Texture2D として import する（.meta の svgType: 2）。理由は「既知の事項」の SVG の項。ModelRooms のテキストアドベンチャー風が使う
     Tests/EditMode/   EditMode テスト。HoneSyncTests（`Assets/HoneSyncTestsTmp/` に manifest と PanelSettings を作って `HoneSync.Run` を呼び、終わったら消す）
