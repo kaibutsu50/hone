@@ -63,7 +63,8 @@ Assets/Hone/
                       Message.uxml と YesNo.uxml（全ルーム共通の構造）、ModelRoom（ルームの定義）、ModelRoomsController（登録、列の組み立て、流れ）、ModelRoomsTheme.tss（ModelRooms 専用の theme。HoneTheme.tss と同じ @import に、ルームの USS の @import を足す）、
                       ModelRoomsPanelSettings.asset（PanelSettings.asset の複製で、Theme Style Sheet だけ ModelRoomsTheme.tss）、Hone.Sandbox.ModelRooms.asmdef（Tests/PlayMode が参照する。Hone.Sandbox.UI と Hone.Core を参照し、autoReferenced は false）。
                       ClassicJrpg/ はクラシック JRPG 風のルーム（ClassicJrpg.uss、ClassicJrpgRoom.cs、Cursor.png）。
-                      TextAdventure/ はテキストアドベンチャー風のルーム（TextAdventure.uss、TextAdventureRoom.cs、名札の背景の Nameplate.svg と窓の枠と地の WindowFrame.svg、それぞれを ImageMagick で変換した PNG）。フォントは本文が DotGothic16-28.asset の 28px、名札が DotGothic16.asset の 16px。使い方は ModelRooms/README.md
+                      TextAdventure/ はテキストアドベンチャー風のルーム（TextAdventure.uss、TextAdventureRoom.cs、名札の背景の Nameplate.svg と窓の枠と地の WindowFrame.svg、それぞれを ImageMagick で変換した PNG）。フォントは本文が DotGothic16-28.asset の 28px、名札が DotGothic16.asset の 16px。
+                      RetroIndieRpg/ はレトロインディー RPG 風のルーム（RetroIndieRpg.uss、RetroIndieRpgRoom.cs、自作のドット絵の IconYes.png / IconNo.png / Heart.png。8×7 で、import は Point）。フォントは DotGothic16.asset の 16px。使い方は ModelRooms/README.md
     Icons/            検証用アイコン。hand-finger-right.svg（Tabler Icons、MIT。線の色だけ白に改変）とその TablerIcons-LICENSE.txt。
                       Texture2D として import する（.meta の svgType: 2）。理由は「既知の事項」の SVG の項。ModelRooms のテキストアドベンチャー風が使う
     Tests/EditMode/   EditMode テスト。HoneSyncTests（`Assets/HoneSyncTestsTmp/` に manifest と PanelSettings を作って `HoneSync.Run` を呼び、終わったら消す）

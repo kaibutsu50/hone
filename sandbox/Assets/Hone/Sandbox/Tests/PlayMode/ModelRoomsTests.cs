@@ -25,6 +25,7 @@ namespace Hone.Sandbox.Tests
 
         const string RoomFontPath = "Assets/Hone/Sandbox/Fonts/MPLUSRounded1c.asset";
         const string TextAdventureFontPath = "Assets/Hone/Sandbox/Fonts/DotGothic16-28.asset";
+        const string RetroIndieRpgFontPath = "Assets/Hone/Sandbox/Fonts/DotGothic16.asset";
 
         // Register は static で、Domain Reload 無効の Editor では Play をまたいで残る。他のテストや撮影に混ざらないよう、登録した className を必ず消す
         readonly List<string> m_Registered = new List<string>();
@@ -38,7 +39,7 @@ namespace Hone.Sandbox.Tests
             public int PageIndex;
         }
 
-        // クラシック JRPG 風とテキストアドベンチャー風は BeforeSceneLoad で登録される。基盤のテストは「登録したルームだけがある」前提なので、外してから始め、終わったら登録を戻す
+        // クラシック JRPG 風とテキストアドベンチャー風とレトロインディー RPG 風は BeforeSceneLoad で登録される。基盤のテストは「登録したルームだけがある」前提なので、外してから始め、終わったら登録を戻す
         // （戻すと末尾に付くので、ルームが 2 つ以上あると登録の順は戻らない）。ルームのテストは、自分で Register する。
         // BeforeSceneLoad で登録するルームを足したら、ここで同じように外し、TearDown で戻す
         [SetUp]
@@ -46,6 +47,7 @@ namespace Hone.Sandbox.Tests
         {
             ModelRoomsController.Unregister(ClassicJrpgRoom.ClassName);
             ModelRoomsController.Unregister(TextAdventureRoom.ClassName);
+            ModelRoomsController.Unregister(RetroIndieRpgRoom.ClassName);
         }
 
         [UnityTearDown]
@@ -56,6 +58,7 @@ namespace Hone.Sandbox.Tests
             m_Registered.Clear();
             ModelRoomsController.Register(ClassicJrpgRoom.Room);
             ModelRoomsController.Register(TextAdventureRoom.Room);
+            ModelRoomsController.Register(RetroIndieRpgRoom.Room);
             if (m_Scene.IsValid() && m_Scene.isLoaded)
                 yield return SceneManager.UnloadSceneAsync(m_Scene);
         }
@@ -514,6 +517,46 @@ namespace Hone.Sandbox.Tests
         {
             ModelRoomsController controller = null;
             yield return LoadAndSelect(TextAdventureRoom.Room, c => controller = c);
+
+            var columns = Columns(controller);
+            Assert.AreEqual(0f, MessageOf(columns[0]).charactersPerSecond);
+            Assert.AreEqual(0f, MessageOf(columns[1]).charactersPerSecond);
+            Assert.Greater(MessageOf(columns[2]).charactersPerSecond, 0f);
+            foreach (var buttonName in new[] { "yes", "no" })
+            {
+                Assert.AreEqual(0f, columns[0].Q<Hone.Button>(buttonName).commitDelay, buttonName);
+                Assert.AreEqual(0f, columns[1].Q<Hone.Button>(buttonName).commitDelay, buttonName);
+                Assert.Greater(columns[2].Q<Hone.Button>(buttonName).commitDelay, 0f, buttonName);
+            }
+        }
+
+        // (A) レトロインディー RPG 風: 2 列目と 3 列目の本文だけが、ルームのフォント（DotGothic16）になる
+        [UnityTest]
+        public IEnumerator RetroIndieRpg_Select_AppliesRoomFontToColumns2And3Only()
+        {
+            ModelRoomsController controller = null;
+            yield return LoadAndSelect(RetroIndieRpgRoom.Room, c => controller = c);
+            var expected = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.TextCore.Text.FontAsset>(RetroIndieRpgFontPath);
+            Assert.IsNotNull(expected, $"{RetroIndieRpgFontPath} was not found");
+            var columns = Columns(controller);
+            var frames = 0;
+            while (BodyFont(columns[1]) != expected && frames < MaxWaitFrames)
+            {
+                frames++;
+                yield return null;
+            }
+
+            Assert.AreNotSame(expected, BodyFont(columns[0]));
+            Assert.AreSame(expected, BodyFont(columns[1]));
+            Assert.AreSame(expected, BodyFont(columns[2]));
+        }
+
+        // (B) レトロインディー RPG 風: 演出の設定（文字送りと確定の間）が入るのは 3 列目だけ
+        [UnityTest]
+        public IEnumerator RetroIndieRpg_Select_InjectsRevealAndCommitDelayToColumn3Only()
+        {
+            ModelRoomsController controller = null;
+            yield return LoadAndSelect(RetroIndieRpgRoom.Room, c => controller = c);
 
             var columns = Columns(controller);
             Assert.AreEqual(0f, MessageOf(columns[0]).charactersPerSecond);

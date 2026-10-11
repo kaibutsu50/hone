@@ -1,0 +1,171 @@
+/* レトロインディー RPG 風のモデルルーム（段階 2: USS だけ）。ModelRoomsTheme.tss から @import する。
+ * すべての規則を .room-retro-indie-rpg（舞台に付くクラス）で始め、1 列目（素）と他のルームに漏らさない。
+ * トークンで表せる値は先頭の規則でトークンを上書きし、表せない値だけを部品の規則の上書きに書く。
+ *
+ * 大きさは、参考の画面（640×480、4:3）を 1/2 倍（320×240）の px で書く。
+ * 他のルームのように舞台の高さ 320px へ合わせると、参考の本文の字（32px）が 21px 前後になり、DotGothic16 の 16 の整数倍（sandbox/README.md の「RoomExp の検証」の (c)）にならない。
+ * 1/2 倍なら 32px がちょうど 16px になるので、字の大きさから縮尺を決めた。窓の枠（6px）は 3px、ボタンの枠（約 3px）は 2px になる。
+ * 舞台の高さ 320px は 240px より大きいので、窓は舞台の下端に寄せる。舞台の余白（ModelRooms.uss の .model-room-stage の padding）は差し引かない。舞台の高さや余白が変わったら換算し直す。
+ * 値は参考の画面の公開されたレイアウトからの目安で、人が参考と見比べて調整する。 */
+
+.room-retro-indie-rpg {
+    /* 参考はドット文字なので DotGothic16（16px 用。RASTER_HINTED、sampling 16、atlas は Point）。
+     * Advanced Text Generator では字形が壊れるので Standard の生成器で描く（sandbox/README.md の「RoomExp の検証」の (c)）。font-size は 16 の整数倍 */
+    --hone-font-body: url("project://database/Assets/Hone/Sandbox/Fonts/DotGothic16.asset?fileID=11400000&guid=0ca85d51ff7f9e14fa49cd7c1a1b0d09&type=2#DotGothic16");
+    -unity-text-generator: standard;
+
+    /* 黒地に白。文字はすべて白（▼ の muted も白）。ボタンの橙と黄は下の Button の規則に書く（トークンの primary は塗りに使う色で、このルームのボタンは塗らない） */
+    --hone-color-background: rgb(0, 0, 0);
+    --hone-color-foreground: rgb(255, 255, 255);
+    --hone-color-muted-foreground: rgb(255, 255, 255);
+    --hone-color-border: rgb(255, 255, 255);
+    /* outline の Button（いいえ）の :hover は accent を地と文字に使う。地は透明、文字は橙のままにして、:hover で見た目が変わらないようにする */
+    --hone-color-accent: rgba(0, 0, 0, 0);
+    --hone-color-accent-foreground: rgb(255, 127, 39);
+    /* overlay は透明（背後の画面を暗くしない） */
+    --hone-color-overlay: rgba(0, 0, 0, 0);
+
+    /* ring を枠と同じ色・同じ太さにして、MessageWindow（.hone-focusable）はフォーカスしても枠が変わらないようにする。
+     * Button は枠の太さも色も違うので、下の :focus の規則で個別に書く */
+    --hone-color-ring: rgb(255, 255, 255);
+    --hone-ring-width: 3px;
+
+    /* 窓の枠は 3px、角丸なし */
+    --hone-border-width: 3px;
+    --hone-radius-md: 0;
+    --hone-radius-lg: 0;
+
+    /* 参考の本文 32px の 1/2 */
+    --hone-font-size-sm: 16px;
+    --hone-font-size-md: 16px;
+}
+
+/* 舞台の背景。参考の戦闘の画面は黒地なので、舞台も黒にする（窓の白い枠が地に浮く）。部品の規則ではなく舞台（sandbox）の見た目 */
+.room-retro-indie-rpg {
+    background-color: rgb(0, 0, 0);
+}
+
+/* ---- メッセージウィンドウ ---- */
+
+/* 画面の下の横長の白枠。幅 288px（参考の 576px）、高さ 70px（参考の 140px）で、下の ボタンの行と 23px 空ける（参考の 47px）。
+ * 下の余白 51px = ボタンの行の下の余白 4px + ボタンの高さ 24px + 窓との間 23px（メッセージと Dialog は同じ層の中にあるので、同じ基準で測れる）。
+ * 内側の余白は、3 行（DotGothic16 の 16px で 1 行 約 21px）が高さ 70px（枠 3px × 2 を含む）に収まるように決めた */
+.room-retro-indie-rpg .hone-message-window {
+    align-self: center;
+    width: 288px;
+    height: 70px;
+    margin-bottom: 51px;
+    padding: 1px 10px;
+}
+
+/* 文面の全角の空白（語の区切り、行頭の字下げ）を、1 文字分の幅のまま出す。部品の white-space: normal は、続く空白をまとめ、行頭の空白を消す */
+.room-retro-indie-rpg .hone-message-window__text {
+    white-space: pre-wrap;
+}
+
+/* ▼ は枠の中の右下に重ねる */
+.room-retro-indie-rpg .hone-message-window__indicator {
+    position: absolute;
+    right: 6px;
+    bottom: 2px;
+    padding: 0;
+    margin: 0;
+}
+
+/* ---- はい / いいえ ---- */
+
+/* 質問文はメッセージ側に出るので、はい / いいえ の窓には出さない */
+.room-retro-indie-rpg .hone-dialog__description {
+    display: none;
+}
+
+/* ボタンの行は、メッセージの窓の下に、窓と同じ幅（288px）で置く。Dialog は親の全面を覆うので、下に寄せ、content の地と枠を消す。
+ * 下の余白 4px は参考の 8px の 1/2 */
+.room-retro-indie-rpg .hone-dialog {
+    justify-content: flex-end;
+}
+
+.room-retro-indie-rpg .hone-dialog__content {
+    width: 288px;
+    max-width: 288px;
+    margin-bottom: 4px;
+    padding: 0;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+}
+
+/* 横並びで左寄せ。ボタンの間は 20px */
+.room-retro-indie-rpg .hone-dialog__footer {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    margin-top: 0;
+}
+
+.room-retro-indie-rpg .hone-dialog__footer > * {
+    margin-left: 0;
+    margin-right: 20px;
+}
+
+/* Button は黒地に橙の枠（2px）と橙の文字。高さ 24px（参考の約 40px の 1/2 より、16px の字が入る高さに広げた）。幅は文字に従う（固定しない）。
+ * 左の 27px にアイコン（下の #yes / #no）を置く。アイコンの左の余白 6px + アイコン 16px + 文字との間 5px */
+.room-retro-indie-rpg .hone-button {
+    height: 24px;
+    padding: 0 8px 0 27px;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 2px;
+    border-color: rgb(255, 127, 39);
+    color: rgb(255, 127, 39);
+    -unity-text-align: middle-left;
+}
+
+/* Button.uss の hover（0.9）と active（0.8）の薄まりを消す */
+.room-retro-indie-rpg .hone-button:hover,
+.room-retro-indie-rpg .hone-button:active {
+    opacity: 1;
+}
+
+/* アイコン。8×7 の自作のドット絵を 2 倍（16×14）で、Button の左に置く。Point で拡大するので縁がにじまない（.meta の filterMode: 0）。
+ * 共通の構造では はい / いいえ に付くクラスが同じ（variant の違いだけ）なので、名前（#yes / #no）で書く。
+ * 名前の規則は詳細度が高い（ID）ので、フォーカスでハートに替える下の規則にも名前を付ける */
+.room-retro-indie-rpg #yes,
+.room-retro-indie-rpg #no {
+    background-position-x: left 6px;
+    background-position-y: top 5px;
+    background-repeat: no-repeat;
+    background-size: 16px 14px;
+}
+
+.room-retro-indie-rpg #yes {
+    background-image: url("IconYes.png");
+}
+
+.room-retro-indie-rpg #no {
+    background-image: url("IconNo.png");
+}
+
+/* フォーカスした Button は枠と文字が黄色になり、アイコンがハートに替わる（ring は使わない）。
+ * Core.uss の ring（.hone-focusable.hone-focusable:focus）に勝つよう、クラス 3 つ + :focus で書き、アイコンの規則（ID）に勝つよう名前も付ける */
+.room-retro-indie-rpg .hone-button.hone-focusable:focus {
+    border-width: 2px;
+    border-color: rgb(255, 255, 0);
+    color: rgb(255, 255, 0);
+}
+
+.room-retro-indie-rpg #yes.hone-focusable:focus,
+.room-retro-indie-rpg #no.hone-focusable:focus {
+    background-image: url("Heart.png");
+}
+
+/* ---- 段階 3 の演出の状態（RetroIndieRpgRoom.cs が舞台に付け外しする） ---- */
+
+/* ハートの揺れ（ドット絵なので、transition は付けずに 1px 上へ跳ばす）。確定の間（.is-holding）は止める */
+.room-retro-indie-rpg.is-sway #yes.hone-focusable:focus,
+.room-retro-indie-rpg.is-sway #no.hone-focusable:focus {
+    background-position-y: top 4px;
+}
+
+.room-retro-indie-rpg.is-sway #yes.hone-focusable.is-holding:focus,
+.room-retro-indie-rpg.is-sway #no.hone-focusable.is-holding:focus {
+    background-position-y: top 5px;
+}
