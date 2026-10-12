@@ -1,0 +1,68 @@
+/* 色・大きさ・角丸・余白・フォントサイズ・枠の太さは Tokens.uss のトークン。transparent、opacity の割合、0 はトークンを持たない。
+ * focus ring は root ではなく track の border で描く（root に hone-focusable を付けると、label を含む行全体が囲まれる）。
+ * track の border は常に ring の太さで透明にしておき、フォーカスで色だけ変える。フォーカスで大きさは変わらない。
+ * track の背景は border の下まで塗られるので、border が透明でも track の外形は背景色で見える。
+ * thumb の移動はアニメーションしない（transition を書かない）。動きは演出なので利用者が付ける。
+ * 残している unity-base-field 系のクラスに既定テーマが当てる規則のうち、resolvedStyle で測って指定に勝っていたものを上書きしている
+ * （track の flex-grow: 0 と flex-basis: auto（既定は flex: 1 0 0 で、幅が残りの幅になる）、label の min-width: 0、フォーカス時の label の色。Unity 6000.7.0b4）。 */
+.hone-switch {
+    flex-direction: row;
+    align-items: center;
+    color: var(--hone-color-foreground);
+    font-size: var(--hone-font-size-sm);
+}
+
+.hone-switch__track {
+    width: var(--hone-size-switch-width);
+    height: var(--hone-size-switch-height);
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: auto;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0;
+    margin: 0;
+    border-width: var(--hone-ring-width);
+    border-color: transparent;
+    border-radius: var(--hone-radius-switch);
+    background-color: var(--hone-color-border);
+}
+
+.hone-switch:checked > .hone-switch__track {
+    justify-content: flex-end;
+    background-color: var(--hone-color-primary);
+}
+
+.hone-switch:focus > .hone-switch__track {
+    border-color: var(--hone-color-ring);
+}
+
+.hone-switch__thumb {
+    width: var(--hone-size-switch-thumb);
+    height: var(--hone-size-switch-thumb);
+    margin: 0;
+    border-radius: var(--hone-radius-switch);
+    background-color: var(--hone-color-background);
+    background-image: none;
+}
+
+/* label は残りの幅を取って track を右端へ押し、長い文言は省略記号で切る */
+.hone-switch > .unity-base-field__label {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+    margin-right: var(--hone-space-2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 既定テーマはフォーカスで label の色を変える。Switch のフォーカスの印は track の枠だけにする */
+.hone-switch:focus > .unity-base-field__label {
+    color: var(--hone-color-foreground);
+}
+
+.hone-switch:disabled {
+    opacity: 0.5;
+}

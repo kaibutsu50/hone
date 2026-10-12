@@ -23,6 +23,11 @@
     --hone-radius-sm: 4px;
     --hone-radius-md: 6px;
     --hone-radius-lg: 8px;
+    /* Switch の track と thumb の角丸。track の高さ（--hone-size-switch-height）の半分で、両端が半円の stadium になる。
+     * shadcn の rounded-full（9999px）を汎用のトークンにしていないのは、Unity が要素の大きさを超える角丸を縦横の軸ごとに別々に縮めるため。
+     * 44×24 の track に 9999px を当てると横 22・縦 12 の楕円弧になり、stadium ではなく楕円に描かれる（6000.7.0b4 で確認）。
+     * thumb（20px）には 12px が軸ごとに 10px へ縮んで円になる */
+    --hone-radius-switch: 12px;
 
     --hone-space-1: 4px;
     --hone-space-2: 8px;
@@ -41,6 +46,10 @@
 
     /* Dialog の content の最大幅。shadcn の max-w-lg（32rem） */
     --hone-size-dialog: 512px;
+    /* Switch の track と thumb。shadcn の Switch（track は h-6 w-11、thumb は h-5 w-5）を px にしたもの */
+    --hone-size-switch-width: 44px;
+    --hone-size-switch-height: 24px;
+    --hone-size-switch-thumb: 20px;
 
     --hone-ring-width: 2px;
     /* 未使用。Core.uss の ring は border で描くので、offset を表現できない */
