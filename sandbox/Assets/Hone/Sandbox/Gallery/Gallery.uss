@@ -51,7 +51,7 @@
     opacity: 0.6;
 }
 
-/* Hone.Button の列。セルは縦並びで、幅は行の残りを短文と長文で等分する。中身の間を少し空ける */
+/* 複数の部品を縦に積む列（Hone.Button の 4 variant、Hone.Switch の off と on）。セルは縦並びで、幅は行の残りを短文と長文で等分する。中身の間を少し空ける */
 .gallery-cell {
     flex-grow: 1;
     flex-basis: 0;

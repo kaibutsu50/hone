@@ -159,7 +159,9 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual(2, changes);
         }
 
-        // (D) フォーカスすると track の border の色が変わり、border の幅と track の幅は変わらない
+        // (D) フォーカスすると track の border の色が変わり、border の幅と track の幅は変わらない。
+        // 前の値が 0 や NaN だと等値が自明に通るので、border 幅は 0 より大きく、track は行幅より狭い（既定テーマの flex: 1 0 0 で伸びていない）ことも確かめる。
+        // 既定テーマはフォーカスで label の色を変えるので、Switch.uss の上書きが効いて label の色が変わらないことも確かめる
         [UnityTest]
         public IEnumerator Focus_ChangesTrackBorderColor_NotWidth()
         {
@@ -170,10 +172,15 @@ namespace Hone.Sandbox.Tests
             root.Add(element);
             yield return Settle();
             var track = TrackOf(element);
+            var label = element.Q<Label>(className: "unity-base-field__label");
 
             var colorBefore = track.resolvedStyle.borderTopColor;
             var borderWidthBefore = track.resolvedStyle.borderTopWidth;
             var widthBefore = track.layout.width;
+            var labelColorBefore = label.resolvedStyle.color;
+            Assert.Greater(borderWidthBefore, 0f, "the track must always have a ring-width border");
+            Assert.Greater(widthBefore, 0f, "layout must have run");
+            Assert.Less(widthBefore, element.layout.width, "the track must keep its own width instead of filling the row");
 
             element.Focus();
             yield return Settle();
@@ -181,6 +188,7 @@ namespace Hone.Sandbox.Tests
             Assert.AreNotEqual(colorBefore, track.resolvedStyle.borderTopColor, "focus must change the track border color");
             Assert.AreEqual(borderWidthBefore, track.resolvedStyle.borderTopWidth);
             Assert.AreEqual(widthBefore, track.layout.width);
+            Assert.AreEqual(labelColorBefore, label.resolvedStyle.color, "focus must not change the label color");
         }
     }
 }
