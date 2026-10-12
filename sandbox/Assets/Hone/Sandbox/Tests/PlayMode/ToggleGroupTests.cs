@@ -90,7 +90,8 @@ namespace Hone.Sandbox.Tests
             group.SetValueWithoutNotify(state);
         }
 
-        // hover の再現。target を決めずに panel の visualTree へ PointerMoveEvent を送ると、panel が座標で pick して :hover を付ける
+        // hover の再現。evt.target を設定せずに panel の visualTree へ PointerMoveEvent を送ると、panel が座標で pick して :hover を付ける
+        // 本物のマウスも同じ経路で hover を動かすので、batch 実行（unity test）を前提にする（Test Runner の窓から回すときは Game ビューの上でマウスを動かさない）
         static void MovePointerTo(VisualElement root, VisualElement target)
         {
             var center = target.worldBound.center;
@@ -169,7 +170,8 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual(1, changes);
         }
 
-        // (#96 B) disabled の項目に hover が付いても opacity が 0.5 のまま。hover の再現は、enabled な項目の背景が muted に変わることで確かめる
+        // (D) disabled の項目に hover が付いても opacity が 0.5 のまま。disabled にする項目は、選ばれていない index 0（index 2 を選ぶ）。選ばれた項目は :checked の accent が背景を固定し、hover の有無を背景で測れない。
+        // hover の再現は、enabled な項目と disabled の項目の両方で、背景が透明から muted に変わることで確かめる
         [UnityTest]
         public IEnumerator Disabled_KeepsOpacity_UnderHover()
         {
@@ -179,6 +181,7 @@ namespace Hone.Sandbox.Tests
             var group = CreateGroup();
             root.Add(group);
             yield return Settle();
+            Select(group, 2);
             var buttons = group.Query<Hone.Button>().ToList();
             buttons[0].SetEnabled(false);
             yield return Settle();
@@ -188,14 +191,16 @@ namespace Hone.Sandbox.Tests
             yield return Settle();
             var hovered = buttons[1].resolvedStyle.backgroundColor;
             Assert.AreNotEqual(before, hovered, "hover must change the enabled button's background (proof that hover was reproduced)");
-            Assert.Greater(hovered.a, 0f, "hover must give the enabled button the muted background");
+            Assert.AreEqual(1f, hovered.a, "hover must give the enabled button the muted background");
 
+            Assert.AreEqual(0f, buttons[0].resolvedStyle.backgroundColor.a, "the disabled button must be transparent before hover");
             MovePointerTo(root, buttons[0]);
             yield return Settle();
+            Assert.AreEqual(1f, buttons[0].resolvedStyle.backgroundColor.a, "hover must reach the disabled button too (its background becomes muted)");
             Assert.AreEqual(0.5f, buttons[0].resolvedStyle.opacity, 0.001f, "a disabled button must keep opacity 0.5 under hover");
         }
 
-        // (#96 C) hover なしでは、disabled の項目が 0.5、enabled の項目が 1
+        // (E) hover なしでは、disabled の項目が 0.5、enabled の項目が 1（pointer を置かない batch 実行が前提）
         [UnityTest]
         public IEnumerator Disabled_HasHalfOpacity_WithoutHover()
         {

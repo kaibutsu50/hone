@@ -5,8 +5,8 @@
  * focus ring は子の Button が持つ .hone-focusable（Core.uss）のまま。
  * hover の opacity: 1 は Button.uss の :disabled と :active の opacity より詳細度が高い。
  * disabled の項目にも hover が付く（Unity 6000.7.0b4 の PlayMode で、disabled の項目に hover を送ると :hover の opacity: 1 が勝つことを確認）ので、
- * 末尾の :disabled の規則（同じ詳細度で後ろ）で 0.5 を勝たせている。
- * 押下（:active）の opacity は群の中では効かない（Button.uss の outline / ghost と同じ）。 */
+ * 末尾の :disabled の規則（同じ詳細度で後ろ）で opacity だけ 0.5 に戻している。背景と文字色は hover のまま（muted）。
+ * 押下（:active）の opacity は、hover の規則のほうが詳細度が高いので群の中では効かない（結果は Button.uss の outline / ghost と同じ）。 */
 .hone-toggle-group .hone-button {
     background-color: transparent;
     border-color: transparent;
