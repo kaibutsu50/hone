@@ -12,7 +12,7 @@
     align-items: center;
 }
 
-/* 省略記号は Button と同じ最小幅とフォントサイズにして、番号の Button と並びを揃える */
+/* 省略記号は Button と同じ min-width と font-size を使う。padding が無いので、幅は番号の Button より狭い */
 .hone-pagination__ellipsis {
     min-width: var(--hone-space-8);
     -unity-text-align: middle-center;

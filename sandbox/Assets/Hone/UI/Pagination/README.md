@@ -1,8 +1,8 @@
 # Pagination
 
 前後のページ送りと、ページ番号と省略記号の並びを持つ部品。shadcn の Pagination に当たる。
-持つのは今のページ（`value`、0 始まり）とページ数（`pageCount`）だけで、ページごとの中身は持たない。ページが変わったら、利用者が `ChangeEvent<int>` を受けて中身を差し替える。
-前後とページ番号は `Hone.Button` で、今のページは variant Outline、それ以外は Ghost。
+持つのは今のページ（`value`、0 始まり）とページ数（`pageCount`）だけで、ページごとの中身は持たない。ページが変わったら、利用者が `ChangeEvent<int>` を受けて中身を差し替える（`pageCount` を変えて `value` が収められたときは `ChangeEvent` が出ないので、`pageCount` を変えた後は `value` を読む）。
+前後とページ番号は `Hone.Button` で、今のページは variant Outline、それ以外は Ghost。Pagination 自身は variant を持たない（前後とページ番号の Button の variant は固定）。
 
 ```xml
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:hone="Hone">
@@ -23,7 +23,7 @@ pagination.SetValueWithoutNotify(0);
 ```
 
 C# で `pageCount` と `value` を一緒に設定するときは、`pageCount` を先に書く。`value` は `pageCount` の範囲に収められるので、逆だと既定の 1 ページに収められて 0 になる。
-UXML の属性は C# の宣言の順に適用される。`pageCount` を `value` より先に宣言してあるので、`page-count="10" value="4"` は 4 のまま残る。
+UXML の属性は、UXML に書いた順ではなく C# の宣言の順に適用される。`pageCount` を `value` より先に宣言してあるので、UXML ではどちらを先に書いても、`page-count="10"` と `value="4"` は 10 / 4 のまま残る（`value="4" page-count="10"` の順で書いても 10 / 4 になった。Unity 6000.7.0b4 で確認）。
 
 ## API
 
@@ -45,7 +45,7 @@ UXML の属性は C# の宣言の順に適用される。`pageCount` を `value`
 
 ## 表示するページ番号の規則
 
-`pageCount` が 7 以下なら全ページを出す。8 以上なら常に 7 項目（省略記号を含む）を出すので、ページが変わっても前後の Button の位置が動かない。
+`pageCount` が 7 以下なら全ページを出す。8 以上なら常に 7 項目（省略記号を含む）を出すので、ページが変わっても前後の Button の位置はほぼ動かない（番号の文字幅の分だけ動く）。
 `n = pageCount`、`c = value`（どちらも 0 始まり）として:
 
 | 条件 | 並び（0 始まり。… は省略記号） |
@@ -66,7 +66,7 @@ UXML の属性は C# の宣言の順に適用される。`pageCount` を `value`
 | 6 | `1 … 6 [7] 8 9 10` |
 | 9 | `1 … 6 7 8 9 [10]` |
 
-今のページの前後に何ページ出すか（今は 1）を変える属性は持たない。変えたいときは、コピーした `Pagination.cs` の `VisiblePages` を書き換える。
+今のページの前後に何ページ出すか（今は 1）を変える属性は持たない。変えたいときは、コピーした `Pagination.cs` の `VisiblePages` を書き換える。分岐のしきい値（7、3、4、5）は「7 項目、両隣 1 つずつ」を前提にした組なので、一緒に変える。
 
 ## USS クラス
 
@@ -95,11 +95,12 @@ pagination.Q<Hone.Button>(className: "hone-pagination__next").text = "Next";
 
 - フォーカス ring は各 `Hone.Button` が持つ `hone-focusable`（`Core.uss`）のまま。Pagination 側では何も書かない。
 - `FocusScope` や `BackStack` は使わない。単独で完結する。
-- ページ番号の Button は作り直すので、ページ番号を押すとフォーカスが外れる。作り直した後にフォーカスを戻す処理は持たない。前後の Button は作り直さないので、押してもフォーカスが残る。
+- ページ番号の Button は作り直すので、今のページ以外の番号を押すとフォーカスが外れる（今のページの番号を押しても作り直さない）。作り直した後にフォーカスを戻す処理は持たない。
+- 前後の Button は作り直さないので、途中のページで押してもフォーカスが残る。端のページに着くと押した Button 自身が disabled になる。そのときフォーカスがどこへ行くかは確かめていない。
 - キーボードやゲームパッドの左右でページを送る処理は持たない。ナビゲーションは基底のまま。
 - `Hone.Button` の `commitDelay` / `committed` は、ページの移動には関与しない。ページは Button の `clicked`（押した瞬間）で変わる。
 
 ## World Space での置き方
 
 World Space の panel でも、Screen Space と同じ構造のまま置ける。Pagination 側に World Space 用の設定は無い。
-幅は内容で決まる（Button は縮まない）。`pageCount` が 8 以上なら項目が常に 7 個なので、ページを送っても幅はほぼ変わらない（番号の桁数の分だけ変わる）。panel が小さいときは、前後の Button を含めた 9 項目の幅が収まる大きさにする。
+幅は内容で決まる（Button は縮まない）。`pageCount` が 8 以上なら項目が常に 7 個なので、ページを送っても幅はほぼ変わらない（番号の文字幅の分だけ変わる）。panel が小さいときは、前後の Button を含めた 9 項目の幅が収まる大きさにする。

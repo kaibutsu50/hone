@@ -44,7 +44,7 @@ namespace Hone.Sandbox.Tests
         static List<Button> PageButtons(Pagination pagination) =>
             Items(pagination).Children().OfType<Button>().ToList();
 
-        // .hone-pagination__items の子を順に読み、Button は text、省略記号の Label は "…" にしてスペースでつなぐ
+        // .hone-pagination__items の子を順に読み、Button は text、省略記号の Label はその text（"…"）にしてスペースでつなぐ
         static string Sequence(Pagination pagination) =>
             string.Join(" ", Items(pagination).Children().Select(child =>
             {
@@ -52,11 +52,16 @@ namespace Hone.Sandbox.Tests
                     return button.text;
                 Assert.IsTrue(child is Label && child.ClassListContains("hone-pagination__ellipsis"),
                     $"unexpected child {child.GetType().Name} in hone-pagination__items");
+                Assert.IsTrue(child.ClassListContains("hone-text"), "the ellipsis must follow the body font (.hone-text)");
                 return ((Label)child).text;
             }));
 
+        static string CurrentText(Pagination pagination) =>
+            PageButtons(pagination).Single(b => b.ClassListContains(CurrentClass)).text;
+
         // (A) pageCount と value の組み合わせごとに、並びが「表示するページ番号の規則」の表のとおりになる
         [TestCase(5, 2, "1 2 3 4 5")]
+        [TestCase(7, 3, "1 2 3 4 5 6 7")]
         [TestCase(10, 0, "1 2 3 4 5 … 10")]
         [TestCase(10, 3, "1 2 3 4 5 … 10")]
         [TestCase(10, 4, "1 … 4 5 6 … 10")]
@@ -120,7 +125,7 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual(Button.Variant.Ghost, Next(pagination).variant);
         }
 
-        // (I) Pagination.uxml（page-count="10" value="4"）の属性が宣言の順に適用され、pageCount 10、value 4 になる
+        // (I) Pagination.uxml（page-count="10" value="4"）を Instantiate すると、page-count と value の両方が残り、pageCount 10、value 4 になる
         [Test]
         public void Uxml_PageCountAndValue_AreApplied()
         {
@@ -184,12 +189,21 @@ namespace Hone.Sandbox.Tests
             root.Add(pagination);
             yield return null;
 
-            Submit(Next(pagination));
+            var previous = Previous(pagination);
+            var next = Next(pagination);
+
+            Submit(next);
             yield return null;
 
             Assert.AreEqual(5, pagination.value);
             CollectionAssert.AreEqual(new[] { (4, 5) }, events);
             Assert.AreEqual("1 … 5 6 7 … 10", Sequence(pagination));
+            Assert.AreEqual("6", CurrentText(pagination), ".is-current must move to the new page");
+
+            // 前後の Button は作り直さない。同じインスタンスが previous, items, next の順で残る
+            Assert.AreSame(previous, Previous(pagination));
+            Assert.AreSame(next, Next(pagination));
+            CollectionAssert.AreEqual(new VisualElement[] { previous, Items(pagination), next }, pagination.Children().ToList());
 
             events.Clear();
             Submit(Previous(pagination));
@@ -205,6 +219,7 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual(9, pagination.value);
             CollectionAssert.AreEqual(new[] { (4, 9) }, events);
             Assert.AreEqual("1 … 6 7 8 9 10", Sequence(pagination));
+            Assert.AreEqual("10", CurrentText(pagination), ".is-current must move to the new page");
 
             events.Clear();
             Submit(PageButtons(pagination).First(b => b.text == "10"));
@@ -222,8 +237,8 @@ namespace Hone.Sandbox.Tests
             yield return CreatePanel(r => root = r);
 
             var pagination = new Pagination { pageCount = 10, value = 4 };
-            var changes = 0;
-            pagination.RegisterValueChangedCallback(evt => changes++);
+            var events = new List<(int previous, int next)>();
+            pagination.RegisterValueChangedCallback(evt => events.Add((evt.previousValue, evt.newValue)));
             root.Add(pagination);
             yield return null;
 
@@ -240,13 +255,13 @@ namespace Hone.Sandbox.Tests
             yield return null;
             Assert.AreEqual(9, pagination.value);
 
-            Assert.AreEqual(0, changes, "SetValueWithoutNotify must not fire a ChangeEvent");
+            CollectionAssert.IsEmpty(events, "SetValueWithoutNotify must not fire a ChangeEvent");
 
-            // 対照: callback が配線されていて、値が変わる set なら ChangeEvent が出る。value の set も範囲外を収める
+            // 対照: callback が配線されていて、値が変わる set なら ChangeEvent が出る。value の set も範囲外を収め、収めた値を newValue に出す
             pagination.value = -1;
             yield return null;
             Assert.AreEqual(0, pagination.value);
-            Assert.AreEqual(1, changes, "a real change must fire a ChangeEvent");
+            CollectionAssert.AreEqual(new[] { (9, 0) }, events, "a real change must fire a ChangeEvent");
         }
 
         // (F) pageCount を今の value より小さくすると value が最後のページに収まり、ChangeEvent は出ない
@@ -269,6 +284,15 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual("1 2 3 4 5", Sequence(pagination));
             Assert.IsFalse(Next(pagination).enabledSelf);
             Assert.AreEqual(0, changes, "shrinking pageCount must not fire a ChangeEvent");
+
+            // 増やす向き: value はそのまま残り、並びと次の Button が戻る。ChangeEvent は出ない
+            pagination.pageCount = 10;
+            yield return null;
+
+            Assert.AreEqual(4, pagination.value);
+            Assert.AreEqual("1 … 4 5 6 … 10", Sequence(pagination));
+            Assert.IsTrue(Next(pagination).enabledSelf);
+            Assert.AreEqual(0, changes, "growing pageCount must not fire a ChangeEvent");
 
             // 0 未満は 0 として扱い、value は 0 になる
             pagination.pageCount = -3;

@@ -6,13 +6,11 @@ namespace Hone
 {
     // namespace Hone の中では、修飾しない Button は Hone.Button を指す。
     // 持つのは今のページ（value、0 始まり）とページ数（pageCount）だけで、ページごとの中身は持たない。
-    // 前後の Button はコンストラクタで 1 回だけ作り、作り直さない（押した直後にフォーカスが外れないように）。
+    // 前後の Button はコンストラクタで 1 回だけ作り、作り直さない（作り直すと、押した直後にフォーカスが外れる）。
     // ページ番号と省略記号は、value か pageCount が変わるたびに作り直す。作り直した後にフォーカスを戻す処理は持たない。
     [UxmlElement]
     public partial class Pagination : VisualElement, INotifyValueChanged<int>
     {
-        // ページ数が MaxItems 以下なら全ページを出し、超えたら常に MaxItems 個（省略記号を含む）を出す
-        const int MaxItems = 7;
         const int Ellipsis = -1;
 
         readonly Button m_Previous;
@@ -21,7 +19,8 @@ namespace Hone
         int m_PageCount = 1;
         int m_Value;
 
-        // value より先に宣言する。UXML の属性は宣言の順に適用されるので、value が先だと既定の 1 ページに収められてしまう
+        // value より先に宣言する。UXML の属性は、UXML に書いた順ではなく宣言の順に適用される（UXML に value を先に書いても 10 / 4 が残った。6000.7.0b4）。
+        // value が先の宣言だと、既定の 1 ページに収められてしまう
         // 0 未満は 0 として扱う。変えると value を範囲に収めるが、ChangeEvent は出さない
         [UxmlAttribute]
         public int pageCount
@@ -115,10 +114,12 @@ namespace Hone
             m_Next.SetEnabled(m_Value < m_PageCount - 1);
         }
 
-        // 表示するページ番号（0 始まり）の並び。Ellipsis は省略記号。前後に出すページは今のページの両隣 1 つずつ
+        // 表示するページ番号（0 始まり）の並び。Ellipsis は省略記号。
+        // 7 ページ以下なら全ページ、8 ページ以上なら常に 7 項目（省略記号を含む。今のページが端から離れているときは、先頭、省略記号、今のページとその両隣、省略記号、最後）。
+        // 7、3、4、5 の値は「7 項目、両隣 1 つずつ」を前提にした組なので、両隣の数を変えるときは全部一緒に変える
         static IEnumerable<int> VisiblePages(int count, int current)
         {
-            if (count <= MaxItems)
+            if (count <= 7)
             {
                 for (var i = 0; i < count; i++)
                     yield return i;
