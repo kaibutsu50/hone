@@ -80,6 +80,9 @@ namespace Hone.Core
             var target = evt.target as VisualElement;
             if (target == null || !IsInnermostTrap(target))
                 return;
+            // その方向を target 自身が消費する（Cycle の左右など）なら任せる。止めるのも target の handler が行う
+            if (target is INavigationMoveConsumer consumer && consumer.ConsumesNavigationMove(evt.direction))
+                return;
 
             // 先に既定の移動を止める。移動先が無い方向でも止める（止めないと既定のナビが scope の外へ出る）
             panel.focusController.IgnoreEvent(evt);
