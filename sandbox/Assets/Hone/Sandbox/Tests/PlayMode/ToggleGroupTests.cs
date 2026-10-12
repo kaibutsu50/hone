@@ -12,7 +12,7 @@ using Object = UnityEngine.Object;
 namespace Hone.Sandbox.Tests
 {
     // Editor で実行する前提（UXML と PanelSettings を AssetDatabase から読む）。
-    // このファイルの ToggleGroup と Button は Hone のもの。Hone の入れ子の namespace なので修飾しなくても Hone.Button を指すが、明示して書く。
+    // ToggleGroup は Hone のもの（Hone の入れ子の namespace なので修飾しなくても Hone.ToggleGroup を指す）。Button は Unity 標準と紛らわしいので Hone.Button と修飾して書く。
     // layout と resolvedStyle を読むテストは、HoneTheme が当たった panel に attach して frame を進めてから測る。
     public class ToggleGroupTests
     {
@@ -80,7 +80,7 @@ namespace Hone.Sandbox.Tests
             return group;
         }
 
-        // Gallery と同じ選び方。基底は未選択を許さない設定のとき index 0 を選んでいることがあるので、全部外してから index を選ぶ
+        // Gallery と同じ選び方。allowEmptySelection が false（既定）だと、最初の子を足した時点で基底が index 0 を選ぶので、全部外してから index を選ぶ
         static void Select(ToggleGroup group, int index)
         {
             var state = group.value;
@@ -144,6 +144,7 @@ namespace Hone.Sandbox.Tests
             var group = CreateGroup();
             root.Add(group);
             yield return Settle();
+            Assert.IsFalse(group.isMultipleSelection, "this test assumes single selection (the base default)");
             Select(group, 1);
             yield return Settle();
 
@@ -154,7 +155,7 @@ namespace Hone.Sandbox.Tests
             yield return Settle();
 
             var state = group.value;
-            // length は子の数ではなく常に 64（基底の状態は 64 ビット固定）。index 2 だけが true で、ほかは全部 false
+            // length は子の数ではなく常に 64（基底の状態は 64 ビット固定。Unity 6000.7.0b4 で確認）。index 2 だけが true で、ほかは全部 false
             var selected = Enumerable.Range(0, state.length).Where(i => state[i]).ToArray();
             CollectionAssert.AreEqual(new[] { 2 }, selected);
             Assert.AreEqual(1, changes);

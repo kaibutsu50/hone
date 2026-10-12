@@ -51,7 +51,7 @@ using Toggle = Hone.Toggle;
 
 ## ToggleGroup との使い分け
 
-選択肢の中から選ぶ用途（セグメント切替、選択状態を持つリストの行）は `Hone.ToggleGroup`（この項目には含まれない。別の項目として作る予定）が担う。**ToggleGroup の子に Toggle は使わない**（子には `Hone.Button` を使う）。
+選択肢の中から選ぶ用途（セグメント切替、選択状態を持つリストの行）は `Hone.ToggleGroup`（別の項目。`hone add ToggleGroup`）が担う。**ToggleGroup の子に Toggle は使わない**（子には `Hone.Button` を使う）。
 Toggle 自身の on / off と、ToggleGroup 側の選択が二重になり、見た目と値が食い違う。Toggle は単独で on / off を持つボタン（ミュート、表示の切り替えなど）に使う。
 
 ## headless 層との関係

@@ -95,7 +95,7 @@ namespace Hone.Sandbox.Gallery
                 return cell;
             });
             // 3 つの Hone.Button を並べた ToggleGroup を、幅を決めるためにセルに入れる（セルは縦並びで、行の残りを短文と長文で等分する）。attach の時点で 2 番目（index 1）を選んだ状態にする。項目は flex-grow: 1 で均等に広がり、長文の言語では縮んで省略記号になる。
-            // 基底は未選択を許さない設定のとき index 0 を選んでいることがあるので、全部外してから 1 を選ぶ
+            // allowEmptySelection が false（既定）だと、最初の子を足した時点で基底が index 0 を選ぶので、全部外してから 1 を選ぶ
             GalleryController.Register("Hone.ToggleGroup", text =>
             {
                 var group = new ToggleGroup();

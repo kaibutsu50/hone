@@ -14,7 +14,7 @@
 </ui:UXML>
 ```
 
-選択を C# から設定し、変化を受ける例（`ToggleButtonGroupState` の `length` は子の数ではなく常に 64。全部 false にしてから 1 つを true にする）:
+選択を C# から設定し、変化を受ける例（`ToggleButtonGroupState` の `length` は子の数ではなく常に 64。全部 false にしてから 1 つを true にする。`allowEmptySelection` が false のままだと、最初の子を足した時点で基底が index 0 を選ぶので、選び直すときは全部外す。Unity 6000.7.0b4 で確認。panel に attach する前に設定しても、attach 後に残る）:
 
 ```csharp
 var group = new Hone.ToggleGroup();
@@ -49,7 +49,8 @@ group.RegisterValueChangedCallback(evt =>
 | `isMultipleSelection` | 複数選択にする。既定 false（単一選択） |
 | `allowEmptySelection` | 何も選ばれていない状態を許す。既定 false |
 
-- 単一選択は「押した項目が選ばれる」、複数選択は「押すたびにその項目が反転する」。クリックも、フォーカス時の `NavigationSubmitEvent` も同じ。
+- 単一選択は「押した項目だけが選ばれる」、複数選択は「押すたびにその項目が反転する」。クリックも、フォーカス時の `NavigationSubmitEvent` も同じ。
+- 単一選択で `allowEmptySelection` が false なら、選ばれている項目を押しても選択は変わらない。true なら、選ばれている項目を押すと外れる（Unity 6000.7.0b4 で確認）。
 - ToggleGroup 自身は variant や属性を持たない。
 
 ## USS クラス
@@ -57,9 +58,9 @@ group.RegisterValueChangedCallback(evt =>
 | クラス | 意味 |
 |---|---|
 | `hone-toggle-group` | ブロック。`unity-toggle-button-group` は外してある |
-| `.hone-toggle-group .hone-button` | 子の Button。off は背景が透明で、hover で `--hone-color-muted`。`flex-grow: 1` で均等に広がり、親が狭いときは縮んで省略記号になる |
+| `.hone-toggle-group .hone-button` | 子の Button。off は背景が透明で、hover で `--hone-color-muted`。`flex-grow: 1` で余った幅を等分して広がり（項目の幅は内容によって異なる。揃えたいときは利用者が `flex-basis: 0` を書く）、親が狭いときは縮んで省略記号になる |
 | `.hone-toggle-group .hone-button:checked` | 選ばれている子。背景は `--hone-color-accent`（選ばれたまま hover しても accent のまま） |
-| `:disabled`（`SetEnabled(false)`） | `opacity: 0.5`（`Button.uss`） |
+| `:disabled`（`SetEnabled(false)`） | `opacity: 0.5`（`Button.uss`）。hover の規則の `opacity: 1` のほうが詳細度が高いので、disabled の項目に hover が付く環境では 0.5 が消える可能性がある（確かめていない）。押下（`:active`）の `opacity: 0.8` も群の中では効かない |
 
 基底が付けるクラスは外していない。root には `unity-base-field`（と、label が無いときの `unity-base-field--no-label`）、子の Button の親のコンテナには `unity-base-field__input` と `unity-button-group`（`ToggleButtonGroup.buttonGroupClassName`）、子の Button には `unity-button-group__button` などが付く（Unity 6000.7.0b4 で確認）。子の Button の間に隙間は無い。
 
@@ -94,7 +95,7 @@ Toggle は単独で on / off を持つボタン（ミュート、表示の切り
 
 - フォーカス ring は子の `Hone.Button` が持つ `hone-focusable`（`Core.uss`）のまま。ToggleGroup 側では何も書かない。
 - `FocusScope` や `BackStack` は使わない。単独で完結する。
-- `Hone.Button` の `commitDelay` / `committed` は、ToggleGroup の選択には関与しない。選択の確定は基底の `clicked` 経由で、押した瞬間に変わる。
+- `Hone.Button` の `commitDelay` / `committed` は、ToggleGroup の選択には関与しない。選択は、基底がボタンの押下（クリックと `NavigationSubmitEvent`）を受けて、押した瞬間に変わる。
 
 ## 名前の衝突
 
@@ -111,4 +112,4 @@ World Space の panel でも、Screen Space と同じ構造のまま置ける。
 
 ## レイアウト
 
-幅は親に従い、項目は `flex-grow: 1` で均等に広がる。ToggleGroup 自身は幅を固定しない。
+幅は親に従い、項目は `flex-grow: 1` で余った幅を等分して広がる。ToggleGroup 自身は幅を固定しない。
