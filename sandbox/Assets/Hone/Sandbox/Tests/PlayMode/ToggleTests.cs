@@ -13,7 +13,8 @@ using Toggle = Hone.Toggle;
 namespace Hone.Sandbox.Tests
 {
     // Editor で実行する前提（UXML と PanelSettings を AssetDatabase から読む）。
-    // using UnityEngine.UIElements; と Hone の Toggle を併用するので、エイリアスで Toggle を Hone.Toggle にする（README の「名前の衝突」）。
+    // このファイルの Toggle は Hone.Toggle を指す。Hone の入れ子の namespace なので、エイリアスが無くても using UnityEngine.UIElements; より Hone.Toggle が勝つ（ButtonTests と同じ）。
+    // エイリアスは README の「名前の衝突」の書き方に揃えて明示している。
     // resolvedStyle を読むテストは、HoneTheme が当たった panel に attach して frame を進めてから測る。
     public class ToggleTests
     {
@@ -51,6 +52,7 @@ namespace Hone.Sandbox.Tests
                 Assert.IsTrue(element.ClassListContains("hone-focusable"));
                 Assert.IsTrue(element.ClassListContains("hone-text"));
                 Assert.IsFalse(element.ClassListContains(UnityEngine.UIElements.Button.ussClassName));
+                Assert.IsFalse(element.ClassListContains("hone-button"), "Toggle must not inherit Hone.Button");
                 Assert.AreEqual(element.value, element.ClassListContains(PressedClass), "value and .is-pressed must agree");
             }
 
@@ -156,6 +158,12 @@ namespace Hone.Sandbox.Tests
             Assert.IsFalse(toggle.value);
             Assert.IsFalse(toggle.ClassListContains(PressedClass));
             Assert.AreEqual(0, changes);
+
+            // 対照: callback が配線されていて、値が変わる set なら ChangeEvent が出る
+            toggle.value = true;
+            yield return null;
+
+            Assert.AreEqual(1, changes, "a real change must fire a ChangeEvent");
         }
 
         // (D) off のとき背景の alpha が 0、on のとき 1。既定テーマの Button の背景に負けていないことを測る

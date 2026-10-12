@@ -2,7 +2,7 @@ using UnityEngine.UIElements;
 
 namespace Hone
 {
-    // 基底は完全修飾で書く。namespace Hone の中では、修飾しない Button は Hone.Button、Toggle は自分自身（Hone.Toggle）を指す。
+    // 基底は完全修飾で書く。namespace Hone の中では、修飾しない Button は（Hone.Button を入れていれば）Hone.Button、Toggle は自分自身（Hone.Toggle）を指す。
     // clicked、text、NavigationSubmitEvent の処理は基底の Button のものをそのまま使い、Toggle は on / off の値を足す。
     // on の状態は :checked で表せない（VisualElement.pseudoStates は internal）ので、.is-pressed クラスで表す。
     [UxmlElement]

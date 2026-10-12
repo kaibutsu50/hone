@@ -84,8 +84,8 @@ namespace Hone.Sandbox.Gallery
                 cell.Add(new Switch { label = text, value = true });
                 return cell;
             });
-            // off と on を 1 つのセルに縦に積む。セルは縦並びで幅が決まるので、長文は省略記号になる。
-            // Unity 標準の Toggle と紛らわしいので Hone.Toggle と完全修飾で書く。hone-focusable を持つので、GalleryFocus が最初の off の Toggle に focus を当て、ring が写る
+            // off と on を 1 つのセルに縦に積む。セルは縦並びで幅が決まるので、幅を超える長文は省略記号になる。
+            // Unity 標準の Toggle と紛らわしいので Hone.Toggle と完全修飾で書く。hone-focusable を持つので、撮影時に GalleryFocus.RefocusLater（または言語の切り替え）で en の行の off の Toggle に当て直すと ring が写る。コンポーネントを選んだだけでは当たらない
             GalleryController.Register("Hone.Toggle", text =>
             {
                 var cell = new VisualElement();

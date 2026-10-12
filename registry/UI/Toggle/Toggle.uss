@@ -28,7 +28,7 @@
     color: var(--hone-color-accent-foreground);
 }
 
-/* hover と重なっても disabled の見た目が残るよう、最後に書く */
+/* :hover と .is-pressed は opacity を書かないので順序に依らないが、Button.uss と並びを揃えて最後に書く */
 .hone-toggle:disabled {
     opacity: 0.5;
 }

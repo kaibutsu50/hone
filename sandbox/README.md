@@ -135,7 +135,7 @@ unity command run_tests --mode playmode --filter Hone.Sandbox.Tests.SandboxSmoke
 選択肢は `Gallery/TestStrings.json` の en 以外を書いた順に並び、表示名は各項目の `name`。初期値は en 以外の先頭で、今は `Japanese`（ファイルの並び順を変えると初期値も変わる）。
 Unity 標準の `Label` と `Button` は `GalleryController` が自分で登録する（name は `"Label"` `"Button"`）。
 `GalleryHoneEntries` が `Hone.Button`（1 つのセルに 4 variant を縦に積む。セルは縦並びで幅が決まるので、長文は省略記号になる）を最初に登録する。リストの初期選択が `Hone.Button` になり、その ring が写る。続けて `Label.hone-text`（`.hone-text` を付けた `Label`）と `Button.hone-focusable`（`.hone-focusable` を付けた `Button`）を登録する。リストで素の `Label` / `Button` と選び比べて、見た目の差を見る。
-続けて `Hone.Dialog`（開いた状態。文字列はタイトルと本文に入れ、ボタンは固定の `Cancel` と `OK`）を、`Hone.MessageWindow`（文字列を 2 ページにして 1 ページ目を即時表示し、次のページがある状態の ▼ を写す）を、`Hone.Switch`（文字列を `label` にした off と on を 1 つのセルに縦に積む。`hone-focusable` を持たないので ring は写らない）を、最後に `Hone.Toggle`（文字列を `text` にした off と on を 1 つのセルに縦に積む）を登録する。
+続けて `Hone.Dialog`（開いた状態。文字列はタイトルと本文に入れ、ボタンは固定の `Cancel` と `OK`）を、`Hone.MessageWindow`（文字列を 2 ページにして 1 ページ目を即時表示し、次のページがある状態の ▼ を写す）を、`Hone.Switch`（文字列を `label` にした off と on を 1 つのセルに縦に積む。`hone-focusable` を持たないので ring は写らない）を、最後に `Hone.Toggle`（文字列を `text` にした off と on を 1 つのセルに縦に積む。`hone-focusable` を持つので、コンポーネントを選んだだけでは ring は写らず、`RefocusLater`（または言語の切り替え）で en の行の off の Toggle に当て直すと写る）を登録する。
 列には `gallery-column--<name の "." を "-" にして小文字>` のクラスが付く（例: `gallery-column--hone-dialog`。テストが列の特定に使う。USS では使っていない）。
 Dialog と MessageWindow は親の幅に従う部品なので、`Gallery.uss` はセル（`.gallery-dialog`、`.gallery-message-window`）の基準の幅を px で持ち、行の残りまで伸ばしている（`flex-basis: 0` や割合の幅から伸ばすと 1 文字ずつ折り返す）。
 `Japanese` では、Screen Space でも Dialog と MessageWindow の en と ja の 2 行が 1 画面に収まった（ほかの言語は確かめていない。6000.7.0b2）。
