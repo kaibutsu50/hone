@@ -90,6 +90,14 @@ namespace Hone.Sandbox.Tests
             group.SetValueWithoutNotify(state);
         }
 
+        // hover の再現。target を決めずに panel の visualTree へ PointerMoveEvent を送ると、panel が座標で pick して :hover を付ける
+        static void MovePointerTo(VisualElement root, VisualElement target)
+        {
+            var center = target.worldBound.center;
+            using (var evt = PointerMoveEvent.GetPooled(new Event { type = EventType.MouseMove, mousePosition = center }))
+                root.panel.visualTree.SendEvent(evt);
+        }
+
         // (A) UXML の ToggleGroup に hone-toggle-group が付き unity-toggle-button-group が付いていない。子は Hone.Button 3 つで、attach 後に横並びになる
         [UnityTest]
         public IEnumerator Uxml_HasToggleGroupClass_AndButtonsAreInARow()
@@ -159,6 +167,51 @@ namespace Hone.Sandbox.Tests
             var selected = Enumerable.Range(0, state.length).Where(i => state[i]).ToArray();
             CollectionAssert.AreEqual(new[] { 2 }, selected);
             Assert.AreEqual(1, changes);
+        }
+
+        // (#96 B) disabled の項目に hover が付いても opacity が 0.5 のまま。hover の再現は、enabled な項目の背景が muted に変わることで確かめる
+        [UnityTest]
+        public IEnumerator Disabled_KeepsOpacity_UnderHover()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+
+            var group = CreateGroup();
+            root.Add(group);
+            yield return Settle();
+            var buttons = group.Query<Hone.Button>().ToList();
+            buttons[0].SetEnabled(false);
+            yield return Settle();
+
+            var before = buttons[1].resolvedStyle.backgroundColor;
+            MovePointerTo(root, buttons[1]);
+            yield return Settle();
+            var hovered = buttons[1].resolvedStyle.backgroundColor;
+            Assert.AreNotEqual(before, hovered, "hover must change the enabled button's background (proof that hover was reproduced)");
+            Assert.Greater(hovered.a, 0f, "hover must give the enabled button the muted background");
+
+            MovePointerTo(root, buttons[0]);
+            yield return Settle();
+            Assert.AreEqual(0.5f, buttons[0].resolvedStyle.opacity, 0.001f, "a disabled button must keep opacity 0.5 under hover");
+        }
+
+        // (#96 C) hover なしでは、disabled の項目が 0.5、enabled の項目が 1
+        [UnityTest]
+        public IEnumerator Disabled_HasHalfOpacity_WithoutHover()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+
+            var group = CreateGroup();
+            root.Add(group);
+            yield return Settle();
+            var buttons = group.Query<Hone.Button>().ToList();
+            buttons[0].SetEnabled(false);
+            yield return Settle();
+
+            Assert.AreEqual(0.5f, buttons[0].resolvedStyle.opacity, 0.001f, "a disabled button must have opacity 0.5");
+            Assert.AreEqual(1f, buttons[1].resolvedStyle.opacity, 0.001f, "an enabled button must have opacity 1");
+            Assert.AreEqual(1f, buttons[2].resolvedStyle.opacity, 0.001f, "an enabled button must have opacity 1");
         }
     }
 }

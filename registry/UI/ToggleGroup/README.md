@@ -60,7 +60,7 @@ group.RegisterValueChangedCallback(evt =>
 | `hone-toggle-group` | ブロック。`unity-toggle-button-group` は外してある |
 | `.hone-toggle-group .hone-button` | 子の Button。off は背景が透明で、hover で `--hone-color-muted`。`flex-grow: 1` で余った幅を等分して広がり（項目の幅は内容によって異なる。揃えたいときは利用者が `flex-basis: 0` を書く）、親が狭いときは縮んで省略記号になる |
 | `.hone-toggle-group .hone-button:checked` | 選ばれている子。背景は `--hone-color-accent`（選ばれたまま hover しても accent のまま） |
-| `:disabled`（`SetEnabled(false)`） | `opacity: 0.5`（`Button.uss`）。hover の規則の `opacity: 1` のほうが詳細度が高いので、disabled の項目に hover が付く環境では 0.5 が消える可能性がある（確かめていない）。押下（`:active`）の `opacity: 0.8` も群の中では効かない |
+| `.hone-toggle-group .hone-button:disabled`（`SetEnabled(false)`） | `opacity: 0.5`。disabled の項目にも hover が付くので、`:hover` の `opacity: 1` に負けないよう `ToggleGroup.uss` の末尾で同じ詳細度の規則を後ろに置いている（Unity 6000.7.0b4 で確認）。押下（`:active`）の `opacity: 0.8` は群の中では効かない |
 
 基底が付けるクラスは外していない。root には `unity-base-field`（と、label が無いときの `unity-base-field--no-label`）、子の Button の親のコンテナには `unity-base-field__input` と `unity-button-group`（`ToggleButtonGroup.buttonGroupClassName`）、子の Button には `unity-button-group__button` などが付く（Unity 6000.7.0b4 で確認）。子の Button の間に隙間は無い。
 
