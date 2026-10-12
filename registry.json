@@ -67,6 +67,21 @@
       "classes": ["Hone.MessageWindow"]
     },
     {
+      "name": "Switch",
+      "type": "registry:ui",
+      "title": "Switch",
+      "description": "on / off を切り替えるスイッチ（Toggle を継承。track と thumb、focus ring は track）",
+      "files": [
+        { "path": "UI/Switch/Switch.cs", "type": "registry:ui" },
+        { "path": "UI/Switch/Switch.uxml", "type": "registry:ui" },
+        { "path": "UI/Switch/Switch.uss", "type": "registry:ui" },
+        { "path": "UI/Switch/README.md", "type": "registry:ui" }
+      ],
+      "registryDependencies": ["Core"],
+      "dependencies": [],
+      "classes": ["Hone.Switch"]
+    },
+    {
       "name": "Default",
       "type": "registry:theme",
       "title": "Default",

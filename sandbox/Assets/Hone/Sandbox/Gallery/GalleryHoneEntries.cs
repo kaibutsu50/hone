@@ -74,6 +74,16 @@ namespace Hone.Sandbox.Gallery
                 window.RegisterCallbackOnce<AttachToPanelEvent>(evt => window.Show(new MessageWindow.Page(speaker, text), new MessageWindow.Page(null, text)));
                 return window;
             });
+            // off と on を 1 つのセルに縦に積む。文言は label に入れる（text は track の中に入る）。長文の言語では label が省略記号で切れ、track は右端に残る。
+            // hone-focusable は付けていないので ring は写らない（Switch の ring は track の border。GalleryFocus の当て先にもならない）
+            GalleryController.Register("Hone.Switch", text =>
+            {
+                var cell = new VisualElement();
+                cell.AddToClassList("gallery-cell");
+                cell.Add(new Switch { label = text });
+                cell.Add(new Switch { label = text, value = true });
+                return cell;
+            });
         }
     }
 }

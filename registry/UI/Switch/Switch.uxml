@@ -1,0 +1,4 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:hone="Hone">
+    <hone:Switch label="Airplane Mode" />
+    <hone:Switch label="Notifications" value="true" />
+</ui:UXML>
