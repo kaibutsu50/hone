@@ -97,6 +97,21 @@
       "classes": ["Hone.Toggle"]
     },
     {
+      "name": "ToggleGroup",
+      "type": "registry:ui",
+      "title": "ToggleGroup",
+      "description": "ボタンを並べて単一選択または複数選択にする（ToggleButtonGroup を継承。子は Hone.Button、選択は :checked）",
+      "files": [
+        { "path": "UI/ToggleGroup/ToggleGroup.cs", "type": "registry:ui" },
+        { "path": "UI/ToggleGroup/ToggleGroup.uxml", "type": "registry:ui" },
+        { "path": "UI/ToggleGroup/ToggleGroup.uss", "type": "registry:ui" },
+        { "path": "UI/ToggleGroup/README.md", "type": "registry:ui" }
+      ],
+      "registryDependencies": ["Core", "Button"],
+      "dependencies": [],
+      "classes": ["Hone.ToggleGroup"]
+    },
+    {
       "name": "Default",
       "type": "registry:theme",
       "title": "Default",

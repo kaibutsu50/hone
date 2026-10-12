@@ -1,0 +1,7 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:hone="Hone">
+    <hone:ToggleGroup>
+        <hone:Button text="Day" />
+        <hone:Button text="Week" />
+        <hone:Button text="Month" />
+    </hone:ToggleGroup>
+</ui:UXML>

@@ -1,0 +1,23 @@
+/* 色は Tokens.uss のトークン。opacity の割合と transparent はトークンを持たない（Button.uss と同じ）。
+ * 子の Hone.Button の見た目を、.hone-toggle-group の下でだけ上書きする（ToggleGroup の外の Button は変わらない）。
+ * 選ばれている子には基底が :checked を付ける。:checked は :hover の後に書き、選ばれたまま hover しても accent のままにする。
+ * 項目の間の隙間は取らない。角丸は各 Button の --hone-radius-md のまま。
+ * focus ring は子の Button が持つ .hone-focusable（Core.uss）のまま。disabled は Button.uss の .hone-button:disabled のまま。 */
+.hone-toggle-group .hone-button {
+    background-color: transparent;
+    border-color: transparent;
+    color: var(--hone-color-foreground);
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
+.hone-toggle-group .hone-button:hover {
+    background-color: var(--hone-color-muted);
+    color: var(--hone-color-muted-foreground);
+    opacity: 1;
+}
+
+.hone-toggle-group .hone-button:checked {
+    background-color: var(--hone-color-accent);
+    color: var(--hone-color-accent-foreground);
+}

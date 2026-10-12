@@ -7,7 +7,7 @@ namespace Hone.Sandbox.Gallery
     // Hone.Sandbox.UI を参照すると、namespace Hone の中の Button は Hone.Button を指す。ここの Button は Unity 標準のもの
     using Button = UnityEngine.UIElements.Button;
 
-    // Hone.Button、Hone.Dialog、Hone.MessageWindow、Hone.Switch、Hone.Toggle と、Core.uss の .hone-text と .hone-focusable を Gallery に載せる。左のリストで素の "Label" "Button" と選び比べて、見た目の差を見る。
+    // Hone.Button、Hone.Dialog、Hone.MessageWindow、Hone.Switch、Hone.Toggle、Hone.ToggleGroup と、Core.uss の .hone-text と .hone-focusable を Gallery に載せる。左のリストで素の "Label" "Button" と選び比べて、見た目の差を見る。
     // Register は sandbox 側から呼ぶ（registry/ 配下のコードには書かない）。呼ぶ時点は README の Gallery の節を参照。
     static class GalleryHoneEntries
     {
@@ -92,6 +92,26 @@ namespace Hone.Sandbox.Gallery
                 cell.AddToClassList("gallery-cell");
                 cell.Add(new Hone.Toggle { text = text });
                 cell.Add(new Hone.Toggle { text = text, value = true });
+                return cell;
+            });
+            // 3 つの Hone.Button を並べた ToggleGroup を、幅を決めるためにセルに入れる（セルは縦並びで、行の残りを短文と長文で等分する）。attach の時点で 2 番目（index 1）を選んだ状態にする。項目は flex-grow: 1 で均等に広がり、長文の言語では縮んで省略記号になる。
+            // 基底は未選択を許さない設定のとき index 0 を選んでいることがあるので、全部外してから 1 を選ぶ
+            GalleryController.Register("Hone.ToggleGroup", text =>
+            {
+                var group = new ToggleGroup();
+                for (var i = 0; i < 3; i++)
+                    group.Add(new Hone.Button { text = text });
+                group.RegisterCallbackOnce<AttachToPanelEvent>(evt =>
+                {
+                    var state = group.value;
+                    for (var i = 0; i < state.length; i++)
+                        state[i] = false;
+                    state[1] = true;
+                    group.SetValueWithoutNotify(state);
+                });
+                var cell = new VisualElement();
+                cell.AddToClassList("gallery-cell");
+                cell.Add(group);
                 return cell;
             });
         }
