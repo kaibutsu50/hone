@@ -1,0 +1,3 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:hone="Hone">
+    <hone:Pagination page-count="10" value="4" />
+</ui:UXML>
