@@ -29,7 +29,7 @@ UXML の属性は、UXML に書いた順ではなく C# の宣言の順に適用
 
 | 名前 | 意味 |
 |---|---|
-| `pageCount` | ページ数。既定 1。0 未満は 0 として扱う。変えると `value` を範囲に収めるが、`ChangeEvent` は出さない |
+| `pageCount` | ページ数。既定 1。0 未満は 0 として扱う。変えると `value` を範囲に収めるが、`ChangeEvent` は出さない。同じ値を入れても作り直さない（フォーカスは保たれる） |
 | `value` | 今のページ（0 始まり）。既定 0。`0`〜`max(pageCount - 1, 0)` に収め、変わったときだけ `ChangeEvent<int>` を 1 回出す |
 | `SetValueWithoutNotify(int)` | `value` と同じに収めて並びを作り直すが、`ChangeEvent` を出さない |
 

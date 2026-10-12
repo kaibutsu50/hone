@@ -309,6 +309,73 @@ namespace Hone.Sandbox.Tests
             yield return null;
             Assert.AreEqual(1, changes, "a real change must fire a ChangeEvent");
         }
+
+        // (A) (D) 今と同じ pageCount を入れても、items の子は同じインスタンスのまま。value も ChangeEvent も変わらない。
+        // 0 未満を 0 に収めた値が同じ場合（pageCount 0 に -1）も作り直さない
+        [UnityTest]
+        public IEnumerator PageCount_SameValue_DoesNotRebuild()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+
+            var pagination = new Pagination { pageCount = 10, value = 4 };
+            var changes = 0;
+            pagination.RegisterValueChangedCallback(evt => changes++);
+            root.Add(pagination);
+            yield return null;
+
+            var before = Items(pagination).Children().ToList();
+            Assert.IsNotEmpty(before);
+
+            pagination.pageCount = 10;
+            yield return null;
+
+            CollectionAssert.AreEqual(before, Items(pagination).Children().ToList(), "same pageCount must keep the same child instances");
+            for (var i = 0; i < before.Count; i++)
+                Assert.AreSame(before[i], Items(pagination)[i], $"child {i}");
+            Assert.AreEqual(4, pagination.value);
+            Assert.AreEqual(0, changes, "setting the same pageCount must not fire a ChangeEvent");
+
+            // 対照: 違う値なら作り直す（子のインスタンスが変わる）
+            pagination.pageCount = 5;
+            yield return null;
+            Assert.IsFalse(Items(pagination).Children().Any(child => before.Contains(child)), "a different pageCount must rebuild the children");
+
+            // pageCount が 0 のとき、-1 は 0 に収まって同じ値なので作り直さない
+            pagination.pageCount = 0;
+            yield return null;
+            Assert.AreEqual(0, pagination.pageCount);
+            var empty = Items(pagination).Children().ToList();
+
+            pagination.pageCount = -1;
+            yield return null;
+
+            Assert.AreEqual(0, pagination.pageCount);
+            CollectionAssert.AreEqual(empty, Items(pagination).Children().ToList());
+            Assert.AreEqual(0, changes, "setting the same pageCount must not fire a ChangeEvent");
+        }
+
+        // (B) 今と同じ pageCount を入れても、ページ番号の Button のフォーカスは外れない
+        [UnityTest]
+        public IEnumerator PageCount_SameValue_KeepsFocus()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+
+            var pagination = new Pagination { pageCount = 10, value = 4 };
+            root.Add(pagination);
+            yield return null;
+
+            var button = PageButtons(pagination).First(b => b.text == "5");
+            button.Focus();
+            yield return null;
+            Assert.AreSame(button, pagination.panel.focusController.focusedElement, "precondition: the page button must be focused");
+
+            pagination.pageCount = 10;
+            yield return null;
+
+            Assert.AreSame(button, pagination.panel.focusController.focusedElement);
+        }
     }
 }
 #endif
