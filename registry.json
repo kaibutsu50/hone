@@ -82,6 +82,21 @@
       "classes": ["Hone.Switch"]
     },
     {
+      "name": "Toggle",
+      "type": "registry:ui",
+      "title": "Toggle",
+      "description": "押すたびに on / off が切り替わるボタン（Button を継承。on は .is-pressed）",
+      "files": [
+        { "path": "UI/Toggle/Toggle.cs", "type": "registry:ui" },
+        { "path": "UI/Toggle/Toggle.uxml", "type": "registry:ui" },
+        { "path": "UI/Toggle/Toggle.uss", "type": "registry:ui" },
+        { "path": "UI/Toggle/README.md", "type": "registry:ui" }
+      ],
+      "registryDependencies": ["Core"],
+      "dependencies": [],
+      "classes": ["Hone.Toggle"]
+    },
+    {
       "name": "Default",
       "type": "registry:theme",
       "title": "Default",
