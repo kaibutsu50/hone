@@ -11,7 +11,7 @@
 ```
 
 `choices` は `DropdownField` の `choices` と同じく、カンマ区切りで書く（`choices="Low,Medium,High"` で 3 つになった。Unity 6000.7.0b4 で確認）。
-UXML の属性は、UXML に書いた順ではなく C# の宣言の順に適用される。`choices` と `wrap` を `value` より先に宣言してあるので、UXML ではどちらを先に書いても `value="1"` は残る。
+UXML の属性は、UXML に書いた順ではなく C# の宣言の順に適用される（`Pagination` で、`value` を先に書いた UXML でも値が残ることを実測した。Unity 6000.7.0b4。Cycle では `choices` を先に書いた順だけを確かめている）。`choices` を `value` より先に宣言してあるので、`value="1"` は `choices` の範囲で収められて残る。
 
 C# で作り、値の変化を受けて設定値を引く例:
 
@@ -37,7 +37,7 @@ C# で `choices` と `value` を一緒に設定するときは、`choices` を�
 
 | 名前 | 意味 |
 |---|---|
-| `choices` | 選択肢。既定は空。set は受け取った列を写して持つ（後から元の列を書き換えても反映しない。変えるときは列を入れ直す）。null は空として扱う。`value` を範囲に収めるが、`ChangeEvent` は出さない |
+| `choices` | 選択肢。既定は空。get は写しを返し、set は受け取った列を写して持つ（どちらの列を後から書き換えても反映しない。変えるときは、書き換えた列を `choices` に set し直す）。null は空として扱う。`value` を範囲に収めるが、`ChangeEvent` は出さない |
 | `wrap` | 端で巡回するか。既定 false。false なら端でその側の Button が disabled になり、左右の入力も端で止まる。true なら前後の Button は常に有効（`choices` が 2 つ以上のとき）で、端から反対側へ巡る |
 | `value` | 選択中の index（0 始まり）。既定 0。`0`〜`max(choices.Count - 1, 0)` に収め、変わったときだけ `ChangeEvent<int>` を 1 回出す。`wrap` は set には効かない（-1 を入れても最後にはならず 0 に収まる） |
 | `SetValueWithoutNotify(int)` | `value` と同じに収めて表示を更新するが、`ChangeEvent` を出さない |
@@ -57,9 +57,9 @@ C# で `choices` と `value` を一緒に設定するときは、`choices` を�
 | クラス | 意味 |
 |---|---|
 | `hone-cycle` | ブロック。横並び。フォーカス ring を描くための透明な border を持つ |
-| `hone-focusable` | root に付く。フォーカス ring は root に出る（`Core.uss`）。前後の Button には出ない |
+| `hone-focusable` | root に付く。フォーカス ring は root に出る（`Core.uss`）。前後の Button にも `Hone.Button` として付いているが、focusable でないので ring は出ない |
 | `hone-cycle__previous` | 前の Button（`Hone.Button`、Ghost、"‹"、focusable でない） |
-| `hone-cycle__value` | 選択中の文字列（`Label`）。`hone-text` も付く。幅は親に従って伸び、狭ければ省略記号で切れる |
+| `hone-cycle__value` | 選択中の文字列（`Label`）。`hone-text` も付く。幅は Cycle の幅に従って伸び縮みし、収まらなければ省略記号で切れる（USS の指定） |
 | `hone-cycle__next` | 次の Button（`Hone.Button`、Ghost、"›"、focusable でない） |
 
 前後の Button の見た目は `Button.uss` のまま。Cycle の USS では Button を上書きしない。
@@ -78,9 +78,10 @@ cycle.Q<Hone.Button>(className: "hone-cycle__next").text = "▶";
 - root が `NavigationMoveEvent` を TrickleDown で受け、自分が target のときだけ左右を処理する。左右は `FocusController.IgnoreEvent` で既定の移動を止めてから値を動かす。端で値が動かないときも止める（止めないと、端でだけ隣の要素へフォーカスが移る）。
 - Cycle は `Hone.Core.INavigationMoveConsumer` を実装し、左右で true を返す。`FocusScope { trap = true }` の中（Dialog の中など）では、FocusScope が先に `NavigationMoveEvent` を受けるが、左右は Cycle に任せる。上下と Tab は今までどおり FocusScope の trap が処理する。
 - `BackStack` は使わない。Cancel は基底のまま上へ届く。
-- 前後の Button を押しても、root にフォーカスは移らない。
+- 前後の Button の `clicked` で root に `Focus()` する処理は持たない。マウスやタッチで押したときにフォーカスがどうなるか（root に残るか、外れるか）は Unity の既定のままで、確かめていない。
 
 ## World Space での置き方
 
 World Space の panel でも、Screen Space と同じ構造のまま置ける。Cycle 側に World Space 用の設定は無い。
 幅は親で決める。中央の Label が伸び縮みし、前後の Button は縮まない。panel が小さいときは、前後の Button と、最も長い選択肢が切れずに入る幅を親に与える。
+縦並び（`align-items: stretch`）の親では Cycle は親の幅まで伸びる。横並びの親（「項目名 + Cycle」の行など）では、何も指定しないと Cycle の幅が今の文字列の幅になり、値が変わるたびに Cycle と隣の要素が動く。横並びに置くときは、Cycle に `flex-grow: 1` か幅を与える。

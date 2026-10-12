@@ -19,15 +19,16 @@ namespace Hone
         bool m_Wrap;
         int m_Value;
 
-        // choices と wrap は value より先に宣言する。UXML の属性は、UXML に書いた順ではなく宣言の順に適用される（Pagination と同じ）。
+        // choices は value より先に宣言する。UXML の属性は、UXML に書いた順ではなく宣言の順に適用される（Pagination で実測。6000.7.0b4）。
         // value が先の宣言だと、choices が空のまま 0 に収められてしまう
 
-        // 選択肢。set は受け取った列を写して持ち（後から元の列を書き換えても反映しない）、null は空として扱う。
-        // value を範囲に収めるが、ChangeEvent は出さない
+        // 選択肢。get は写しを返し、set は受け取った列を写して持つ。どちらの列を後から書き換えても Cycle には反映しない（変えるときは列を set し直す）。
+        // 内部の列を外に出さないのは、value が範囲の外に残る書き換えと、get した列をそのまま set したときに Clear で空になるのを防ぐため。
+        // null は空として扱う。value を範囲に収めるが、ChangeEvent は出さない
         [UxmlAttribute]
         public List<string> choices
         {
-            get => m_Choices;
+            get => new List<string>(m_Choices);
             set
             {
                 m_Choices.Clear();

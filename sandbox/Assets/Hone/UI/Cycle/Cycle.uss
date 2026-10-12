@@ -10,7 +10,7 @@
     border-radius: var(--hone-radius-md);
 }
 
-/* 幅は固定しない。親の幅に従って伸び、狭ければ省略記号で切れる */
+/* 幅は固定しない。Cycle の幅に従って伸び縮みし、収まらなければ省略記号で切れる */
 .hone-cycle__value {
     flex-grow: 1;
     flex-shrink: 1;

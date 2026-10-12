@@ -51,6 +51,7 @@ namespace Hone.Sandbox.Tests
             Assert.IsTrue(cycle.ClassListContains("hone-cycle"));
             Assert.IsTrue(cycle.ClassListContains("hone-focusable"));
             Assert.IsTrue(cycle.focusable);
+            Assert.AreEqual(0, cycle.tabIndex);
 
             var children = cycle.Children().ToList();
             Assert.AreEqual(3, children.Count);
@@ -92,7 +93,7 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual(nextEnabled, Next(cycle).enabledSelf, "next");
         }
 
-        // (E) の Button の部分と、状態の表の「choices が 1 つ」: wrap が true でも、2 つ以上のときだけ前後が有効
+        // (E) の Button の部分と、状態の表の「choices が 1 つ」と「空」: wrap が true でも、2 つ以上のときだけ前後が有効
         [TestCase(3, 0, true)]
         [TestCase(3, 2, true)]
         [TestCase(1, 0, false)]
@@ -103,6 +104,41 @@ namespace Hone.Sandbox.Tests
 
             Assert.AreEqual(enabled, Previous(cycle).enabledSelf, "previous");
             Assert.AreEqual(enabled, Next(cycle).enabledSelf, "next");
+        }
+
+        // 入力の表: 消費するのは Left と Right だけ。Up / Down / Next / Previous / None は消費しない（FocusScope の trap と既定のナビに任せる）
+        [TestCase(NavigationMoveEvent.Direction.Left, true)]
+        [TestCase(NavigationMoveEvent.Direction.Right, true)]
+        [TestCase(NavigationMoveEvent.Direction.Up, false)]
+        [TestCase(NavigationMoveEvent.Direction.Down, false)]
+        [TestCase(NavigationMoveEvent.Direction.Next, false)]
+        [TestCase(NavigationMoveEvent.Direction.Previous, false)]
+        [TestCase(NavigationMoveEvent.Direction.None, false)]
+        public void ConsumesNavigationMove_OnlyLeftAndRight(NavigationMoveEvent.Direction direction, bool expected)
+        {
+            Assert.AreEqual(expected, new Cycle().ConsumesNavigationMove(direction));
+        }
+
+        // 構造: 3 つの子は value、choices、wrap を変えても作り直さない。README の「前後の記号の差し替え」で書き換えた text が残る
+        [Test]
+        public void Children_AreNotRebuilt()
+        {
+            var cycle = new Cycle { choices = Choices(3), value = 1 };
+            var previous = Previous(cycle);
+            var label = ValueLabel(cycle);
+            var next = Next(cycle);
+            previous.text = "Prev";
+            next.text = "Next";
+
+            cycle.value = 2;
+            cycle.choices = Choices(5);
+            cycle.wrap = true;
+            cycle.SetValueWithoutNotify(0);
+
+            CollectionAssert.AreEqual(new VisualElement[] { previous, label, next }, cycle.Children().ToList());
+            Assert.AreEqual("Prev", previous.text);
+            Assert.AreEqual("Next", next.text);
+            Assert.AreEqual("choice-0", label.text);
         }
 
         // (I) Cycle.uxml（choices="Low,Medium,High" value="1"）を Instantiate すると、choices が 3 つ、value が 1、Label が Medium
@@ -309,7 +345,8 @@ namespace Hone.Sandbox.Tests
             Assert.AreSame(cycle, Focused(cycle));
         }
 
-        // (F) 前後の Button の Submit（clicked）で、左右と同じに value が動き ChangeEvent が 1 回出る。wrap も効く
+        // (F) 前後の Button の Submit（clicked）で、左右と同じに value が動き ChangeEvent が 1 回出る。wrap も効く。
+        // 前後の Button は focusable でないので、実際の入力で Submit が届くことはない。ここでの Submit は clicked の配線を確かめる代わりの手段で、マウスやタッチの経路（ポインタでのフォーカスの扱いを含む）は通っていない
         [UnityTest]
         public IEnumerator Buttons_Submit_ChangesValue()
         {
@@ -343,6 +380,14 @@ namespace Hone.Sandbox.Tests
 
             Assert.AreEqual(0, cycle.value);
             CollectionAssert.AreEqual(new[] { (2, 0) }, events);
+
+            // wrap のとき、最初で前の Button を押すと最後へ巡る
+            events.Clear();
+            Submit(Previous(cycle));
+            yield return null;
+
+            Assert.AreEqual(2, cycle.value);
+            CollectionAssert.AreEqual(new[] { (0, 2) }, events);
         }
 
         // (G) SetValueWithoutNotify で Label と Button が変わり、ChangeEvent は 0 回。範囲外（-1、choices.Count）は 0 と最後に収まる（wrap が true でも）
@@ -419,8 +464,19 @@ namespace Hone.Sandbox.Tests
             Assert.IsFalse(Next(cycle).enabledSelf);
             Assert.AreEqual(0, changes, "clearing choices must not fire a ChangeEvent");
 
-            // 対照: callback が配線されていて、値が変わる set なら ChangeEvent が出る
+            // get は写しを返す。get した列を書き換えても Cycle は変わらず、書き換えた列を set し直すと反映される（get した列をそのまま set しても空にならない）
             cycle.choices = Choices(3);
+            var copy = cycle.choices;
+            copy.RemoveAt(2);
+            Assert.AreEqual(3, cycle.choices.Count, "mutating the list from the getter must not change the Cycle");
+            cycle.choices = cycle.choices;
+            Assert.AreEqual(3, cycle.choices.Count, "setting the list from the getter must keep the choices");
+            copy.Add("added");
+            cycle.choices = copy;
+            CollectionAssert.AreEqual(new[] { "choice-0", "choice-1", "added" }, cycle.choices);
+            Assert.AreEqual(0, changes);
+
+            // 対照: callback が配線されていて、値が変わる set なら ChangeEvent が出る
             cycle.value = 2;
             yield return null;
             Assert.AreEqual(1, changes, "a real change must fire a ChangeEvent");
@@ -477,6 +533,50 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual(1, cycle.value, "Down must not change the value");
             CollectionAssert.IsEmpty(events);
             Assert.AreSame(below, Focused(cycle), "the trap must still move Down out of the Cycle");
+        }
+
+        // (J) の trap の側: scope の下端の Cycle から Down / Next を送っても、scope の外の真下の Button へ移らない（Cycle が消費しない方向は今までどおり trap が止める）。
+        // 対照に trap を false にすると、同じ配置で Down が外の Button へ移る（既定のナビが外へ出せる配置であることを示す）。
+        // 上の (J) のテストは Down の行き先が scope の中にあるので、FocusScope の分岐が方向を見ずに consumer へ任せる退行でも通ってしまう。これはその退行を捕まえる
+        [UnityTest]
+        public IEnumerator InsideTrap_AtBottomEdge_DownAndNextStayInScope()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+
+            var scope = new FocusScope { name = "scope", trap = true, autoFocus = false };
+            var above = new Button { name = "above", text = "above" };
+            var cycle = new Cycle { name = "cycle", choices = Choices(3), value = 1 };
+            var events = RecordChanges(cycle);
+            var outBottom = new Button { name = "out-bottom", text = "out-bottom" };
+            scope.Add(above);
+            scope.Add(cycle);
+            root.Add(scope);
+            root.Add(outBottom);
+            yield return WaitForLayout(above, cycle, outBottom);
+            yield return FocusAndWait(cycle);
+
+            SendMove(cycle, NavigationMoveEvent.Direction.Down);
+            yield return null;
+            Assert.AreSame(cycle, Focused(cycle), "Down from the bottom of the scope must not leave the scope");
+
+            SendMove(cycle, NavigationMoveEvent.Direction.Next);
+            yield return null;
+            Assert.AreSame(cycle, Focused(cycle), "Next from the last element of the scope must not leave the scope");
+
+            // trap は Cycle が消費しない方向を今までどおり scope の中で動かす
+            SendMove(cycle, NavigationMoveEvent.Direction.Up);
+            yield return null;
+            Assert.AreSame(above, Focused(cycle), "Up must move to the element above inside the scope");
+            Assert.AreEqual(1, cycle.value);
+            CollectionAssert.IsEmpty(events, "Down / Next / Up must not change the value");
+
+            // 対照: trap を外すと、同じ配置で Down が scope の外へ出る
+            scope.trap = false;
+            yield return FocusAndWait(cycle);
+            SendMove(cycle, NavigationMoveEvent.Direction.Down);
+            yield return null;
+            Assert.AreSame(outBottom, Focused(cycle), "without the trap, default navigation must move Down to the outside Button");
         }
     }
 }
