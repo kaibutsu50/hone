@@ -143,6 +143,20 @@
       "classes": ["Hone.Cycle"]
     },
     {
+      "name": "SettingsScreen",
+      "type": "registry:block",
+      "title": "SettingsScreen",
+      "description": "見出し・説明・右の操作の行が縦に並ぶ設定画面（Switch / Cycle / ToggleGroup / Button と、確認の Dialog を挟む Destructive の行）",
+      "files": [
+        { "path": "Blocks/SettingsScreen/SettingsScreen.uxml", "type": "registry:block" },
+        { "path": "Blocks/SettingsScreen/SettingsScreen.uss", "type": "registry:block" },
+        { "path": "Blocks/SettingsScreen/README.md", "type": "registry:block" }
+      ],
+      "registryDependencies": ["Core", "Button", "Switch", "Cycle", "ToggleGroup", "Dialog"],
+      "dependencies": [],
+      "classes": []
+    },
+    {
       "name": "Default",
       "type": "registry:theme",
       "title": "Default",

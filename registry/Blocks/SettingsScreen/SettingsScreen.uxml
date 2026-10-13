@@ -1,0 +1,51 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:hone="Hone">
+    <ui:VisualElement class="hone-settings-screen">
+        <ui:Label class="hone-settings-screen__title hone-text" text="Settings" />
+        <ui:VisualElement class="hone-settings-screen__row">
+            <ui:VisualElement class="hone-settings-screen__text">
+                <ui:Label class="hone-settings-screen__heading hone-text" text="Notifications" />
+                <ui:Label class="hone-settings-screen__description hone-text" text="Show a message when something new arrives." />
+            </ui:VisualElement>
+            <hone:Switch name="notifications" class="hone-settings-screen__control" value="true" />
+        </ui:VisualElement>
+        <ui:VisualElement class="hone-settings-screen__row">
+            <ui:VisualElement class="hone-settings-screen__text">
+                <ui:Label class="hone-settings-screen__heading hone-text" text="Quality" />
+                <ui:Label class="hone-settings-screen__description hone-text" text="Higher quality looks better and needs a faster device." />
+            </ui:VisualElement>
+            <hone:Cycle name="quality" class="hone-settings-screen__control" choices="Low,Medium,High" value="1" />
+        </ui:VisualElement>
+        <ui:VisualElement class="hone-settings-screen__row">
+            <ui:VisualElement class="hone-settings-screen__text">
+                <ui:Label class="hone-settings-screen__heading hone-text" text="Density" />
+                <ui:Label class="hone-settings-screen__description hone-text" text="How much space there is between items." />
+            </ui:VisualElement>
+            <hone:ToggleGroup name="density" class="hone-settings-screen__control">
+                <hone:Button text="Compact" />
+                <hone:Button text="Comfortable" />
+            </hone:ToggleGroup>
+        </ui:VisualElement>
+        <ui:VisualElement class="hone-settings-screen__row">
+            <ui:VisualElement class="hone-settings-screen__text">
+                <ui:Label class="hone-settings-screen__heading hone-text" text="Refresh data" />
+                <ui:Label class="hone-settings-screen__description hone-text" text="Download the latest data again." />
+            </ui:VisualElement>
+            <hone:Button name="refresh" class="hone-settings-screen__control" variant="secondary" text="Refresh" />
+        </ui:VisualElement>
+        <ui:VisualElement class="hone-settings-screen__row">
+            <ui:VisualElement class="hone-settings-screen__text">
+                <ui:Label class="hone-settings-screen__heading hone-text" text="Delete local data" />
+                <ui:Label class="hone-settings-screen__description hone-text" text="Remove the data saved on this device. This cannot be undone." />
+            </ui:VisualElement>
+            <hone:Button name="delete" class="hone-settings-screen__control" variant="destructive" text="Delete" />
+        </ui:VisualElement>
+        <hone:Dialog name="confirm-delete">
+            <ui:Label class="hone-dialog__title hone-text" text="Delete local data?" />
+            <ui:Label class="hone-dialog__description hone-text" text="This removes the data saved on this device. This cannot be undone." />
+            <ui:VisualElement class="hone-dialog__footer">
+                <hone:Button name="cancel" variant="outline" text="Cancel" />
+                <hone:Button name="confirm" variant="destructive" text="Delete" />
+            </ui:VisualElement>
+        </hone:Dialog>
+    </ui:VisualElement>
+</ui:UXML>
