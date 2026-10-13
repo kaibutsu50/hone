@@ -95,9 +95,10 @@
     margin-right: var(--hone-space-2);
 }
 
-/* Cycle は横並びの親では幅を与える必要がある（Cycle の README の「World Space での置き方」） */
+/* Cycle は横並びの親では幅を与える必要がある（Cycle の README の「World Space での置き方」）。
+ * 最も長い選択肢の Chinese (Traditional) が省略記号で切れない幅にする（260px では切れた。6000.7.0b4） */
 .gallery-language__cycle {
-    width: 260px;
+    width: 280px;
 }
 
 .gallery {
