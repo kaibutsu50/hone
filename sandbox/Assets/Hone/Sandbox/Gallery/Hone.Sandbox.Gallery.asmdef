@@ -3,7 +3,8 @@
     "rootNamespace": "Hone.Sandbox.Gallery",
     "references": [
         "Unity.Nuget.Newtonsoft-Json",
-        "Hone.Sandbox.UI"
+        "Hone.Sandbox.UI",
+        "Hone.Core"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

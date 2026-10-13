@@ -42,7 +42,7 @@ namespace Hone.Sandbox.Tests
         {
             var scripts = LoadTestStrings().Select(s => s.Script).ToList();
 
-            // 順序込みで見る。dropdown の初期値は en 以外の先頭（ja）なので、並び順が既定の言語を決める
+            // 順序込みで見る。言語の Cycle の初期値は en 以外の先頭（ja）なので、並び順が既定の言語を決める
             CollectionAssert.AreEqual(
                 new[] { "en", "ja", "ko", "zh-hans", "zh-hant", "ar", "th", "de-long" }, scripts);
         }

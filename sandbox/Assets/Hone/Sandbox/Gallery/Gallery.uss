@@ -1,10 +1,12 @@
-/* sandbox の撮影用の見た目。コンポーネントの USS ではないので、トークン規約（実値を書かない）の対象外。
- * 背景と文字色は Hone のトークン（light の 1 セット）に合わせる。暗い背景だと、ring（近い暗色）が写らない。 */
+/* sandbox の撮影用の見た目。コンポーネントの USS ではないので、トークン規約（実値を書かない）の対象外。幅は実値で書き、色・余白・角丸・文字の大きさはトークンを使う。
+ * 背景と文字色は Hone のトークン（light の 1 セット）に合わせる。暗い背景だと、ring（近い暗色）が写らない。
+ * 左のメニュー（Hone.ToggleGroup）と、右のカード（見出し行に言語の Hone.Cycle、その下にプレビューの ScrollView）を横に並べる。 */
 
-/* dropdown と、リストと ScrollView の並びを包む。背景をここに置かないと、dropdown の背後にシーンのカメラ映像が透ける */
+/* 左のメニューと右のカードを横に並べて包む。背景をここに置かないと、背後にシーンのカメラ映像が透ける */
 .gallery-page {
     flex-grow: 1;
-    padding: 8px;
+    flex-direction: row;
+    padding: var(--hone-space-4);
     background-color: var(--hone-color-background);
 }
 
@@ -12,35 +14,97 @@
     color: var(--hone-color-foreground);
 }
 
-/* 左のリストと右のプレビューの並び */
-.gallery-body {
-    flex-direction: row;
-    flex-grow: 1;
-}
-
-/* コンポーネントを選ぶリスト。右の幅に影響されないよう固定幅にする */
-.gallery-components {
+/* 左のメニューの列。右のカードの幅に影響されないよう固定幅にし、右に区切り線を引く */
+.gallery-sidebar {
     width: 200px;
     flex-shrink: 0;
-    margin-right: 8px;
+    padding-right: var(--hone-space-4);
+    margin-right: var(--hone-space-4);
+    border-right-width: var(--hone-border-width);
+    border-color: var(--hone-color-border);
+}
+
+.gallery-title {
+    font-size: var(--hone-font-size-lg);
+    -unity-font-style: bold;
+    margin-bottom: var(--hone-space-4);
+}
+
+/* .gallery-page Label の color に勝つよう、.gallery-page から書く */
+.gallery-page .gallery-caption {
+    font-size: var(--hone-font-size-sm);
+    color: var(--hone-color-muted-foreground);
+    margin-bottom: var(--hone-space-2);
+}
+
+/* コンポーネントを選ぶメニュー（Hone.ToggleGroup）。下の規則の起点 */
+.gallery-components {
+}
+
+/* 項目を縦に並べる（ToggleGroup の README の「縦並び」と同じ書き方） */
+.gallery-components > .unity-button-group {
+    flex-direction: column;
+}
+
+/* ToggleGroup.uss の flex-grow: 1 が縦方向に効いて項目が縦に伸びるのを止める */
+.gallery-components .hone-button {
+    -unity-text-align: middle-left;
+    flex-grow: 0;
+}
+
+/* accent の背景が白に近いので、選んでいる項目を太字でも示す */
+.gallery-components .hone-button:checked {
+    -unity-font-style: bold;
+}
+
+/* 右のカード。残りの幅を使う */
+.gallery-card {
+    flex-grow: 1;
+    min-width: 0;
+    padding: var(--hone-space-4);
+    border-width: var(--hone-border-width);
+    border-color: var(--hone-color-border);
+    border-radius: var(--hone-radius-lg);
+}
+
+/* カードの見出し行。左に選んでいるコンポーネントの名前、右に言語の Cycle。言語が変えるのはカードの中の 2 行目なので、カードの見出しに置く */
+.gallery-card__header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: var(--hone-space-3);
+    margin-bottom: var(--hone-space-3);
+    border-bottom-width: var(--hone-border-width);
+    border-color: var(--hone-color-border);
+}
+
+.gallery-card__title {
+    font-size: var(--hone-font-size-lg);
+    -unity-font-style: bold;
+}
+
+/* 言語の「Language」と Cycle の並び */
+.gallery-language {
+    flex-direction: row;
+    align-items: center;
+}
+
+/* .gallery-page Label の color に勝つよう、.gallery-page から書く */
+.gallery-page .gallery-language__label {
+    color: var(--hone-color-muted-foreground);
+    margin-right: var(--hone-space-2);
+}
+
+/* Cycle は横並びの親では幅を与える必要がある（Cycle の README の「World Space での置き方」） */
+.gallery-language__cycle {
+    width: 260px;
 }
 
 .gallery {
     flex-grow: 1;
 }
 
-/* 言語の選択。選んでいるコンポーネントの 2 行目に作用するので、リストとプレビューの上に置き、幅は中身に合わせる */
-.gallery-language {
-    align-self: flex-start;
-    margin-bottom: 8px;
-}
-
-.gallery-heading {
-    -unity-font-style: bold;
-    margin-bottom: 4px;
-}
-
-/* 列の見出しの下に 1 回だけ出す説明（variant の一覧と UXML の使用例）。言語を切り替えても変わらない */
+/* 列の上に 1 回だけ出す説明（variant の一覧と UXML の使用例）。言語を切り替えても変わらない */
 .gallery-description {
     margin-bottom: 8px;
 }
@@ -59,7 +123,7 @@
 .gallery-row {
     flex-direction: row;
     align-items: center;
-    margin-bottom: 2px;
+    margin-bottom: var(--hone-space-3);
 }
 
 .gallery-tag {

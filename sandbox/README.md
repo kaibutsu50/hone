@@ -63,8 +63,8 @@ Assets/Hone/
                       Hone.Button と Hone.Dialog を型で扱うので、この中にだけ asmdef（Hone.Sandbox.Experiments.WorldSpace.asmdef。Hone.Sandbox.UI を参照し、autoReferenced は false）を置く
                       RoomExp/ はモデルルームの前提（:focus の背景画像のカーソル、ループするアニメーション、ピクセルフォント、範囲を絞ったフォント、文字送り）の検証。
                       RoomExp.tss は RoomExp 専用の theme で、RoomExp.uss を @import する（HoneTheme.tss は変えない）。RoomExp/Fonts/ は (c) の比較用の FontAsset
-    Gallery/          多言語スクリーンショットの撮影基盤。TestStrings.json（スクリプトごとの表示名・短文・長文）、Gallery.unity（PanelRenderer が 2 枚。Screen Space の `PanelRenderer` と World Space の `PanelRendererWorldSpace`）/ Gallery.uxml / Gallery.uss、GalleryController（左のリストで選んだ 1 コンポーネントを右に出す）、
-                      GalleryHoneEntries（Hone.Button、Core.uss のクラスを付けた列、開いた状態の Hone.Dialog、2 ページの 1 ページ目を出した Hone.MessageWindow、off と on の Hone.Switch、off と on の Hone.Toggle、3 択で 2 番目を選んだ Hone.ToggleGroup、10 ページの 5 ページ目を出した Hone.Pagination、途中と最初の 2 つの Hone.Cycle を登録する）、GalleryFocus（ring を写すため、読み込み時と言語の切り替え時に最初の .hone-focusable にフォーカスを当てる。撮影用に、eval から同じ当て直しを呼ぶ `RefocusLater` を持つ）、
+    Gallery/          多言語スクリーンショットの撮影基盤。TestStrings.json（スクリプトごとの表示名・短文・長文）、Gallery.unity（PanelRenderer が 2 枚。Screen Space の `PanelRenderer` と World Space の `PanelRendererWorldSpace`）/ Gallery.uxml / Gallery.uss、GalleryController（左のメニューで選んだ 1 コンポーネントを右のカードに出す）、
+                      GalleryHoneEntries（Hone.Button、Core.uss のクラスを付けた列、開いた状態の Hone.Dialog、2 ページの 1 ページ目を出した Hone.MessageWindow、off と on の Hone.Switch、off と on の Hone.Toggle、3 択で 2 番目を選んだ Hone.ToggleGroup、10 ページの 5 ページ目を出した Hone.Pagination、途中と最初の 2 つの Hone.Cycle を登録する）、GalleryFocus（ring を写すため、読み込み時にカードの中の最初の .hone-focusable にフォーカスを当てる。撮影用に、eval から同じ当て直しを呼ぶ `RefocusLater` を持つ）、
                       Hone.Sandbox.Gallery.asmdef（Tests/PlayMode が参照する。Hone.Sandbox.UI を参照する）
     ModelRooms/       モデルルームの基盤。同じ構造（はい / いいえ の Dialog とメッセージ）を「素」「USS だけ」「注入あり」の 3 列に並べ、dropdown で選んだルームを 2 列目と 3 列目に当てる。ModelRooms.unity（Screen Space の PanelRenderer が 1 枚）/ ModelRooms.uxml / ModelRooms.uss、
                       Message.uxml と YesNo.uxml（全ルーム共通の構造）、ModelRoom（ルームの定義）、ModelRoomsController（登録、列の組み立て、流れ）、ModelRoomsTheme.tss（ModelRooms 専用の theme。HoneTheme.tss と同じ @import に、ルームの USS の @import を足す）、
@@ -133,28 +133,30 @@ unity command run_tests --mode playmode --filter Hone.Sandbox.Tests.SandboxSmoke
 
 ## Gallery（多言語スクリーンショット）
 
-見た目が変わる PR に添付するスクリーンショットを撮る基盤。`GalleryController.Register(name, factory)` で登録したコンポーネントを、左の ListView（name `components`、登録順）で 1 つ選ぶと、右にそのコンポーネントの列だけが出る。列には、英語（`en`）と、上部の DropdownField（name `language`）で選んだ 1 スクリプトを、短文・長文で並べる。列の中は en が 1 行目、選んだスクリプトが 2 行目。言語を切り替えても選んでいるコンポーネントは変わらず、コンポーネントを切り替えても言語は変わらない。
-読み込み時は、リストの先頭（登録順の先頭の `Hone.Button`）が選ばれる。
+見た目が変わる PR に添付するスクリーンショットを撮る基盤。`GalleryController.Register(name, factory)` で登録したコンポーネントを、左のメニュー（`Hone.ToggleGroup`、name `components`、登録順に `Hone.Button` を縦に並べる）で 1 つ選ぶと、右のカードにそのコンポーネントの列だけが出る。カードの見出し行の左に選んでいるコンポーネントの名前（`Label`、name `component-name`）、右に言語の `Hone.Cycle`（name `language`、`wrap`）がある。列には、英語（`en`）と、Cycle で選んだ 1 スクリプトを、短文・長文で並べる。列の中は en が 1 行目、選んだスクリプトが 2 行目。言語を切り替えても選んでいるコンポーネントは変わらず、コンポーネントを切り替えても言語は変わらない。
+外枠（メニューとカードの見出し行）は Hone の部品で作る。カードの中の台（説明、タグ）は今までどおり `Label` だけで作る（下の説明の段落）。
+読み込み時は、メニューの先頭（登録順の先頭の `Hone.Button`）が選ばれる。
 選択肢は `Gallery/TestStrings.json` の en 以外を書いた順に並び、表示名は各項目の `name`。初期値は en 以外の先頭で、今は `Japanese`（ファイルの並び順を変えると初期値も変わる）。
 Unity 標準の `Label` と `Button` は `GalleryController` が自分で登録する（name は `"Label"` `"Button"`）。
-`GalleryHoneEntries` が `Hone.Button`（1 つのセルに 4 variant を縦に積む。セルは縦並びで幅が決まるので、長文は省略記号になる）を最初に登録する。リストの初期選択が `Hone.Button` になり、その ring が写る。続けて `Label.hone-text`（`.hone-text` を付けた `Label`）と `Button.hone-focusable`（`.hone-focusable` を付けた `Button`）を登録する。リストで素の `Label` / `Button` と選び比べて、見た目の差を見る。
-続けて `Hone.Dialog`（開いた状態。文字列はタイトルと本文に入れ、ボタンは固定の `Cancel` と `OK`）を、`Hone.MessageWindow`（文字列を 2 ページにして 1 ページ目を即時表示し、次のページがある状態の ▼ を写す）を、`Hone.Switch`（文字列を `label` にした off と on を 1 つのセルに縦に積む。`hone-focusable` を持たないので ring は写らない）を、`Hone.Toggle`（文字列を `text` にした off と on を 1 つのセルに縦に積む。`hone-focusable` を持つので、コンポーネントを選んだだけでは ring は写らず、`RefocusLater`（または言語の切り替え）で en の行の off の Toggle に当て直すと写る）を、`Hone.ToggleGroup`（文字列を `text` にした `Hone.Button` を 3 つ並べ、attach の時点で 2 番目を選んだ状態にする。長文の言語では 3 つが均等に縮み、省略記号で切れる。子の `Hone.Button` が `hone-focusable` を持つので、Toggle と同じく `RefocusLater`（または言語の切り替え）で 1 つ目の Button に ring が写る）を、`Hone.Pagination`（`pageCount` 10、`value` 4 で `1 … 4 5 6 … 10` を出す。数字と記号だけなので文字列は使わず、言語を切り替えても同じに写る。前の Button が `hone-focusable` を持つので、Toggle と同じく `RefocusLater`（または言語の切り替え）で ring が写る）を、最後に `Hone.Cycle`（文字列を 3 つ並べた `choices` で、`value` 1（途中。前後とも有効）と `value` 0（最初。前の Button が disabled）を 1 つのセルに縦に積む。中央の文字列は収まらなければ省略記号で切れ、前後の Button は縮まない（en と Japanese の長文は、Screen Space と World Space のどちらでも切れずに入った。6000.7.0b4）。root が `hone-focusable` を持つので、Toggle と同じく `RefocusLater`（または言語の切り替え）で en の行の 1 つ目の root に ring が写る）を登録する。
+`GalleryHoneEntries` が `Hone.Button`（1 つのセルに 4 variant を縦に積む。セルは縦並びで幅が決まるので、長文は省略記号になる）を最初に登録する。メニューの初期選択が `Hone.Button` になり、その ring が写る。続けて `Label.hone-text`（`.hone-text` を付けた `Label`）と `Button.hone-focusable`（`.hone-focusable` を付けた `Button`）を登録する。メニューで素の `Label` / `Button` と選び比べて、見た目の差を見る。
+続けて `Hone.Dialog`（開いた状態。文字列はタイトルと本文に入れ、ボタンは固定の `Cancel` と `OK`）を、`Hone.MessageWindow`（文字列を 2 ページにして 1 ページ目を即時表示し、次のページがある状態の ▼ を写す）を、`Hone.Switch`（文字列を `label` にした off と on を 1 つのセルに縦に積む。`hone-focusable` を持たないので ring は写らない）を、`Hone.Toggle`（文字列を `text` にした off と on を 1 つのセルに縦に積む。`hone-focusable` を持つので、コンポーネントを選んだだけでは ring は写らず、`RefocusLater`で en の行の off の Toggle に当て直すと写る）を、`Hone.ToggleGroup`（文字列を `text` にした `Hone.Button` を 3 つ並べ、attach の時点で 2 番目を選んだ状態にする。長文の言語では 3 つが均等に縮み、省略記号で切れる。子の `Hone.Button` が `hone-focusable` を持つので、Toggle と同じく `RefocusLater`で 1 つ目の Button に ring が写る）を、`Hone.Pagination`（`pageCount` 10、`value` 4 で `1 … 4 5 6 … 10` を出す。数字と記号だけなので文字列は使わず、言語を切り替えても同じに写る。前の Button が `hone-focusable` を持つので、Toggle と同じく `RefocusLater`で ring が写る）を、最後に `Hone.Cycle`（文字列を 3 つ並べた `choices` で、`value` 1（途中。前後とも有効）と `value` 0（最初。前の Button が disabled）を 1 つのセルに縦に積む。中央の文字列は収まらなければ省略記号で切れ、前後の Button は縮まない（en と Japanese の長文は、Screen Space と World Space のどちらでも切れずに入った。6000.7.0b4）。root が `hone-focusable` を持つので、Toggle と同じく `RefocusLater`で en の行の 1 つ目の root に ring が写る）を登録する。
 列には `gallery-column--<name の "." を "-" にして小文字>` のクラスが付く（例: `gallery-column--hone-dialog`。テストが列の特定に使う。USS では使っていない）。
-列の見出しの下には、`Register(name, factory, description)` の第 3 引数 `ComponentDescription(variants, uxml)` を渡した部品だけ、説明が出る（`Variants` の一覧と、`Usage` の UXML の使用例。クラスは `gallery-description`）。渡さない部品（`Label` `Button` など）には説明の領域が出ない。説明はテスト文字列を使わないので、言語を切り替えても変わらず、1 つだけ出る（多言語の比較の対象ではない）。`variants` が null か空の部品は `なし` と出る。
+列の先頭には、`Register(name, factory, description)` の第 3 引数 `ComponentDescription(variants, uxml)` を渡した部品だけ、説明が出る（`Variants` の一覧と、`Usage` の UXML の使用例。クラスは `gallery-description`）。渡さない部品（`Label` `Button` など）には説明の領域が出ない。説明はテスト文字列を使わないので、言語を切り替えても変わらず、1 つだけ出る（多言語の比較の対象ではない）。`variants` が null か空の部品は `なし` と出る。
 `GalleryHoneEntries` の `Describe(component, variants)` が `Hone/UI/<component>/<component>.uxml` の全文を読んで `uxml` にする。`File` で読むので Editor 専用で、Player ではファイルが無く、説明なしになる。Editor でファイルが無いとき（`component` の誤りやリネーム）は、説明なしにして Console に警告を出す。
-`variants` を渡すのは variant を持つ部品だけ。`Hone.Button` は `variant` プロパティの値で、`Enum.GetNames(typeof(Hone.Button.Variant))` から作る。`Hone.Dialog` は README に opt-in の variant として書かれた USS クラス `hone-dialog--blur` を渡す。説明は `Label` だけで作り、Hone の部品は使わない（部品の変更で台の見た目が変わると比較できなくなる）。
+`variants` を渡すのは variant を持つ部品だけ。`Hone.Button` は `variant` プロパティの値で、`Enum.GetNames(typeof(Hone.Button.Variant))` から作る。`Hone.Dialog` は README に opt-in の variant として書かれた USS クラス `hone-dialog--blur` を渡す。カードの中の台（説明とタグ）は `Label` だけで作り、Hone の部品は使わない（部品の変更で台の見た目が変わると比較できなくなる）。
 Dialog と MessageWindow は親の幅に従う部品なので、`Gallery.uss` はセル（`.gallery-dialog`、`.gallery-message-window`）の基準の幅を px で持ち、行の残りまで伸ばしている（`flex-basis: 0` や割合の幅から伸ばすと 1 文字ずつ折り返す）。
 Screen Space の panel は `Sandbox/PanelSettings.asset` の Scale With Screen Size（基準 1200×800、幅に合わせる）なので、Game view が 16:9 なら論理サイズはおよそ 1200×675 になる。
 その Screen Space で `Japanese` を選ぶと、MessageWindow は en と ja の 2 行が 1 画面に収まり、Dialog は列の上の説明の高さのぶん ja の行の下端が 1 画面からはみ出す（ほかの言語は確かめていない。6000.7.0b4）。Dialog は下までスクロールして 2 枚撮る。
 収まらないときに下まで見るには、`ScrollView`（name `gallery`）の `scrollOffset` を `unity command eval_file` で書き換えながら、`capture_game_view` で複数枚撮る。収めるためにセルの幅（`.gallery-dialog` など）は変えない。
-コンポーネントは、ListView の代わりに `GalleryController.SelectComponent` で切り替えて撮る（下の「コンポーネントの切り替え」）。言語も、dropdown の代わりに `GalleryController.SelectScript` で切り替えて撮る（eval から dropdown に届く公開 API が無いため。下の「言語の切り替え」）。
-`GalleryFocus` が UI の読み込み後と言語の切り替え後に最初の `.hone-focusable` へフォーカスを当てるので、Play Mode で撮れば ring が写る（言語を切り替えると Dialog が作り直され、各 Dialog が自分の Cancel にフォーカスを移すため、当て直している）。
-コンポーネントを選んだときは当て直さない（左のリストを上下で選んでいる途中でフォーカスが右へ飛ぶため）。撮るときは、`SelectComponent` に続けて `GalleryFocus.RefocusLater()` を呼んで当てる。フォーカスを持たないコンポーネント（`Label` など）では、当てる対象が無いだけで何も起きず、エラーも出ない。
-Hone.Dialog を選ぶと、Dialog の `Open()` が自分の Cancel にフォーカスを移すので、リストのフォーカスは外れる（Dialog の仕様。直さない）。
+コンポーネントは、メニューの代わりに `GalleryController.SelectComponent` で切り替えて撮る（下の「コンポーネントの切り替え」）。言語も、Cycle の代わりに `GalleryController.SelectScript` で切り替えて撮る（eval から panel の要素に届く公開 API が無いため。下の「言語の切り替え」）。
+`GalleryController.preview`（カードの中の `ScrollView`、name `gallery`）は、テストと eval から panel の要素に届く入口。UI の読み込みが最後まで済むと入り、それまでは null（`ModelRoomsController.columns` と同じ形）。`preview.panel.visualTree` からメニューや Cycle も引ける。
+`GalleryFocus` が当てるのは、UI の読み込み後と `RefocusLater` を呼んだときだけで、当てる先はカードの中（`ScrollView` の中）の最初の `.hone-focusable`。メニューの `Hone.Button` と言語の Cycle も `.hone-focusable` を持つので、範囲をカードの中に絞っている。Play Mode で撮れば、読み込み時の選択（`Hone.Button`）の ring が写る。
+コンポーネントや言語を選んだときは当て直さない（メニューを上下で選んでいる途中や、Cycle を左右で巡っている途中でフォーカスがカードへ飛び、続けて選べなくなるため）。言語を切り替えると Dialog が作り直され、各 Dialog が自分の Cancel にフォーカスを移すので、撮るときは `SelectComponent` と `SelectScript` のあとに `GalleryFocus.RefocusLater()` を呼んで当てる。フォーカスを持たないコンポーネント（`Label` など）では、当てる対象が無いだけで何も起きず、エラーも出ない。
+Hone.Dialog を選ぶと、Dialog の `Open()` が自分の Cancel にフォーカスを移すので、メニューのフォーカスは外れる（Dialog の仕様。直さない）。
 背景と文字色は `Gallery.uss` が Hone のトークン（`--hone-color-background` `--hone-color-foreground`）で指定する。
 
 Hone のコンポーネントを載せるときは、`Register` を **sandbox 側のファイル**（例: `Sandbox/Gallery/` 配下）から呼ぶ。`registry/` 配下のコードには書かない（配布物が sandbox の asmdef に依存してしまう）。
-呼ぶ時点は `[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]`。`GalleryController` は UI が読み込まれた時点の登録内容で左のリストを作り、右の列は、コンポーネントか言語を切り替えるたびに、選んだ name の factory で作り直す。それより後の `Register` はリストに出ず、ログも出ない。
+呼ぶ時点は `[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]`。`GalleryController` は UI が読み込まれた時点の登録内容で左のメニューを作り、右の列は、コンポーネントか言語を切り替えるたびに、選んだ name の factory で作り直す。それより後の `Register` はメニューに出ず、ログも出ない。
 このプロジェクトは Domain Reload を無効にしているので、`Register` した内容は Play をまたいで残る。同じ name の再登録は置き換わる。テストなどで一時的に登録したものは `Unregister` で消す。
 
 撮影手順（Editor は「Editor の開き方」で開いておく）:
@@ -167,7 +169,7 @@ unity command editor_play --project-path <sandbox の絶対パス>
 unity command eval_file --file <select-component.cs の絶対パス> --project-path <sandbox の絶対パス>
 # 既定（Japanese）だけ撮るときは、この 1 行を飛ばす。手順は下の「言語の切り替え」
 unity command eval_file --file <select-script.cs の絶対パス> --project-path <sandbox の絶対パス>
-# 切り替えてから、GalleryFocus の当て直しが終わるまで（DelayMilliseconds の 2 倍）待ってから撮る
+# 切り替えてから、RefocusLater の当て直しが終わるまで（DelayMilliseconds の 2 倍）待ってから撮る
 MSYS_NO_PATHCONV=1 unity command capture_game_view --source screen --width 1920 --height 1080 --format json --project-path <sandbox の絶対パス> > <json の絶対パス>
 python -c "import json,base64; t=open(r'<json の絶対パス>',encoding='utf-8').read(); d=json.loads(t[t.index('{'):]); open(r'<sandbox の絶対パス>/Screenshots/gallery.png','wb').write(base64.b64decode(d['data']['result']['base64']))"
 unity command editor_stop --project-path <sandbox の絶対パス>
@@ -193,8 +195,8 @@ foreach (var c in controllers)
 return controllers.Length;
 ```
 
-- `SelectComponent` は ListView の `selectedIndex` を変えて、人が選んだときと同じ経路で右を切り替える。すでに選ばれている name を渡すと何も起きない。name は `GalleryController.Names`（左のリストの項目）のどれか。
-- `RefocusLater` は `GalleryFocus` が言語の切り替え時に行うのと同じ当て直しを、`DelayMilliseconds` 後に行う。当て直しと確認が終わるまで `DelayMilliseconds` の 2 倍かかる。切り替えと撮影は別のコマンドで行う（同じ eval の中で撮らない）。
+- `SelectComponent` はメニューの ToggleGroup の `value` を変えて ChangeEvent を出す。人が選んだときと同じ経路で右を切り替える。すでに選ばれている name を渡すと何も起きない。name は `GalleryController.Names`（左のメニューの項目）のどれか。
+- `RefocusLater` は `GalleryFocus` が読み込み時に行うのと同じ当て直しを、`DelayMilliseconds` 後に行う。当て直しと確認が終わるまで `DelayMilliseconds` の 2 倍かかる。切り替えと撮影は別のコマンドで行う（同じ eval の中で撮らない）。
 
 言語の切り替え（`select-script.cs`。`"ko"` を `TestStrings.json` の en 以外のキーに替えて撮る）:
 
@@ -203,16 +205,20 @@ var controllers = UnityEngine.Object.FindObjectsByType<Hone.Sandbox.Gallery.Gall
 if (controllers.Length == 0)
     throw new System.InvalidOperationException("no active GalleryController (is Play Mode on and a panel enabled?)");
 foreach (var c in controllers)
+{
     c.SelectScript("ko");
+    c.GetComponent<Hone.Sandbox.Gallery.GalleryFocus>().RefocusLater();
+}
 return controllers.Length;
 ```
 
-- `SelectScript` は dropdown の `index` を変えて ChangeEvent を出す。人が選んだときと同じ経路で、`GalleryFocus` の当て直しも走る。すでに選ばれている言語を渡すと何も起きない。
+- `SelectScript` は言語の Cycle の `value` を変えて ChangeEvent を出す。人が選んだときと同じ経路で切り替える。すでに選ばれている言語を渡すと何も起きない。
+- 言語を切り替えても `GalleryFocus` は当て直さないので、続けて `RefocusLater` を呼ぶ（言語の切り替えで作り直された Dialog が、自分の Cancel にフォーカスを移すため）。
 - 切り替えの中（Build）で起きた例外は、ChangeEvent の callback の中で出るので eval には返らない。撮る前に Console に Gallery のエラーが出ていないことを確かめる。
-- 切り替えてから `GalleryFocus` が当て直すまで、`GalleryFocus` の `DelayMilliseconds` の 2 倍（当て直しと確認）かかる。切り替えと撮影は別のコマンドで行う（同じ eval の中で撮らない）。
+- 切り替えてから `RefocusLater` が当て直すまで、`GalleryFocus` の `DelayMilliseconds` の 2 倍（当て直しと確認）かかる。切り替えと撮影は別のコマンドで行う（同じ eval の中で撮らない）。
 - `FindObjectsByType` は有効な GameObject のものだけを返す。片方の panel の GameObject を無効にして撮るときも、そのまま使える。
 - eval から `Hone.Sandbox.Gallery` の型は直接参照できる（6000.7.0b2）。`FindObjectsSortMode` を取る版は obsolete なので、引数なしの版を使う。
-- eval から dropdown や panel の root に届く公開 API は無い（`PanelRenderer` に root を取る API が無い。6000.7.0b2）。`SelectScript` がその入口。
+- eval から panel の要素に届く公開 API は無い（`PanelRenderer` に root を取る API が無い。6000.7.0b2）。`SelectScript` と `SelectComponent` と `preview` がその入口。
 
 `Gallery.unity` の `PanelRenderer`（Screen Space）と `PanelRendererWorldSpace`（World Space）は、同じ `Gallery.uxml`、`GalleryController`、`GalleryFocus` を持つ。
 World Space 側は `WorldSpacePanelSettings.asset`、`worldSpaceSizeMode = Fixed`、size 1920×1080、位置 (0, 1, 0)（Main Camera の (0, 1, -10) の正面。距離 10 で Game view にほぼ全面で写る）。
@@ -240,9 +246,8 @@ unity command editor_stop --project-path <sandbox の絶対パス>
 
 UI の再読み込み（`PanelRenderer.RegisterUIReloadCallback` で登録した reload callback が、もう一度呼ばれること）:
 
-- Play 中に `PanelRenderer` の GameObject を Disable → Enable すると、Enable の次のフレームに reload callback が 1 回呼ばれ、前回と同じインスタンスの root・`components`（ListView）・`language`（DropdownField）が渡る（Screen Space、6000.7.0b4）。
-- そのため `GalleryController` と `GalleryFocus` は、前回の登録を外してから登録し直す。外さないと同じ要素に登録が重なり、1 回の切り替えで `Build`（言語の切り替えでは `FocusFirst` も）が複数回走る（Disable → Enable を 1 回したあとで 2 回、2 回したあとで 3 回。6000.7.0b4）。
-- reload callback の中で予約する `FocusFirst` は、呼ばれるたびに 1 回だけ予約するので重ならない。
+- Play 中に `PanelRenderer` の GameObject を Disable → Enable すると、Enable の次のフレームに reload callback が 1 回呼ばれ、前回と同じインスタンスの root・`components`（ToggleGroup）・`language`（Cycle）が渡る（Screen Space、6000.7.0b4）。
+- そのため `GalleryController` は、前回の登録を外してから登録し直す。外さないと同じ要素に登録が重なり、1 回の切り替えで `Build` が複数回走る（Disable → Enable を 1 回したあとで 2 回、2 回したあとで 3 回。6000.7.0b4）。メニューの項目も、前回の項目を消してから足し直す（消さないと項目が重複する）。
 - `ModelRoomsController` も同じ構造（ルームの dropdown に `Rebuild` で登録する）で、同じく外してから登録し直す。外さないと、Disable → Enable を 2 回したあとのルームの切り替え 1 回で、3 列の組み直しが 3 回走った（6000.7.0b4）。
 - `unity command set_active` は Play 中は使えない（`This cannot be used during play mode.`。6000.7.0b4）。再読み込みを試すときは、eval で `GameObject.SetActive(false)` と `SetActive(true)` を別のコマンドで呼ぶ（無効な GameObject は `GameObject.Find` で見つからないので、有効にするほうはシーンのルートから探す）。
 
