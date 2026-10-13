@@ -1,0 +1,6 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:hone="Hone">
+    <ui:VisualElement style="flex-direction: row;">
+        <hone:Toggle text="Mute" />
+        <hone:Toggle text="Grid" value="true" />
+    </ui:VisualElement>
+</ui:UXML>

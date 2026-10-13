@@ -1,0 +1,34 @@
+/* 色・角丸・余白・フォントサイズ・枠の太さは Tokens.uss のトークン。opacity の割合と transparent はトークンを持たない（Button.uss と同じ）。
+ * 大きさと文字の扱いは Button.uss に揃える（padding の横だけ space-3）。width は設定しない。min-width と内容で決まる。
+ * on は .is-pressed で表す（:checked は Button の派生から付けられない）。.is-pressed は :hover の後に書き、on のまま hover しても accent のままにする。
+ * focus ring は Core.uss の .hone-focusable のまま。 */
+.hone-toggle {
+    background-color: transparent;
+    color: var(--hone-color-foreground);
+    border-width: var(--hone-border-width);
+    border-color: transparent;
+    border-radius: var(--hone-radius-md);
+    padding: var(--hone-space-2) var(--hone-space-3);
+    min-width: var(--hone-space-8);
+    flex-shrink: 0;
+    font-size: var(--hone-font-size-sm);
+    -unity-text-align: middle-center;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.hone-toggle:hover {
+    background-color: var(--hone-color-muted);
+    color: var(--hone-color-muted-foreground);
+}
+
+.hone-toggle.is-pressed {
+    background-color: var(--hone-color-accent);
+    color: var(--hone-color-accent-foreground);
+}
+
+/* :hover と .is-pressed は opacity を書かないので順序に依らないが、Button.uss と並びを揃えて最後に書く */
+.hone-toggle:disabled {
+    opacity: 0.5;
+}

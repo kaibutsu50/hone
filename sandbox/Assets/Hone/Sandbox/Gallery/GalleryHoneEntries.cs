@@ -7,7 +7,7 @@ namespace Hone.Sandbox.Gallery
     // Hone.Sandbox.UI を参照すると、namespace Hone の中の Button は Hone.Button を指す。ここの Button は Unity 標準のもの
     using Button = UnityEngine.UIElements.Button;
 
-    // Hone.Button、Hone.Dialog、Hone.MessageWindow と、Core.uss の .hone-text と .hone-focusable を Gallery に載せる。左のリストで素の "Label" "Button" と選び比べて、見た目の差を見る。
+    // Hone.Button、Hone.Dialog、Hone.MessageWindow、Hone.Switch、Hone.Toggle と、Core.uss の .hone-text と .hone-focusable を Gallery に載せる。左のリストで素の "Label" "Button" と選び比べて、見た目の差を見る。
     // Register は sandbox 側から呼ぶ（registry/ 配下のコードには書かない）。呼ぶ時点は README の Gallery の節を参照。
     static class GalleryHoneEntries
     {
@@ -82,6 +82,16 @@ namespace Hone.Sandbox.Gallery
                 cell.AddToClassList("gallery-cell");
                 cell.Add(new Switch { label = text });
                 cell.Add(new Switch { label = text, value = true });
+                return cell;
+            });
+            // off と on を 1 つのセルに縦に積む。セルは縦並びで幅が決まるので、幅を超える長文は省略記号になる。
+            // Unity 標準の Toggle と紛らわしいので Hone.Toggle と完全修飾で書く。hone-focusable を持つので、撮影時に GalleryFocus.RefocusLater（または言語の切り替え）で en の行の off の Toggle に当て直すと ring が写る。コンポーネントを選んだだけでは当たらない
+            GalleryController.Register("Hone.Toggle", text =>
+            {
+                var cell = new VisualElement();
+                cell.AddToClassList("gallery-cell");
+                cell.Add(new Hone.Toggle { text = text });
+                cell.Add(new Hone.Toggle { text = text, value = true });
                 return cell;
             });
         }
