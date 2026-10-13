@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using NUnit.Framework;
 using UnityEditor;
@@ -15,7 +16,7 @@ namespace Hone.Sandbox.Tests
     // Editor で実行する前提（UXML と PanelSettings を AssetDatabase から読む）。
     // Tabs と ToggleGroup は Hone のもの（Hone の入れ子の namespace なので修飾しなくても Hone.Tabs を指す）。Button は Unity 標準と紛らわしいので Hone.Button と修飾して書く。
     // 移動は NavigationMoveEvent を SendEvent で送る（FocusScopeTests と同じ）。フォーカスの変更は非同期なので、送った後は 1 frame 進めてから focusedElement を読む。
-    // コメントの (A)(B)(C) は Issue #112 の受け入れ条件の番号
+    // コメントの (A)〜(D) は Issue #112 の受け入れ条件の番号
     public class TabsTests
     {
         const string TabsUxmlPath = "Assets/Hone/UI/Tabs/Tabs.uxml";
@@ -24,6 +25,8 @@ namespace Hone.Sandbox.Tests
         const string SandboxUxmlPath = "Assets/Hone/Sandbox/Sandbox.uxml";
         const int MaxWaitFrames = 60;
         const int SettleFrames = 2;
+        // value を tabs より前に書いた UXML を置く一時ディレクトリ（TearDown で消す）
+        const string TmpDir = "Assets/TabsTestsTmp";
 
         readonly List<Object> m_Created = new List<Object>();
 
@@ -33,6 +36,7 @@ namespace Hone.Sandbox.Tests
             foreach (var obj in m_Created)
                 Object.Destroy(obj);
             m_Created.Clear();
+            AssetDatabase.DeleteAsset(TmpDir);
         }
 
         // PanelRenderer を 1 つ作り、UI が読み込まれたら root を返す（DialogTests と同じ）。
@@ -345,6 +349,230 @@ namespace Hone.Sandbox.Tests
             Assert.IsTrue(focused != null && focused.parent == row, $"Up from the second row must move to the row above in the content, but focused {focused?.name}");
         }
 
+        // 選択の変化を数える。中身の要素の ChangeEvent<int> も Tabs まで上がるので、target が Tabs のものだけ数える
+        static List<int> RecordChanges(Tabs tabs)
+        {
+            var changes = new List<int>();
+            tabs.RegisterValueChangedCallback(evt =>
+            {
+                if (evt.target == tabs)
+                    changes.Add(evt.newValue);
+            });
+            return changes;
+        }
+
+        // tabs を set し直しても value と選択は残り、ChangeEvent は出ない。数を減らすと value は範囲に収まり、そのときも ChangeEvent は出ない
+        [UnityTest]
+        public IEnumerator SetTabs_KeepsValue_AndShrinkClamps()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(false, r => root = r);
+            var tabs = CreateTabs();
+            root.Add(tabs);
+            yield return Settle();
+            tabs.value = 2;
+            yield return Settle();
+            var changes = RecordChanges(tabs);
+
+            tabs.tabs = new List<string> { "A", "B", "C" };
+            yield return Settle();
+            Assert.AreEqual(2, tabs.value);
+            Assert.IsTrue(tabs.Q<ToggleGroup>().value[2], "the selected tab must survive the rebuild");
+            Assert.IsFalse(tabs.Q<ToggleGroup>().value[0]);
+            CollectionAssert.AreEqual(new[] { 2 }, DisplayedContents(tabs));
+
+            tabs.tabs = new List<string> { "A", "B" };
+            yield return Settle();
+            Assert.AreEqual(1, tabs.value);
+            Assert.IsTrue(tabs.Q<ToggleGroup>().value[1]);
+            CollectionAssert.AreEqual(new[] { 1 }, DisplayedContents(tabs));
+            CollectionAssert.IsEmpty(changes, "setting tabs must not fire a ChangeEvent");
+        }
+
+        // 別のイベントの配送中（Tabs の ChangeEvent の callback の中）に tabs を set し直しても、value は戻らず、ChangeEvent は Submit の 1 回だけ
+        [UnityTest]
+        public IEnumerator SetTabs_InsideCallback_KeepsValue()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(false, r => root = r);
+            var tabs = CreateTabs();
+            root.Add(tabs);
+            yield return Settle();
+            var changes = RecordChanges(tabs);
+            var rebuilt = false;
+            tabs.RegisterValueChangedCallback(evt =>
+            {
+                if (evt.target != tabs || rebuilt)
+                    return;
+                rebuilt = true;
+                tabs.tabs = new List<string> { "A", "B", "C" };
+            });
+
+            Submit(Triggers(tabs)[1]);
+            yield return Settle();
+
+            Assert.IsTrue(rebuilt, "precondition: tabs was set inside the callback");
+            Assert.AreEqual(1, tabs.value);
+            Assert.IsTrue(tabs.Q<ToggleGroup>().value[1]);
+            CollectionAssert.AreEqual(new[] { 1 }, DisplayedContents(tabs));
+            CollectionAssert.AreEqual(new[] { 1 }, changes);
+        }
+
+        // 選ばれているタブを押し直しても、選択は外れず、ChangeEvent は出ない
+        [UnityTest]
+        public IEnumerator Submit_SelectedTab_KeepsSelection()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(false, r => root = r);
+            var tabs = CreateTabs();
+            tabs.value = 1;
+            root.Add(tabs);
+            yield return Settle();
+            var changes = RecordChanges(tabs);
+
+            Submit(Triggers(tabs)[1]);
+            yield return Settle();
+
+            Assert.AreEqual(1, tabs.value);
+            Assert.IsTrue(tabs.Q<ToggleGroup>().value[1], "the selected tab must stay selected");
+            CollectionAssert.AreEqual(new[] { 1 }, DisplayedContents(tabs));
+            CollectionAssert.IsEmpty(changes);
+        }
+
+        // value は 0〜tabs.Count - 1 に収まる。tabs が空のときは value 0 で、どの中身も表示しない
+        [UnityTest]
+        public IEnumerator Value_IsClamped_AndEmptyTabsShowNothing()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(false, r => root = r);
+            var tabs = CreateTabs();
+            root.Add(tabs);
+            yield return Settle();
+
+            tabs.value = 99;
+            Assert.AreEqual(2, tabs.value);
+            tabs.value = -1;
+            Assert.AreEqual(0, tabs.value);
+
+            tabs.tabs = null;
+            yield return Settle();
+            Assert.AreEqual(0, tabs.value);
+            CollectionAssert.IsEmpty(DisplayedContents(tabs), "no content is shown when there are no tabs");
+        }
+
+        // UXML に value を tabs より前に書いても、value は残る（属性は宣言の順に適用される）
+        [UnityTest]
+        public IEnumerator Uxml_ValueBeforeTabs_IsKept()
+        {
+            AssetDatabase.DeleteAsset(TmpDir);
+            AssetDatabase.CreateFolder("Assets", "TabsTestsTmp");
+            var path = TmpDir + "/ValueFirst.uxml";
+            File.WriteAllText(path,
+                "<ui:UXML xmlns:ui=\"UnityEngine.UIElements\" xmlns:hone=\"Hone\">\n" +
+                "    <hone:Tabs value=\"1\" tabs=\"A,B\">\n" +
+                "        <ui:VisualElement />\n" +
+                "        <ui:VisualElement />\n" +
+                "    </hone:Tabs>\n" +
+                "</ui:UXML>\n");
+            AssetDatabase.ImportAsset(path);
+            var tree = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(path);
+            Assert.IsNotNull(tree, $"{path} was not imported");
+
+            VisualElement root = null;
+            yield return CreatePanel(false, r => root = r);
+            var instance = tree.Instantiate();
+            root.Add(instance);
+            yield return Settle();
+
+            var tabs = instance.Q<Tabs>();
+            Assert.AreEqual(1, tabs.value);
+            CollectionAssert.AreEqual(new[] { 1 }, DisplayedContents(tabs));
+        }
+
+        // (B) 実行中に Submit でタブを切り替えた直後でも、Down は切り替えた先の中身の最初の focusable に移る
+        [UnityTest]
+        public IEnumerator Down_AfterSubmit_FocusesFirstInNewContent()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(false, r => root = r);
+            var tabs = CreateTabs();
+            root.Add(tabs);
+            var triggers = Triggers(tabs);
+            yield return WaitForLayout(triggers.ToArray());
+            var record = RecordTabFocus(triggers);
+
+            yield return FocusTabAndWait(tabs, record, triggers[1]);
+            Submit(triggers[1]);
+            yield return Settle();
+            SendMove(triggers[1], NavigationMoveEvent.Direction.Down);
+            yield return null;
+            Assert.AreSame(tabs.Q<Hone.Button>("content-1-row-0-left"), Focused(root));
+        }
+
+        // (B) NavigationMoveEvent の target がタブの列（composite root の ToggleGroup）そのものでも、Down は中身へ移る
+        [UnityTest]
+        public IEnumerator Down_TargetIsList_FocusesFirstInActiveContent()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(false, r => root = r);
+            var tabs = CreateTabs();
+            tabs.value = 2;
+            root.Add(tabs);
+            var triggers = Triggers(tabs);
+            yield return WaitForLayout(triggers.ToArray());
+            var record = RecordTabFocus(triggers);
+
+            yield return FocusTabAndWait(tabs, record, triggers[2]);
+            SendMove(tabs.Q<ToggleGroup>(), NavigationMoveEvent.Direction.Down);
+            yield return null;
+            Assert.AreSame(tabs.Q<Hone.Button>("content-2-row-0-left"), Focused(root));
+        }
+
+        // 中身に focusable が無いタブから Down でも、例外を出さず、選択も変わらない（移動は既定のナビに任せる）
+        [UnityTest]
+        public IEnumerator Down_WithoutFocusables_LeavesItToDefault()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(false, r => root = r);
+            var tabs = new Tabs { tabs = new List<string> { "A", "B" } };
+            tabs.Add(new Label("a"));
+            tabs.Add(new Label("b"));
+            root.Add(tabs);
+            var triggers = Triggers(tabs);
+            yield return WaitForLayout(triggers.ToArray());
+            var record = RecordTabFocus(triggers);
+
+            yield return FocusTabAndWait(tabs, record, triggers[0]);
+            SendMove(triggers[0], NavigationMoveEvent.Direction.Down);
+            yield return null;
+            Assert.AreEqual(0, tabs.value);
+        }
+
+        // タブにフォーカスして左右では、既定のナビで隣のタブへフォーカスが移り、選択は変わらない。
+        // そのまま Down で、フォーカスしているタブではなく選択中のタブの中身へ入る
+        [UnityTest]
+        public IEnumerator Right_MovesFocusOnly_AndDownEntersSelectedContent()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(false, r => root = r);
+            var tabs = CreateTabs();
+            tabs.value = 2;
+            root.Add(tabs);
+            var triggers = Triggers(tabs);
+            yield return WaitForLayout(triggers.ToArray());
+            var record = RecordTabFocus(triggers);
+
+            yield return FocusTabAndWait(tabs, record, triggers[0]);
+            SendMove(triggers[0], NavigationMoveEvent.Direction.Right);
+            yield return null;
+            AssertTabFocused(tabs, record, triggers[1], "Right from the first tab must focus the second tab");
+            Assert.AreEqual(2, tabs.value, "moving between tabs must not change the selection");
+
+            SendMove(triggers[1], NavigationMoveEvent.Direction.Down);
+            yield return null;
+            Assert.AreSame(tabs.Q<Hone.Button>("content-2-row-0-left"), Focused(root));
+        }
+
         // (C) 中身にフォーカスがある間も、選択中のタブに :checked が残る。:checked の背景（--hone-color-background、不透明）で測る。選ばれていないタブは透明
         [UnityTest]
         public IEnumerator FocusInContent_KeepsCheckedOnSelectedTab()
@@ -362,7 +590,7 @@ namespace Hone.Sandbox.Tests
             yield return Settle();
 
             Assert.IsTrue(tabs.Q<ToggleGroup>().value[2], "the selected tab must stay selected while the content has focus");
-            Assert.AreEqual(1f, triggers[2].resolvedStyle.backgroundColor.a, "the selected tab must keep the :checked background");
+            Assert.AreEqual(1f, triggers[2].resolvedStyle.backgroundColor.a, "the selected tab must keep the :checked background (--hone-color-background is assumed opaque; a theme change can also fail this)");
             Assert.AreEqual(0f, triggers[0].resolvedStyle.backgroundColor.a, "an unselected tab must have a transparent background");
         }
     }

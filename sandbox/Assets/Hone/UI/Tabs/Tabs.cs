@@ -7,7 +7,7 @@ namespace Hone
     // namespace Hone の中では、修飾しない Button は Hone.Button を指す。
     // 構造: Tabs（.hone-tabs）> タブの列（Hone.ToggleGroup、.hone-tabs__list）+ 中身の入れ物（.hone-tabs__panels）。
     // UXML の子要素と Add() は中身の入れ物（contentContainer）に入り、i 番目の子が i 番目のタブの中身になる（.hone-tabs__content が付く）。
-    // 選択はタブの列の ToggleGroup が持つ（Pointer と Submit で変わる。左右でタブを移っただけでは変わらない）。Tabs は選択に合わせて中身の display を切り替える。
+    // 選択の入力（Pointer と Submit）はタブの列の ToggleGroup が受け、Tabs が value に写して中身の display を切り替える。左右でタブを移っただけでは選択は変わらない。
     // フォーカスは、タブから Down で表示中の中身の最初の focusable へ、中身の最上段から Up で選択中のタブへ移す。それ以外の方向は既定のナビのまま。
     // タブの列が中身の上にある前提。
     [UxmlElement]
@@ -37,7 +37,9 @@ namespace Hone
                 m_Tabs.Clear();
                 if (value != null)
                     m_Tabs.AddRange(value);
-                // 作り直しの間に基底が index 0 を選び直しても（allowEmptySelection が false のとき、最初の子を足した時点で選ぶ）、value を変えない
+                // 作り直しの間に基底が index 0 を選び直しても（allowEmptySelection が false のとき、最初の子を足した時点で選ぶ）、value を変えない。
+                // m_Rebuilding が止めるのは、その ChangeEvent がこの場で配送されるとき。別のイベントの配送中で後回しに届いたときは、
+                // OnListChanged がその時点のタブの列の選択（下の SetValueWithoutNotify で value に揃え直したもの）を読むので、value は変わらない
                 m_Rebuilding = true;
                 m_List.Clear();
                 foreach (var label in m_Tabs)
@@ -68,7 +70,8 @@ namespace Hone
         {
             AddToClassList("hone-tabs");
 
-            m_List = new ToggleGroup();
+            // 単一選択で、選択なしを許さない（基底の既定と同じだが、OnListChanged がこれを前提にするので明示する）
+            m_List = new ToggleGroup { isMultipleSelection = false, allowEmptySelection = false };
             m_List.AddToClassList("hone-tabs__list");
             m_List.RegisterValueChangedCallback(OnListChanged);
 
@@ -79,7 +82,8 @@ namespace Hone
             hierarchy.Add(m_List);
             hierarchy.Add(m_Panels);
 
-            // UXML の子要素は属性の後に足されるので、中身の表示は attach の時点で揃える。attach 後に Add() した中身は、次に選択が変わるまで揃わない
+            // UXML の子要素は属性の後に足されるので、中身の表示は attach の時点で揃える。attach 後に Add() / Remove() した中身は、
+            // 次に選択が変わるか SetValueWithoutNotify を呼ぶまで揃わない
             RegisterCallback<AttachToPanelEvent>(evt => RefreshContents());
             // TrickleDown で受けるのは、中身の中の要素が自分の handler で処理する前に、上下の移動を決めるため
             RegisterCallback<NavigationMoveEvent>(OnNavigationMove, TrickleDown.TrickleDown);
@@ -91,7 +95,7 @@ namespace Hone
             m_Value = Clamp(newValue);
             if (m_Tabs.Count > 0)
             {
-                // ToggleButtonGroupState の length は子の数ではなく常に 64。全部外してから 1 つを選ぶ
+                // ToggleButtonGroupState の length は子の数ではなく常に 64（タブは 64 個まで）。全部外してから 1 つを選ぶ
                 var state = m_List.value;
                 for (var i = 0; i < state.length; i++)
                     state[i] = false;
@@ -103,15 +107,16 @@ namespace Hone
 
         int Clamp(int index) => Mathf.Clamp(index, 0, Mathf.Max(m_Tabs.Count - 1, 0));
 
-        // Pointer と Submit でタブの選択が変わったとき
+        // Pointer と Submit でタブの選択が変わったとき。evt.newValue ではなく今のタブの列の選択を読む（後回しに届いた古い ChangeEvent で value を戻さないため）
         void OnListChanged(ChangeEvent<ToggleButtonGroupState> evt)
         {
             if (m_Rebuilding)
                 return;
+            var state = m_List.value;
             var selected = -1;
-            for (var i = 0; i < evt.newValue.length; i++)
+            for (var i = 0; i < state.length; i++)
             {
-                if (evt.newValue[i])
+                if (state[i])
                 {
                     selected = i;
                     break;
@@ -135,13 +140,14 @@ namespace Hone
             }
         }
 
-        // 表示中の中身だけを display: flex にし、ほかを display: none にする。USS が読まれていなくても隠れるよう、inline で指定する（Dialog と同じ）
+        // 表示中の中身だけを display: flex にし、ほかを display: none にする。USS が読まれていなくても隠れるよう、inline で指定する（Dialog と同じ）。
+        // タブが無いときは、どの中身も表示しない
         void RefreshContents()
         {
             var index = 0;
             foreach (var content in m_Panels.Children())
             {
-                var active = index == m_Value;
+                var active = m_Tabs.Count > 0 && index == m_Value;
                 content.AddToClassList(ContentClass);
                 content.EnableInClassList(ActiveClass, active);
                 content.style.display = active ? DisplayStyle.Flex : DisplayStyle.None;
@@ -149,13 +155,15 @@ namespace Hone
             }
         }
 
+        // フォーカスの変更は非同期で、Focus() の直後に focusedElement を読んでも旧値のまま。この後で新しいフォーカスを前提にしない
         void OnNavigationMove(NavigationMoveEvent evt)
         {
             var target = evt.target as VisualElement;
             if (target == null)
                 return;
 
-            if (evt.direction == NavigationMoveEvent.Direction.Down && m_List.Contains(target))
+            // タブにフォーカスがあるとき、target はタブの Button のことも、composite root のタブの列のこともありうる。Contains は自分自身を含まないので両方を見る
+            if (evt.direction == NavigationMoveEvent.Direction.Down && (target == m_List || m_List.Contains(target)))
             {
                 var content = ActiveContent();
                 var focusables = new List<VisualElement>();
@@ -169,7 +177,7 @@ namespace Hone
                 return;
             }
 
-            if (evt.direction == NavigationMoveEvent.Direction.Up && m_Tabs.Count > 0)
+            if (evt.direction == NavigationMoveEvent.Direction.Up)
             {
                 var content = ActiveContent();
                 if (content == null || !content.Contains(target))
@@ -178,12 +186,11 @@ namespace Hone
                 if (HasFocusableAbove(content, target))
                     return;
                 panel.focusController.IgnoreEvent(evt);
-                // フォーカスの変更は非同期で、Focus() の直後に focusedElement を読んでも旧値のまま。この後で新しいフォーカスを前提にしない
                 m_List.Query<Button>().AtIndex(m_Value)?.Focus();
             }
         }
 
-        VisualElement ActiveContent() => m_Value < m_Panels.childCount ? m_Panels[m_Value] : null;
+        VisualElement ActiveContent() => m_Tabs.Count > 0 && m_Value < m_Panels.childCount ? m_Panels[m_Value] : null;
 
         // 中身の focusable のうち、中心が target の上端より上にあるもの（上の段）があるか。
         // 中身の local 座標で比べる。World Space の panel では worldBound の y が上向きで（Unity 6000.7.0b4 で実測）、単位も px ではないため
@@ -200,7 +207,8 @@ namespace Hone
             return false;
         }
 
-        // 子孫のうち Focus() できる要素を DFS 順に集める（FocusScope の候補と同じ条件。隠れた要素の子孫も対象外）
+        // 子孫のうち Focus() できる要素を DFS 順に集める。隠れた要素の子孫は対象外。
+        // FocusScope の候補と違い、delegatesFocus の要素（TextField など）の内部も辿る（内部の要素はその要素と同じ段にあるので、最上段の判定は変わらない）
         static void CollectFocusables(VisualElement parent, List<VisualElement> result)
         {
             foreach (var child in parent.Children())

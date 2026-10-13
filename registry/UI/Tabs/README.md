@@ -40,34 +40,35 @@ tabs.RegisterValueChangedCallback(evt =>
 ```
 
 C# で `tabs` と `value` を一緒に設定するときは、`tabs` を先に書く。`value` は `tabs` の範囲に収められる。
-中身は panel に attach する前に足す。中身の表示は attach の時点と選択が変わった時点で揃えるので、attach 後に `Add()` した中身は、次に選択が変わるまで隠れない。
+中身は panel に attach する前に足す。中身の表示は attach の時点と選択が変わった時点で揃えるので、attach 後に `Add()` した中身は、次に選択が変わるまで隠れない。attach 後に `Remove()` で中身を抜いたときも、index がずれたまま残る（別のタブの中身が表示されたままになる）。attach 後に中身を足したり抜いたりしたら、`tabs.SetValueWithoutNotify(tabs.value)` を呼んで揃える。
 
 ## API
 
 | 名前 | 意味 |
 |---|---|
-| `tabs` | タブのラベル。既定は空。set のたびにタブの `Hone.Button` を作り直す。get は写しを返し、set は受け取った列を写して持つ。null は空として扱う。`value` を範囲に収めるが、`ChangeEvent` は出さない |
+| `tabs` | タブのラベル。既定は空。64 個まで（`ToggleButtonGroupState` が 64 ビット固定のため。65 個以上は確かめていない）。set のたびにタブの `Hone.Button` を作り直す（タブにフォーカスがあれば外れる）。get は写しを返し、set は受け取った列を写して持つ。null は空として扱う。`value` を範囲に収めるが、`ChangeEvent` は出さない |
 | `value` | 選択中のタブの index（0 始まり）。既定 0。`0`〜`max(tabs.Count - 1, 0)` に収め、変わったときだけ `ChangeEvent<int>` を 1 回出す |
 | `SetValueWithoutNotify(int)` | `value` と同じに収めてタブの選択と中身の表示を揃えるが、`ChangeEvent` を出さない |
 
 | 操作 | 結果 |
 |---|---|
 | タブを押す、またはタブにフォーカスして Submit | そのタブを選び、その中身だけを表示する。`ChangeEvent<int>` が 1 回出る |
-| タブにフォーカスして左右 | 既定のナビゲーションで隣のタブへフォーカスが移る。選択は変わらない（Submit で選ぶ） |
-| タブにフォーカスして Down | 表示中の中身の最初の focusable へ移る。中身に focusable が無ければ既定のナビゲーションのまま |
+| タブにフォーカスして左右 | 既定のナビゲーションで隣のタブへフォーカスが移る。選択は変わらない（Submit で選ぶ。Unity 6000.7.0b4 で確認） |
+| タブにフォーカスして Down | 表示中の（選択中のタブの）中身の最初の focusable へ移る。フォーカスしているタブが選択中でなくても同じ。中身に focusable が無ければ既定のナビゲーションのまま |
 | 中身の最上段で Up | 選択中のタブへ移る（幾何で最も近いタブではない） |
 | 中身の 2 段目以降で Up、それ以外の方向、Tab（Next / Previous） | 消費しない。既定のナビゲーションのまま |
+| 選ばれているタブを押し直す | 何も変わらない（選択なしにはならない） |
 
 「最上段」は、表示中の中身の focusable のうち、中心が今の要素の上端より上にあるものが無いこと。
-中身の数がタブの数より多いとき、余った中身は表示されない。少ないときは、中身の無いタブを選ぶと何も表示されない。
+中身の数がタブの数より多いとき、余った中身は表示されない。少ないときは、中身の無いタブを選ぶと何も表示されない。タブが 0 個のときは、どの中身も表示されない。
 
 ## USS クラス
 
 | クラス | 意味 |
 |---|---|
 | `hone-tabs` | ブロック。縦並び |
-| `hone-tabs__list` | タブの列（`Hone.ToggleGroup`。`hone-toggle-group` も付く）。地は `--hone-color-muted`、角丸は `--hone-radius-lg` |
-| `.hone-tabs .hone-tabs__list .hone-button` | タブ。選ばれていないタブは地が透明で、文字は `--hone-color-muted-foreground` |
+| `hone-tabs__list` | タブの列（`Hone.ToggleGroup`。`hone-toggle-group` も付く）。地は `--hone-color-muted`、角丸は `--hone-radius-lg`、内側の余白は `--hone-space-1` |
+| `.hone-tabs .hone-tabs__list .hone-button` | タブ。選ばれていないタブは地が透明で、文字は `--hone-color-muted-foreground`。hover は `ToggleGroup.uss` の `:hover` のまま（文字色はこの規則と同じ詳細度なので、`HoneTheme.tss` で後に読まれる側が勝つ） |
 | `.hone-tabs .hone-tabs__list .hone-button:checked` | 選ばれているタブ。地は `--hone-color-background`。フォーカスが中身にあっても残る |
 | `hone-tabs__panels` | 中身の入れ物（`contentContainer`）。タブの列との間に `--hone-space-2` |
 | `hone-tabs__content` | 各中身。Tabs が付ける |

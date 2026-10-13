@@ -2,6 +2,7 @@
  * タブは Hone.ToggleGroup の子の Hone.Button なので、ToggleGroup.uss の規則（.hone-toggle-group .hone-button、クラス 2 つ）の上に、
  * .hone-tabs .hone-tabs__list .hone-button（クラス 3 つ）で上書きする。:checked もクラス 3 つ + pseudo-class で、ToggleGroup の :hover と :checked に勝つ。
  * 選ばれていないタブの hover は ToggleGroup.uss のまま（muted の地。list の地と同じ色なので、背景は変わって見えない）。
+ * 選ばれていないタブの文字色の規則（クラス 3 つ）と ToggleGroup.uss の :hover（クラス 2 つ + pseudo-class）は同じ詳細度で、HoneTheme.tss で後に読まれる側が勝つ（今はどちらも muted-foreground）。
  * shadcn の選ばれたタブの shadow-sm は持たない（drop-shadow は必須の見た目にしない）。 */
 .hone-tabs {
     flex-direction: column;
