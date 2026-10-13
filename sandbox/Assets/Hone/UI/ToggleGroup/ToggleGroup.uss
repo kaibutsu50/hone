@@ -2,9 +2,11 @@
  * 子の Hone.Button の見た目を、.hone-toggle-group の下でだけ上書きする（ToggleGroup の外の Button は変わらない）。
  * 選ばれている子には基底が :checked を付ける。:checked は :hover の後に書き、選ばれたまま hover しても accent のままにする。
  * 項目の間の隙間は取らない。角丸は各 Button の --hone-radius-md のまま。
- * focus ring は子の Button が持つ .hone-focusable（Core.uss）のまま。disabled は Button.uss の .hone-button:disabled のまま。
- * hover の opacity: 1 は :disabled と :active の opacity より詳細度が高い。押下（:active）の opacity は群の中では効かない（Button.uss の outline / ghost と同じ）。
- * disabled の項目に hover が付く環境では、:disabled の 0.5 が消える可能性がある（確かめていない）。 */
+ * focus ring は子の Button が持つ .hone-focusable（Core.uss）のまま。
+ * hover の opacity: 1 は Button.uss の :disabled と :active の opacity より詳細度が高い。
+ * disabled の項目にも hover が付く（Unity 6000.7.0b4 の PlayMode で、disabled の項目に hover を送ると :hover の opacity: 1 が勝つことを確認）ので、
+ * 末尾の :disabled の規則（同じ詳細度で後ろ）で opacity だけ 0.5 に戻している。背景と文字色は hover のまま（muted）。
+ * 押下（:active）の opacity は、hover の規則のほうが詳細度が高いので群の中では効かない（結果は Button.uss の outline / ghost と同じ）。 */
 .hone-toggle-group .hone-button {
     background-color: transparent;
     border-color: transparent;
@@ -22,4 +24,8 @@
 .hone-toggle-group .hone-button:checked {
     background-color: var(--hone-color-accent);
     color: var(--hone-color-accent-foreground);
+}
+
+.hone-toggle-group .hone-button:disabled {
+    opacity: 0.5;
 }
