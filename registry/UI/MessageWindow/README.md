@@ -49,13 +49,33 @@ slot は持たず、UXML の子要素は想定しない（入れると ▼ の�
 }
 ```
 
+### ページごとの見た目
+
+ページごとに文字色やフォントを変えたいときは、`Page` の `className` にクラス名を渡す。部品はそのページを出している間、窓にそのクラスを付け外しするだけで、色やフォントの値は持たない（値は利用者の USS が決める）。
+
+- 次のページへ進むと、前のページのクラスを外してから新しいページのクラスを付ける。`Show` で出し直したときと、ページ無しにしたときも、前のクラスを外す。
+- 値は検証しない。空白を含む値も 1 つのクラス名としてそのまま付く（USS では選べない）。複数のクラスを空白で区切って渡す使い方はできない。
+- 本文は rich text として解釈しないので、タグでは色を変えられない。この口を使う。
+
+```csharp
+window.Show(
+    new Hone.MessageWindow.Page(null, "（ふつうの文）"),
+    new Hone.MessageWindow.Page(null, "ケツイ", "page-determination"));
+```
+
+```css
+.my-screen .hone-message-window.page-determination .hone-message-window__text {
+    color: rgb(255, 0, 0);
+}
+```
+
 ## API
 
 | 名前 | 意味 |
 |---|---|
 | `text` | 属性。set は `Show(value)` と同じだが、空文字列と `null` はページ無しになる（`Show("")` は空のページが 1 つになり、`Advance()` で `completed` が出る）。get は今のページの文字列（ページが無ければ空文字列） |
 | `charactersPerSecond` | 属性。文字送りの速さ。既定 0。ページの開始時に 0 以下（NaN と無限大も）なら即時表示。文字送りの途中で変えると、その時点から新しい速さで進む（出ている文字は減らない）。0 以下にすると全文が出る |
-| `Page` | `MessageWindow` の中の型（`speaker` と `text`）。値は渡したまま持つ。`Show` は、`speaker` が `null` か空文字列のページを話者なし、`text` が `null` のページを空文字列として扱う |
+| `Page` | `MessageWindow` の中の型（`speaker` と `text` と `className`）。値は渡したまま持つ。`Page(speaker, text, className = null)`。`Show` は、`speaker` が `null` か空文字列のページを話者なし、`text` が `null` のページを空文字列として扱う。`className` はそのページを出している間だけ窓に付くクラス名（下の「ページごとの見た目」） |
 | `Show(params Page[] pages)` | 1 ページ目から出し直す。送りの途中でも最初からやり直す。`null` と空の配列はページ無し。`null` は型を付けて渡す（`Show((Page[])null)`。`Show(null)` と引数なしの `Show()` は 2 つの `Show` のどちらか決まらずコンパイルエラー） |
 | `Show(params string[] pages)` | 話者なしのページとして `Show(params Page[])` と同じに扱う。`null` のページは空文字列 |
 | `Advance()` | Submit とクリックと同じ処理（下の表） |
@@ -85,6 +105,7 @@ slot は持たず、UXML の子要素は想定しない（入れると ▼ の�
 | `hone-message-window__text` | ページの文字列の `Label`。折り返す |
 | `hone-message-window__indicator` | ▼ の `Label`。`is-waiting` の間だけ見える |
 | `is-speaker-set` | MessageWindow に付く状態クラス。今のページの `speaker` が `null` でも空文字列でもない間。名札の表示はこのクラスと USS で切り替わり、C# から `display` を書かない（利用者の USS で隠せなくなるため）。ページが無いときは付かない |
+| ページの `className` | MessageWindow 自身に付く、利用者が `Page` で渡したクラス。そのページを出している間（文字送りの途中の `.is-revealing` の間も）付く。`null` か空文字列なら付かない。`is-speaker-set` `is-revealing` `is-waiting` と同じ名前は、部品の付け外しとぶつかるので使わない |
 | `is-revealing` | MessageWindow に付く状態クラス。文字送りの途中の間 |
 | `is-waiting` | MessageWindow に付く状態クラス。全文が出ていて、次のページがある間（▼ が見える） |
 

@@ -12,22 +12,26 @@ namespace Hone
     // 演出（速さ、▼ の点滅、送りの音）は持たない。.is-revealing と .is-waiting の状態クラスを付け外しするだけで、速さは charactersPerSecond で受け取る。
     //
     // 話者の名札は、ページごとに Page で渡す。名札は文字送りせず、ページの開始時に全文を出す。表示の切り替えは .is-speaker-set と USS に任せる（C# から display を書かない）。
+    // ページごとの見た目（文字色、フォント）は、Page の className を窓に付けるだけで、値は USS が決める（C# から style を書かない）。
     //
     // 構造: MessageWindow（.hone-message-window）> 名札の Label（.hone-message-window__speaker）+ text の Label（.hone-message-window__text）+ ▼ の Label（.hone-message-window__indicator）。
     // slot は持たず、UXML の子要素は想定しない（contentContainer は自分自身なので、入れると ▼ の後ろに並ぶ）。
     [UxmlElement]
     public partial class MessageWindow : VisualElement
     {
-        // 1 ページ分。値は渡したまま持つ。Show は、speaker が null か空文字列のページを話者なし（名札は出ない）、text が null のページを空文字列として扱う
+        // 1 ページ分。値は渡したまま持つ。Show は、speaker が null か空文字列のページを話者なし（名札は出ない）、text が null のページを空文字列として扱う。
+        // className は、そのページを出している間だけ窓（MessageWindow 自身）に付くクラス名。null か空文字列なら付かない
         public readonly struct Page
         {
             public readonly string speaker;
             public readonly string text;
+            public readonly string className;
 
-            public Page(string speaker, string text)
+            public Page(string speaker, string text, string className = null)
             {
                 this.speaker = speaker;
                 this.text = text;
+                this.className = className;
             }
         }
 
@@ -75,6 +79,8 @@ namespace Hone
         double m_Progress;
         int m_Visible;
         IVisualElementScheduledItem m_Ticker;
+        // 窓に付けているページのクラス名（付けていなければ null）
+        string m_PageClass;
 
         public MessageWindow()
         {
@@ -132,11 +138,12 @@ namespace Hone
                 m_Speaker.text = "";
                 m_Text.text = "";
                 UpdateStateClasses();
+                UpdatePageClass();
                 return;
             }
             m_Pages = new Page[pages.Length];
             for (var i = 0; i < pages.Length; i++)
-                m_Pages[i] = new Page(pages[i].speaker, pages[i].text ?? "");
+                m_Pages[i] = new Page(pages[i].speaker, pages[i].text ?? "", pages[i].className);
             StartPage(0);
         }
 
@@ -184,6 +191,7 @@ namespace Hone
                 Render(m_ElementStarts.Length);
             }
             UpdateStateClasses();
+            UpdatePageClass();
         }
 
         void OnTick(TimerState state)
@@ -248,6 +256,21 @@ namespace Hone
             EnableInClassList("is-speaker-set", m_PageIndex >= 0 && !string.IsNullOrEmpty(m_Pages[m_PageIndex].speaker));
             EnableInClassList("is-revealing", m_Revealing);
             EnableInClassList("is-waiting", !m_Revealing && m_PageIndex >= 0 && m_PageIndex < m_Pages.Length - 1);
+        }
+
+        // 前のページのクラスを外してから、今のページのクラスを付ける（同じ名前なら付いたまま）。値は検証せず、1 つのクラス名としてそのまま付ける
+        void UpdatePageClass()
+        {
+            var next = m_PageIndex >= 0 ? m_Pages[m_PageIndex].className : null;
+            if (string.IsNullOrEmpty(next))
+                next = null;
+            if (m_PageClass == next)
+                return;
+            if (m_PageClass != null)
+                RemoveFromClassList(m_PageClass);
+            m_PageClass = next;
+            if (m_PageClass != null)
+                AddToClassList(m_PageClass);
         }
 
         // Submit とクリックは、この部品が 1 歩進める入力として消費し、祖先には届けない
