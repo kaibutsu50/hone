@@ -239,6 +239,7 @@ UI の再読み込み（`PanelRenderer.RegisterUIReloadCallback` で登録した
 - Play 中に `PanelRenderer` の GameObject を Disable → Enable すると、Enable の次のフレームに reload callback が 1 回呼ばれ、前回と同じインスタンスの root・`components`（ListView）・`language`（DropdownField）が渡る（Screen Space、6000.7.0b4）。
 - そのため `GalleryController` と `GalleryFocus` は、前回の登録を外してから登録し直す。外さないと同じ要素に登録が重なり、1 回の切り替えで `Build`（言語の切り替えでは `FocusFirst` も）が複数回走る（Disable → Enable を 1 回したあとで 2 回、2 回したあとで 3 回。6000.7.0b4）。
 - reload callback の中で予約する `FocusFirst` は、呼ばれるたびに 1 回だけ予約するので重ならない。
+- `ModelRoomsController` も同じ構造（ルームの dropdown に `Rebuild` で登録する）で、同じく外してから登録し直す。外さないと、Disable → Enable を 2 回したあとのルームの切り替え 1 回で、3 列の組み直しが 3 回走った（6000.7.0b4）。
 - `unity command set_active` は Play 中は使えない（`This cannot be used during play mode.`。6000.7.0b4）。再読み込みを試すときは、eval で `GameObject.SetActive(false)` と `SetActive(true)` を別のコマンドで呼ぶ（無効な GameObject は `GameObject.Find` で見つからないので、有効にするほうはシーンのルートから探す）。
 
 ## FontVar の Player 検証

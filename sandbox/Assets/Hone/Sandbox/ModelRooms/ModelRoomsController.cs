@@ -37,6 +37,9 @@ namespace Hone.Sandbox.ModelRooms
         // dropdown の選択肢（ルームが無いときの「デフォルト」は含まない）。index が dropdown の index と対応する
         readonly List<ModelRoom> m_Selectable = new List<ModelRoom>();
         DropdownField m_Room;
+        // Rebuild が最後まで配線できたときに、その callback を外す。reload callback は何度でも呼ばれ、前回と同じ要素が渡ることがある（sandbox/README.md の Gallery 節）。
+        // 外さないと同じ要素に登録が重なり、1 回の切り替えで 3 列の組み直しが複数回走る
+        Action m_Unwire;
 
         // 3 列を入れる要素（name `columns`）。UI が読み込まれ、最初の 3 列を組み終えるまでは null。テストと eval が列を探す入口
         public VisualElement columns { get; private set; }
@@ -71,6 +74,9 @@ namespace Hone.Sandbox.ModelRooms
 
         void Rebuild(VisualElement root)
         {
+            m_Unwire?.Invoke();
+            m_Unwire = null;
+
             // 失敗したときに前の UI を操作しないよう、先に捨てる（SelectRoom は InvalidOperationException で返る）
             m_Room = null;
             columns = null;
@@ -103,10 +109,12 @@ namespace Hone.Sandbox.ModelRooms
                 ? new List<string> { NoRoomName }
                 : selectable.Select(r => r.displayName).ToList();
             room.SetValueWithoutNotify(room.choices[0]);
-            room.RegisterValueChangedCallback(_ => BuildColumns(container, selectable.Count == 0 ? null : selectable[room.index]));
+            EventCallback<ChangeEvent<string>> onRoomChanged = _ => BuildColumns(container, selectable.Count == 0 ? null : selectable[room.index]);
+            room.RegisterValueChangedCallback(onRoomChanged);
             m_Selectable.AddRange(selectable);
             m_Room = room;
             columns = container;
+            m_Unwire = () => room.UnregisterValueChangedCallback(onRoomChanged);
         }
 
         // room（null なら素）で 3 列を組み直す。2 列目と 3 列目の舞台にルームの className を付け、3 列目の舞台には attach の時点で inject を 1 回呼ぶ。
