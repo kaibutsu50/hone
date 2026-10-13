@@ -64,7 +64,7 @@ namespace Hone.Sandbox.Tests
             Assert.IsTrue(button.ClassListContains("hone-button"), "the block class must stay");
         }
 
-        // (A) UXML の variant="secondary" が hone-button と hone-button--secondary のクラスになる
+        // (Secondary A) UXML の variant="secondary" が hone-button と hone-button--secondary のクラスになる
         [Test]
         public void Uxml_SecondaryVariant_HasBlockAndVariantClass()
         {
@@ -80,7 +80,7 @@ namespace Hone.Sandbox.Tests
             CollectionAssert.AreEqual(new[] { "hone-button--secondary" }, VariantClasses(secondary));
         }
 
-        // (A) Secondary へ変えると前の variant のクラスが外れ、Secondary から変えると hone-button--secondary が外れる
+        // (Secondary A) Secondary へ変えると前の variant のクラスが外れ、Secondary から変えると hone-button--secondary が外れる
         [Test]
         public void Variant_ChangeToAndFromSecondary_ReplacesVariantClass()
         {
@@ -93,7 +93,8 @@ namespace Hone.Sandbox.Tests
             CollectionAssert.AreEqual(new[] { "hone-button--outline" }, VariantClasses(button));
         }
 
-        // (B) Secondary の background-color が --hone-color-secondary（Tokens.uss の #f4f4f5）になり、Default の primary とは別の色になる
+        // (Secondary B) Secondary の background-color が #f4f4f5（--hone-color-secondary の値）になり、color が #18181b（--hone-color-secondary-foreground の値）になる。
+        // muted / accent も #f4f4f5 なので、参照先のトークンまでは区別しない。Default の primary とは別の色になる
         [UnityTest]
         public IEnumerator Secondary_ResolvedBackgroundColor_IsSecondaryToken()
         {
@@ -107,9 +108,11 @@ namespace Hone.Sandbox.Tests
             yield return null;
             yield return null;
 
-            Assert.IsTrue(ColorUtility.TryParseHtmlString("#f4f4f5", out var expected));
-            Assert.AreEqual(expected, secondary.resolvedStyle.backgroundColor);
-            Assert.AreNotEqual(primary.resolvedStyle.backgroundColor, secondary.resolvedStyle.backgroundColor);
+            Assert.IsTrue(ColorUtility.TryParseHtmlString("#f4f4f5", out var expectedBackground));
+            Assert.IsTrue(ColorUtility.TryParseHtmlString("#18181b", out var expectedColor));
+            Assert.AreEqual((Color32)expectedBackground, (Color32)secondary.resolvedStyle.backgroundColor);
+            Assert.AreEqual((Color32)expectedColor, (Color32)secondary.resolvedStyle.color);
+            Assert.AreNotEqual((Color32)primary.resolvedStyle.backgroundColor, (Color32)secondary.resolvedStyle.backgroundColor);
         }
 
         // (C) 既定テーマの見た目（unity-button）が付いていない。基底の Button が付けるクラスを外してある
