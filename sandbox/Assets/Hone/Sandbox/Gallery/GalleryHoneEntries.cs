@@ -14,7 +14,7 @@ namespace Hone.Sandbox.Gallery
         static void Register()
         {
             // 登録順の先頭がメニューの初期選択になり、GalleryFocus がその最初の .hone-focusable に focus を当てるので、Hone.Button を先に登録して ring を写す。
-            // 4 variant を 1 つのセルに縦に積む。セルは縦並び（align-items: stretch）で幅が決まるので、長文は省略記号になる
+            // 全 variant を 1 つのセルに縦に積む。セルは縦並び（align-items: stretch）で幅が決まるので、長文は省略記号になる
             GalleryController.Register("Hone.Button", text =>
             {
                 var cell = new VisualElement();

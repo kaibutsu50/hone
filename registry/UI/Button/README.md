@@ -18,6 +18,7 @@ button.clicked += OnSave;
 | variant | USS クラス | 用途 |
 |---|---|---|
 | `Default` | `hone-button` のみ | 主となる操作 |
+| `Secondary` | `hone-button--secondary` | 主ではないが普通の操作 |
 | `Outline` | `hone-button--outline` | 枠だけの操作 |
 | `Ghost` | `hone-button--ghost` | 背景も枠も無い操作 |
 | `Destructive` | `hone-button--destructive` | 取り消せない操作 |
