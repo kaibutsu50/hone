@@ -105,7 +105,7 @@ window.Show(
 | `hone-message-window__text` | ページの文字列の `Label`。折り返す |
 | `hone-message-window__indicator` | ▼ の `Label`。`is-waiting` の間だけ見える |
 | `is-speaker-set` | MessageWindow に付く状態クラス。今のページの `speaker` が `null` でも空文字列でもない間。名札の表示はこのクラスと USS で切り替わり、C# から `display` を書かない（利用者の USS で隠せなくなるため）。ページが無いときは付かない |
-| ページの `className` | MessageWindow 自身に付く、利用者が `Page` で渡したクラス。そのページを出している間（文字送りの途中の `.is-revealing` の間も）付く。`null` か空文字列なら付かない。`is-speaker-set` `is-revealing` `is-waiting` と同じ名前は、部品の付け外しとぶつかるので使わない |
+| ページの `className` | MessageWindow 自身に付く、利用者が `Page` で渡したクラス。そのページを出している間（文字送りの途中の `.is-revealing` の間も）付く。`null` か空文字列なら付かない。窓に既に付いているクラス（`hone-message-window` `hone-focusable`、状態クラスの `is-speaker-set` `is-revealing` `is-waiting`、利用者が自分で付けたクラス）と同じ名前は使わない。ページが変わるとそのクラスごと外れる |
 | `is-revealing` | MessageWindow に付く状態クラス。文字送りの途中の間 |
 | `is-waiting` | MessageWindow に付く状態クラス。全文が出ていて、次のページがある間（▼ が見える） |
 
