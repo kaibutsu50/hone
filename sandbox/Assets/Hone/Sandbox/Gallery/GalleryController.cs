@@ -55,6 +55,9 @@ namespace Hone.Sandbox.Gallery
         ListView m_Components;
         // ListView の itemsSource と同じ内容（index が ListView の index と対応する）
         readonly List<string> m_ComponentNames = new List<string>();
+        // Rebuild が最後まで配線できたときに、その callback を外す。reload callback は何度でも呼ばれ、前回と同じ要素が渡ることがある（sandbox/README.md の Gallery 節）。
+        // 外さないと同じ要素に登録が重なり、1 回の切り替えで Build が複数回走る
+        Action m_Unwire;
 
         // 同じ name の再登録は factory を置き換える（Domain Reload 無効でも二重に並ばない）。
         // 異なる name の登録は残り続けるので、テストなどで登録したものは Unregister で消す。
@@ -176,6 +179,9 @@ namespace Hone.Sandbox.Gallery
 
         void Rebuild(VisualElement root)
         {
+            m_Unwire?.Invoke();
+            m_Unwire = null;
+
             // 前の UI を指したまま残すと、この Rebuild が途中で止まったときに SelectScript と SelectComponent が前の要素を操作してしまう。
             // null にしておけば、どちらも InvalidOperationException で eval に返る
             m_Language = null;
@@ -230,7 +236,8 @@ namespace Hone.Sandbox.Gallery
 
             language.choices = selectable.Select(s => s.Name).ToList();
             language.SetValueWithoutNotify(language.choices[0]);
-            language.RegisterValueChangedCallback(_ => BuildSelected());
+            EventCallback<ChangeEvent<string>> onLanguageChanged = _ => BuildSelected();
+            language.RegisterValueChangedCallback(onLanguageChanged);
             m_Selectable.AddRange(selectable);
             m_Language = language;
 
@@ -245,9 +252,15 @@ namespace Hone.Sandbox.Gallery
             components.itemsSource = names;
             components.selectionType = SelectionType.Single;
             components.SetSelectionWithoutNotify(new[] { 0 });
-            components.selectedIndicesChanged += _ => BuildSelected();
+            Action<IEnumerable<int>> onSelectionChanged = _ => BuildSelected();
+            components.selectedIndicesChanged += onSelectionChanged;
             m_ComponentNames.AddRange(names);
             m_Components = components;
+            m_Unwire = () =>
+            {
+                language.UnregisterValueChangedCallback(onLanguageChanged);
+                components.selectedIndicesChanged -= onSelectionChanged;
+            };
         }
 
         // dropdown で script を選んだのと同じ経路（ChangeEvent）で切り替える。eval から言語を切り替えて撮るための入口。
