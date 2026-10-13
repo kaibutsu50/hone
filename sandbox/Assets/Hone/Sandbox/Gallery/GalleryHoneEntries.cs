@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -24,7 +25,7 @@ namespace Hone.Sandbox.Gallery
                 foreach (Hone.Button.Variant variant in Enum.GetValues(typeof(Hone.Button.Variant)))
                     cell.Add(new Hone.Button { text = text, variant = variant });
                 return cell;
-            });
+            }, Describe("Button", string.Join(" / ", Enum.GetNames(typeof(Hone.Button.Variant)))));
             GalleryController.Register("Label.hone-text", text =>
             {
                 var label = new Label(text);
@@ -62,7 +63,7 @@ namespace Hone.Sandbox.Gallery
                 dialog.Add(footer);
                 dialog.RegisterCallbackOnce<AttachToPanelEvent>(evt => dialog.Open());
                 return dialog;
-            });
+            }, Describe("Dialog"));
             // 2 ページにして、1 ページ目で次のページがある状態（.is-waiting の ▼）を写す。charactersPerSecond は 0（即時表示）のまま。
             // MessageWindow は親の幅に従うので、セルの幅は Gallery.uss の .gallery-message-window で確定させる。
             // Show は Dialog の Open と揃えて attach の時点で呼ぶ（即時表示なので attach 前に呼んでも同じに出る）。
@@ -74,7 +75,7 @@ namespace Hone.Sandbox.Gallery
                 var speaker = text + " " + text + " " + text;
                 window.RegisterCallbackOnce<AttachToPanelEvent>(evt => window.Show(new MessageWindow.Page(speaker, text), new MessageWindow.Page(null, text)));
                 return window;
-            });
+            }, Describe("MessageWindow"));
             // off と on を 1 つのセルに縦に積む。文言は label に入れる（text は track の中に入る）。長文の言語では label が省略記号で切れ、track は右端に残る。
             // hone-focusable は付けていないので ring は写らない（Switch の ring は track の border。GalleryFocus の当て先にもならない）
             GalleryController.Register("Hone.Switch", text =>
@@ -84,7 +85,7 @@ namespace Hone.Sandbox.Gallery
                 cell.Add(new Switch { label = text });
                 cell.Add(new Switch { label = text, value = true });
                 return cell;
-            });
+            }, Describe("Switch"));
             // off と on を 1 つのセルに縦に積む。セルは縦並びで幅が決まるので、幅を超える長文は省略記号になる。
             // Unity 標準の Toggle と紛らわしいので Hone.Toggle と完全修飾で書く。hone-focusable を持つので、撮影時に GalleryFocus.RefocusLater（または言語の切り替え）で en の行の off の Toggle に当て直すと ring が写る。コンポーネントを選んだだけでは当たらない
             GalleryController.Register("Hone.Toggle", text =>
@@ -94,7 +95,7 @@ namespace Hone.Sandbox.Gallery
                 cell.Add(new Hone.Toggle { text = text });
                 cell.Add(new Hone.Toggle { text = text, value = true });
                 return cell;
-            });
+            }, Describe("Toggle"));
             // 3 つの Hone.Button を並べた ToggleGroup を、幅を決めるためにセルに入れる（セルは縦並びで、行の残りを短文と長文で等分する）。attach の時点で 2 番目（index 1）を選んだ状態にする。項目は flex-grow: 1 で均等に広がり、長文の言語では縮んで省略記号になる。
             // allowEmptySelection が false（既定）だと、最初の子を足した時点で基底が index 0 を選ぶので、全部外してから 1 を選ぶ
             GalleryController.Register("Hone.ToggleGroup", text =>
@@ -114,11 +115,11 @@ namespace Hone.Sandbox.Gallery
                 cell.AddToClassList("gallery-cell");
                 cell.Add(group);
                 return cell;
-            });
+            }, Describe("ToggleGroup"));
             // 10 ページの 5 ページ目（value 4）。両側に省略記号が出る並び（1 … 4 [5] 6 … 10）を写す。
             // 数字と記号だけなので文字列は使わず、言語を切り替えても同じに写る。pageCount を先に設定する（value は pageCount の範囲に収められる）。
             // 前の Button が hone-focusable を持つので、Toggle と同じく RefocusLater（または言語の切り替え）で en の行の 1 つ目の前の Button に ring が写る
-            GalleryController.Register("Hone.Pagination", text => new Pagination { pageCount = 10, value = 4 });
+            GalleryController.Register("Hone.Pagination", text => new Pagination { pageCount = 10, value = 4 }, Describe("Pagination"));
             // 途中（value 1。前後とも有効）と最初（value 0。前の Button が disabled）を 1 つのセルに縦に積む。choices の 3 つは同じ文字列にする（写すのは中央の文字列と前後の Button の状態だけ）。
             // 中央の文字列は収まらなければ省略記号で切れ、前後の Button は縮まない（en と Japanese の長文は、Screen Space と World Space のどちらでも切れずに入った。6000.7.0b4）。choices を value より先に設定する（value は choices の範囲に収められる）。
             // root が hone-focusable を持つので、Toggle と同じく RefocusLater（または言語の切り替え）で en の行の 1 つ目の root に ring が写る
@@ -129,7 +130,17 @@ namespace Hone.Sandbox.Gallery
                 cell.Add(new Cycle { choices = new List<string> { text, text, text }, value = 1 });
                 cell.Add(new Cycle { choices = new List<string> { text, text, text }, value = 0 });
                 return cell;
-            });
+            }, Describe("Cycle"));
+        }
+
+        // Hone/UI/<component>/<component>.uxml を読んで説明にする。Editor 専用（Player には Assets/ のファイルが無く、説明なしになる）。
+        // variants は variant を持つ部品だけ渡す（無ければ null で、Gallery は「なし」と出す）
+        static ComponentDescription? Describe(string component, string variants = null)
+        {
+            var path = Path.Combine(Application.dataPath, "Hone/UI", component, component + ".uxml");
+            if (!File.Exists(path))
+                return null;
+            return new ComponentDescription(variants, File.ReadAllText(path).Replace("\r\n", "\n").TrimEnd());
         }
     }
 }

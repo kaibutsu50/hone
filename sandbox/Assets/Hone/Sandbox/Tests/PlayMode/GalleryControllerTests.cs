@@ -24,10 +24,10 @@ namespace Hone.Sandbox.Tests
             m_Registered.Clear();
         }
 
-        void Register(string name, Func<string, VisualElement> factory)
+        void Register(string name, Func<string, VisualElement> factory, ComponentDescription? description = null)
         {
             m_Registered.Add(name);
-            GalleryController.Register(name, factory);
+            GalleryController.Register(name, factory, description);
         }
 
         // Editor で実行する前提（Player では Assets/ のファイルを直接読めない）
@@ -238,6 +238,50 @@ namespace Hone.Sandbox.Tests
             var column = container.Q(className: GalleryController.ColumnClass(name));
             var tags = column.Query<Label>(className: "gallery-tag").ToList().Select(l => l.text).ToList();
             CollectionAssert.AreEqual(new[] { "en", "ko" }, tags);
+        }
+
+        static List<string> DescriptionTexts(VisualElement container)
+        {
+            var description = container.Q(className: "gallery-description");
+            Assert.IsNotNull(description);
+            return description.Query<Label>(className: "gallery-description__text").ToList().Select(l => l.text).ToList();
+        }
+
+        [Test]
+        public void Build_WithDescription_ShowsVariantsAndUxml()
+        {
+            const string name = "GalleryControllerTests.Description";
+            Register(name, text => new Label(text), new ComponentDescription("Default / Outline", "<hone:Button />"));
+            var container = new VisualElement();
+
+            GalleryController.Build(container, name, LoadTestStrings());
+
+            CollectionAssert.AreEqual(new[] { "Default / Outline", "<hone:Button />" }, DescriptionTexts(container));
+        }
+
+        [TestCase(null)]
+        [TestCase("")]
+        public void Build_WithDescriptionWithoutVariants_ShowsNone(string variants)
+        {
+            const string name = "GalleryControllerTests.NoVariants";
+            Register(name, text => new Label(text), new ComponentDescription(variants, "<hone:Dialog />"));
+            var container = new VisualElement();
+
+            GalleryController.Build(container, name, LoadTestStrings());
+
+            CollectionAssert.AreEqual(new[] { "なし", "<hone:Dialog />" }, DescriptionTexts(container));
+        }
+
+        [Test]
+        public void Build_WithoutDescription_HasNoDescription()
+        {
+            const string name = "GalleryControllerTests.NoDescription";
+            Register(name, text => new Label(text));
+            var container = new VisualElement();
+
+            GalleryController.Build(container, name, LoadTestStrings());
+
+            Assert.IsNull(container.Q(className: "gallery-description"));
         }
 
         [Test]

@@ -40,6 +40,22 @@
     margin-bottom: 4px;
 }
 
+/* 列の見出しの下に 1 回だけ出す説明（variant の一覧と UXML の使用例）。言語を切り替えても変わらない */
+.gallery-description {
+    margin-bottom: 8px;
+}
+
+.gallery-description__title {
+    -unity-font-style: bold;
+    opacity: 0.6;
+    margin-top: 4px;
+}
+
+/* UXML のインデントを残す */
+.gallery-description__text {
+    white-space: pre;
+}
+
 .gallery-row {
     flex-direction: row;
     align-items: center;
