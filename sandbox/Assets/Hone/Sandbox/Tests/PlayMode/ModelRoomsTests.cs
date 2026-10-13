@@ -166,6 +166,8 @@ namespace Hone.Sandbox.Tests
             ModelRoomsController controller = null;
             yield return LoadScene(c => controller = c);
             Assert.AreEqual(0, injectedB.Count, "inject of an unselected room was called");
+            Assert.AreEqual(0, RoomCycle(controller).value);
+            Assert.IsTrue(RoomCycle(controller).wrap);
 
             controller.SelectRoom(RoomB);
 

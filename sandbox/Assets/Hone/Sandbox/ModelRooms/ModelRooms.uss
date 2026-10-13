@@ -1,4 +1,5 @@
 /* sandbox の撮影用の画面の枠。コンポーネントの USS ではないので、トークン規約（実値を書かない）の対象外。幅や高さは実値でよい。
+ * 見出し行（上の見出し行と各列の見出し）の規則は、色・余白・文字の大きさにトークンを使う（Gallery.uss と同じ）。列の間の余白と舞台の中は実値のまま（舞台の理由は .model-room-stage の規則）。
  * 背景と文字色は Hone のトークン（light の 1 セット）に合わせる（Gallery.uss と同じ）。
  * 上の見出し行（左にタイトル、右にルームの Hone.Cycle）と、その下の 3 列。
  * 見出しは舞台の外に置く。ルームのテーマ（.room-<genre>）は舞台にだけ掛かる。 */
@@ -11,13 +12,14 @@
 }
 
 /* 文字色は舞台の外（上の見出し行と各列の見出し）の Label にだけ当てる。舞台の中まで当てると、部品の Label の色（Dialog の説明文、MessageWindow の ▼ の muted）に
- * 詳細度で勝ってしまい、「素」の列が registry の既定の見た目でなくなる */
+ * 詳細度で勝ってしまい、「素」の列が registry の既定の見た目でなくなる。
+ * 上の見出し行には Hone.Cycle の中の Label（.hone-cycle__value）も入り、この規則が Cycle.uss の色に勝つ。今は同じ色なので見た目は変わらない */
 .model-rooms-header Label,
 .model-room-column__header Label {
     color: var(--hone-color-foreground);
 }
 
-/* 上の見出し行。左にタイトル、右にルームの Cycle（Gallery の見出し行と同じ形）。ルームは 3 列すべてに作用するので、3 列の上に置く */
+/* 上の見出し行。左にタイトル、右にルームの Cycle（Gallery の見出し行と同じ形）。ルームを選ぶと 3 列すべてが組み直されるので、3 列の上に置く */
 .model-rooms-header {
     flex-direction: row;
     justify-content: space-between;
@@ -45,7 +47,8 @@
     margin-right: var(--hone-space-2);
 }
 
-/* 横並びの親では Cycle に幅を与える。ルームの表示名（「テキストアドベンチャー風」）が切れない幅 */
+/* 横並びの親では Cycle に幅を与える（Cycle の README の「World Space での置き方」）。幅は登録してあるルームの表示名が切れないもの。
+ * 280px で値の Label は 186px、最も長い表示名は 169px だった（6000.7.0b4）。ルームを足したら測り直す */
 .model-rooms-room__cycle {
     width: 280px;
 }
