@@ -24,10 +24,10 @@ namespace Hone.Sandbox.Tests
             m_Registered.Clear();
         }
 
-        void Register(string name, Func<string, VisualElement> factory)
+        void Register(string name, Func<string, VisualElement> factory, ComponentDescription? description = null)
         {
             m_Registered.Add(name);
-            GalleryController.Register(name, factory);
+            GalleryController.Register(name, factory, description);
         }
 
         // Editor で実行する前提（Player では Assets/ のファイルを直接読めない）
@@ -238,6 +238,82 @@ namespace Hone.Sandbox.Tests
             var column = container.Q(className: GalleryController.ColumnClass(name));
             var tags = column.Query<Label>(className: "gallery-tag").ToList().Select(l => l.text).ToList();
             CollectionAssert.AreEqual(new[] { "en", "ko" }, tags);
+        }
+
+        const string DescriptionClass = "gallery-description";
+
+        // 列の中に説明がちょうど 1 つあることを確かめて、その本文（variant の一覧、UXML の順）を返す
+        static List<string> DescriptionTexts(VisualElement container, string name)
+        {
+            var column = container.Q(className: GalleryController.ColumnClass(name));
+            Assert.IsNotNull(column);
+            var descriptions = column.Query(className: DescriptionClass).ToList();
+            Assert.AreEqual(1, descriptions.Count);
+            return descriptions[0].Query<Label>(className: "gallery-description__text").ToList().Select(l => l.text).ToList();
+        }
+
+        [Test]
+        public void Build_WithDescription_ShowsVariantsAndUxml()
+        {
+            const string name = "GalleryControllerTests.Description";
+            Register(name, text => new Label(text), new ComponentDescription("Default / Outline", "<hone:Button />"));
+            var container = new VisualElement();
+
+            GalleryController.Build(container, name, LoadTestStrings());
+
+            CollectionAssert.AreEqual(new[] { "Default / Outline", "<hone:Button />" }, DescriptionTexts(container, name));
+        }
+
+        [Test]
+        public void Build_AnotherScript_KeepsDescription()
+        {
+            const string name = "GalleryControllerTests.DescriptionScript";
+            Register(name, text => new Label(text), new ComponentDescription("Default", "<hone:Button />"));
+            var all = LoadTestStrings();
+            var container = new VisualElement();
+
+            GalleryController.Build(container, name, GalleryController.Pick(all, "ja"));
+            var before = DescriptionTexts(container, name);
+            GalleryController.Build(container, name, GalleryController.Pick(all, "ko"));
+
+            CollectionAssert.AreEqual(before, DescriptionTexts(container, name));
+        }
+
+        // GalleryHoneEntries は BeforeSceneLoad で登録するので、PlayMode のテストからは登録済みに見える。
+        // Describe が UXML を見つけられないと黙って説明なしになるので、実際の登録で説明があることを確かめる（内容は見ない）
+        [Test]
+        public void Build_HoneButton_HasDescription()
+        {
+            var container = new VisualElement();
+
+            GalleryController.Build(container, "Hone.Button", LoadTestStrings());
+
+            Assert.AreEqual(2, DescriptionTexts(container, "Hone.Button").Count);
+        }
+
+        [TestCase(null)]
+        [TestCase("")]
+        public void Build_WithDescriptionWithoutVariants_ShowsNone(string variants)
+        {
+            const string name = "GalleryControllerTests.NoVariants";
+            Register(name, text => new Label(text), new ComponentDescription(variants, "<hone:Dialog />"));
+            var container = new VisualElement();
+
+            GalleryController.Build(container, name, LoadTestStrings());
+
+            CollectionAssert.AreEqual(new[] { "なし", "<hone:Dialog />" }, DescriptionTexts(container, name));
+        }
+
+        [Test]
+        public void Build_WithoutDescription_HasNoDescription()
+        {
+            const string name = "GalleryControllerTests.NoDescription";
+            Register(name, text => new Label(text));
+            var container = new VisualElement();
+
+            GalleryController.Build(container, name, LoadTestStrings());
+
+            Assert.IsNull(container.Q(className: DescriptionClass));
         }
 
         [Test]

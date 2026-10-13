@@ -26,6 +26,19 @@ namespace Hone.Sandbox.Gallery
         }
     }
 
+    // 列の上に出す説明。variant の一覧（無い部品は null か空で、「なし」と出す）と、UXML の使用例。テスト文字列を使わないので、言語を切り替えても変わらず、1 つだけ出す
+    public readonly struct ComponentDescription
+    {
+        public readonly string Variants;
+        public readonly string Uxml;
+
+        public ComponentDescription(string variants, string uxml)
+        {
+            Variants = variants;
+            Uxml = uxml;
+        }
+    }
+
     // 登録されたコンポーネントのうち、左の ListView（name `components`）で選んだ 1 つの生成関数から 1 列を作り、渡された文字列（短文と長文）で 1 行ずつ並べる。
     // Build は渡された文字列をそのまま並べる。画面では en と、dropdown で選んだ 1 スクリプトを渡す。
     // Register は sandbox 側のファイルから呼ぶ（registry/ 配下のコードには書かない。配布物が sandbox の asmdef に依存してしまう）。
@@ -40,6 +53,7 @@ namespace Hone.Sandbox.Gallery
         {
             public string Name;
             public Func<string, VisualElement> Factory;
+            public ComponentDescription? Description;
         }
 
         // 常に 1 行目に出すスクリプト
@@ -59,17 +73,18 @@ namespace Hone.Sandbox.Gallery
         // 外さないと同じ要素に登録が重なり、1 回の切り替えで Build が複数回走る
         Action m_Unwire;
 
-        // 同じ name の再登録は factory を置き換える（Domain Reload 無効でも二重に並ばない）。
+        // 同じ name の再登録は factory と description を置き換える（Domain Reload 無効でも二重に並ばない。description を省くと説明は消える）。
         // 異なる name の登録は残り続けるので、テストなどで登録したものは Unregister で消す。
         // factory は呼ぶたびに新しい要素を返すこと（同じインスタンスを返すと、後から追加した行に付け替わって前の行から消える）。
-        public static void Register(string name, Func<string, VisualElement> factory)
+        // description を渡すと、列の見出しの下に説明（variant の一覧と UXML の使用例）が 1 つ出る。渡さなければ説明の領域は出ない。
+        public static void Register(string name, Func<string, VisualElement> factory, ComponentDescription? description = null)
         {
             if (string.IsNullOrEmpty(name))
                 throw new ArgumentException("name is empty", nameof(name));
             if (factory == null)
                 throw new ArgumentNullException(nameof(factory));
 
-            var entry = new Entry { Name = name, Factory = factory };
+            var entry = new Entry { Name = name, Factory = factory, Description = description };
             var index = s_Entries.FindIndex(e => e.Name == name);
             if (index >= 0)
                 s_Entries[index] = entry;
@@ -125,7 +140,7 @@ namespace Hone.Sandbox.Gallery
             return null;
         }
 
-        // container の中身を作り直す。name の factory を、渡された文字列の短文・長文で 1 回ずつ呼ぶ。name が未登録なら ArgumentException
+        // container の中身を作り直す。name の factory を、渡された文字列の短文・長文で 1 回ずつ呼ぶ。description があれば見出しの下に置く。name が未登録なら ArgumentException
         public static void Build(VisualElement container, string name, IReadOnlyList<ScriptStrings> strings)
         {
             var index = s_Entries.FindIndex(e => e.Name == name);
@@ -142,6 +157,9 @@ namespace Hone.Sandbox.Gallery
             var heading = new Label(entry.Name);
             heading.AddToClassList("gallery-heading");
             column.Add(heading);
+
+            if (entry.Description.HasValue)
+                column.Add(CreateDescription(entry.Description.Value));
 
             foreach (var s in strings)
             {
@@ -161,6 +179,27 @@ namespace Hone.Sandbox.Gallery
         }
 
         public static string ColumnClass(string name) => "gallery-column--" + name.Replace('.', '-').ToLowerInvariant();
+
+        // 撮影対象を載せる台なので、Hone の部品は使わず Label だけで作る
+        static VisualElement CreateDescription(ComponentDescription description)
+        {
+            var root = new VisualElement();
+            root.AddToClassList("gallery-description");
+            AddDescriptionSection(root, "Variants", string.IsNullOrEmpty(description.Variants) ? "なし" : description.Variants);
+            AddDescriptionSection(root, "Usage", description.Uxml);
+            return root;
+        }
+
+        static void AddDescriptionSection(VisualElement root, string title, string text)
+        {
+            var titleLabel = new Label(title);
+            titleLabel.AddToClassList("gallery-description__title");
+            root.Add(titleLabel);
+
+            var textLabel = new Label(text);
+            textLabel.AddToClassList("gallery-description__text");
+            root.Add(textLabel);
+        }
 
         static VisualElement Create(Entry entry, string text)
         {
