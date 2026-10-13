@@ -72,7 +72,7 @@ namespace Hone.Sandbox.Tests
         static Action<VisualElement> Recorder(List<InjectRecord> records) => stage =>
             records.Add(new InjectRecord { Stage = stage, Attached = stage.panel != null, PageIndex = stage.Q<MessageWindow>().pageIndex });
 
-        // ルームの登録は、シーンを読み込む前に済ませる（dropdown は UI が読み込まれた時点の登録内容で作る）
+        // ルームの登録は、シーンを読み込む前に済ませる（ルームの Cycle は UI が読み込まれた時点の登録内容で作る）
         IEnumerator LoadScene(Action<ModelRoomsController> onReady)
         {
             yield return EditorSceneManager.LoadSceneAsyncInPlayMode(ScenePath, new LoadSceneParameters(LoadSceneMode.Additive));
@@ -103,7 +103,7 @@ namespace Hone.Sandbox.Tests
 
         static Label StatusOf(VisualElement column) => column.Q<Label>(className: "model-room-status");
 
-        static DropdownField RoomDropdown(ModelRoomsController controller) => controller.columns.panel.visualTree.Q<DropdownField>("room");
+        static Cycle RoomCycle(ModelRoomsController controller) => controller.columns.panel.visualTree.Q<Cycle>("room");
 
         static void Submit(VisualElement target)
         {
@@ -145,12 +145,12 @@ namespace Hone.Sandbox.Tests
 
         // ルーム 0 件（BeforeSceneLoad で登録されるルームは SetUp で外してある）
         [UnityTest]
-        public IEnumerator NoRoom_DropdownShowsPlaceholder_StagesHaveNoRoomClass()
+        public IEnumerator NoRoom_CycleShowsPlaceholder_StagesHaveNoRoomClass()
         {
             ModelRoomsController controller = null;
             yield return LoadScene(c => controller = c);
 
-            CollectionAssert.AreEqual(new[] { "デフォルト" }, RoomDropdown(controller).choices);
+            CollectionAssert.AreEqual(new[] { "デフォルト" }, RoomCycle(controller).choices);
             foreach (var stage in Columns(controller).Select(StageOf))
                 CollectionAssert.AreEqual(new[] { "model-room-stage" }, stage.GetClasses().ToList());
         }
@@ -166,9 +166,12 @@ namespace Hone.Sandbox.Tests
             ModelRoomsController controller = null;
             yield return LoadScene(c => controller = c);
             Assert.AreEqual(0, injectedB.Count, "inject of an unselected room was called");
+            Assert.AreEqual(0, RoomCycle(controller).value);
+            Assert.IsTrue(RoomCycle(controller).wrap);
 
             controller.SelectRoom(RoomB);
 
+            Assert.AreEqual(1, RoomCycle(controller).value);
             var stages = Columns(controller).Select(StageOf).ToList();
             CollectionAssert.AreEqual(new[] { "model-room-stage" }, stages[0].GetClasses().ToList());
             Assert.IsTrue(stages[1].ClassListContains(RoomB));
@@ -222,7 +225,7 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual("", StatusOf(after[0]).text);
         }
 
-        // 同じ className の再登録は置き換え（dropdown に 1 つだけ、新しい displayName で出る）
+        // 同じ className の再登録は置き換え（ルームの Cycle に 1 つだけ、新しい displayName で出る）
         [UnityTest]
         public IEnumerator Register_SameClassNameReplaces()
         {
@@ -231,7 +234,7 @@ namespace Hone.Sandbox.Tests
             ModelRoomsController controller = null;
             yield return LoadScene(c => controller = c);
 
-            CollectionAssert.AreEqual(new[] { "New" }, RoomDropdown(controller).choices);
+            CollectionAssert.AreEqual(new[] { "New" }, RoomCycle(controller).choices);
         }
 
         [TestCase(null)]
@@ -312,10 +315,25 @@ namespace Hone.Sandbox.Tests
             AdvanceToCompleted(MessageOf(column));
             Assert.AreNotEqual(0, MessageOf(column).pageIndex);
 
-            Submit(column.Q<UnityEngine.UIElements.Button>("again"));
+            Submit(column.Q<Hone.Button>("again"));
 
             Assert.AreEqual(0, MessageOf(column).pageIndex);
             Assert.IsFalse(DialogOf(column).isOpen);
+        }
+
+        // 「もう一度」は Hone.Button の Outline
+        [UnityTest]
+        public IEnumerator Again_IsOutlineHoneButton()
+        {
+            ModelRoomsController controller = null;
+            yield return LoadScene(c => controller = c);
+
+            foreach (var column in Columns(controller))
+            {
+                var again = column.Q<Hone.Button>("again");
+                Assert.IsNotNull(again);
+                Assert.AreEqual(Hone.Button.Variant.Outline, again.variant);
+            }
         }
 
         // 「もう一度」の後に最後まで送ると、Dialog がもう一度開く
@@ -327,7 +345,7 @@ namespace Hone.Sandbox.Tests
             var column = Columns(controller)[0];
             AdvanceToCompleted(MessageOf(column));
             Submit(column.Q<Hone.Button>("yes"));
-            Submit(column.Q<UnityEngine.UIElements.Button>("again"));
+            Submit(column.Q<Hone.Button>("again"));
 
             AdvanceToCompleted(MessageOf(column));
 
@@ -352,7 +370,7 @@ namespace Hone.Sandbox.Tests
                 Assert.AreEqual(pages.Length, message.pageCount);
                 Assert.AreEqual(pages[0].text, message.text);
                 AdvanceToCompleted(message);
-                Submit(column.Q<UnityEngine.UIElements.Button>("again"));
+                Submit(column.Q<Hone.Button>("again"));
                 Assert.AreEqual(pages[0].text, message.text);
             }
         }

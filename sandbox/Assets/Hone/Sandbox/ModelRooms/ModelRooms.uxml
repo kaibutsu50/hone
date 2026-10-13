@@ -1,7 +1,13 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:hone="Hone">
     <Style src="ModelRooms.uss" />
     <ui:VisualElement class="model-rooms-page">
-        <ui:DropdownField name="room" label="Room" class="model-rooms-room" />
+        <ui:VisualElement class="model-rooms-header">
+            <ui:Label text="Model Rooms" class="model-rooms-title hone-text" />
+            <ui:VisualElement class="model-rooms-room">
+                <ui:Label text="Room" class="model-rooms-room__label hone-text" />
+                <hone:Cycle name="room" wrap="true" class="model-rooms-room__cycle" />
+            </ui:VisualElement>
+        </ui:VisualElement>
         <ui:VisualElement name="columns" class="model-rooms-columns" />
     </ui:VisualElement>
 </ui:UXML>

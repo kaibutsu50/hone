@@ -66,7 +66,7 @@ Assets/Hone/
     Gallery/          多言語スクリーンショットの撮影基盤。TestStrings.json（スクリプトごとの表示名・短文・長文）、Gallery.unity（PanelRenderer が 2 枚。Screen Space の `PanelRenderer` と World Space の `PanelRendererWorldSpace`）/ Gallery.uxml / Gallery.uss、GalleryController（左のメニューで選んだ 1 コンポーネントを右のカードに出す）、
                       GalleryHoneEntries（Hone.Button、Core.uss のクラスを付けた列、開いた状態の Hone.Dialog、2 ページの 1 ページ目を出した Hone.MessageWindow、off と on の Hone.Switch、off と on の Hone.Toggle、3 択で 2 番目を選んだ Hone.ToggleGroup、10 ページの 5 ページ目を出した Hone.Pagination、途中と最初の 2 つの Hone.Cycle を登録する）、GalleryFocus（ring を写すため、読み込み時にカードの中の最初の .hone-focusable にフォーカスを当てる。撮影用に、eval から同じ当て直しを呼ぶ `RefocusLater` を持つ）、
                       Hone.Sandbox.Gallery.asmdef（Tests/PlayMode が参照する。Hone.Sandbox.UI と Hone.Core を参照する）
-    ModelRooms/       モデルルームの基盤。同じ構造（はい / いいえ の Dialog とメッセージ）を「素」「USS だけ」「注入あり」の 3 列に並べ、dropdown で選んだルームを 2 列目と 3 列目に当てる。ModelRooms.unity（Screen Space の PanelRenderer が 1 枚）/ ModelRooms.uxml / ModelRooms.uss、
+    ModelRooms/       モデルルームの基盤。同じ構造（はい / いいえ の Dialog とメッセージ）を「素」「USS だけ」「注入あり」の 3 列に並べ、上のルームの Cycle で選んだルームを 2 列目と 3 列目に当てる。ModelRooms.unity（Screen Space の PanelRenderer が 1 枚）/ ModelRooms.uxml / ModelRooms.uss、
                       Message.uxml と YesNo.uxml（全ルーム共通の構造）、ModelRoom（ルームの定義）、ModelRoomsController（登録、列の組み立て、流れ）、ModelRoomsTheme.tss（ModelRooms 専用の theme。HoneTheme.tss と同じ @import に、ルームの USS の @import を足す）、
                       ModelRoomsPanelSettings.asset（PanelSettings.asset の複製で、Theme Style Sheet だけ ModelRoomsTheme.tss）、Hone.Sandbox.ModelRooms.asmdef（Tests/PlayMode が参照する。Hone.Sandbox.UI と Hone.Core を参照し、autoReferenced は false）。
                       ClassicJrpg/ はクラシック JRPG 風のルーム（ClassicJrpg.uss、ClassicJrpgRoom.cs、Cursor.png）。
@@ -250,7 +250,7 @@ UI の再読み込み（`PanelRenderer.RegisterUIReloadCallback` で登録した
 
 - Play 中に `PanelRenderer` の GameObject を Disable → Enable すると、Enable の次のフレームに reload callback が 1 回呼ばれ、前回と同じインスタンスの root・`components`（ToggleGroup）・`language`（Cycle）が渡る（Screen Space、6000.7.0b4）。
 - そのため `GalleryController` は、前回の登録を外してから登録し直す。外さないと同じ要素に登録が重なり、1 回の切り替えで `Build` が複数回走る（Disable → Enable を 1 回したあとで 2 回、2 回したあとで 3 回。6000.7.0b4）。メニューの項目も、前回の項目を消してから足し直す（消さないと項目が重複する）。
-- `ModelRoomsController` も同じ構造（ルームの dropdown に `Rebuild` で登録する）で、同じく外してから登録し直す。外さないと、Disable → Enable を 2 回したあとのルームの切り替え 1 回で、3 列の組み直しが 3 回走った（6000.7.0b4）。
+- `ModelRoomsController` も同じ構造（ルームの Cycle に `Rebuild` で登録する）で、同じく外してから登録し直す。外さないと、Disable → Enable を 2 回したあとのルームの切り替え 1 回で、3 列の組み直しが 3 回走った（ルームの選択が DropdownField だったときに測った。6000.7.0b4）。
 - `unity command set_active` は Play 中は使えない（`This cannot be used during play mode.`。6000.7.0b4）。再読み込みを試すときは、eval で `GameObject.SetActive(false)` と `SetActive(true)` を別のコマンドで呼ぶ（無効な GameObject は `GameObject.Find` で見つからないので、有効にするほうはシーンのルートから探す）。
 
 ## FontVar の Player 検証
