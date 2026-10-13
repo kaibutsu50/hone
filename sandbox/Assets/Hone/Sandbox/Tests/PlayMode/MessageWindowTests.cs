@@ -558,6 +558,139 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual("", SpeakerOf(window).text, "no pages: speaker text");
         }
 
+        // (A) className 付きのページを出している間だけ、窓にそのクラスが付く。className が null のページへ進むと外れる
+        [UnityTest]
+        public IEnumerator Show_PageWithClassName_AddsClassOnlyWhileShown()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow();
+            root.Add(window);
+
+            window.Show(new MessageWindow.Page(null, "a", "page-a"), new MessageWindow.Page(null, "b"));
+            yield return Settle();
+            Assert.IsTrue(window.ClassListContains("page-a"), "page 1");
+
+            window.Advance();
+            yield return Settle();
+            Assert.IsFalse(window.ClassListContains("page-a"), "page 2 (no className)");
+        }
+
+        // (B) className の違うページへ進むと、前のクラスが外れて新しいクラスが付く
+        [UnityTest]
+        public IEnumerator Show_ClassNameChanges_SwapsClass()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow();
+            root.Add(window);
+
+            window.Show(new MessageWindow.Page(null, "a", "page-a"), new MessageWindow.Page(null, "b", "page-b"));
+            yield return Settle();
+            Assert.IsTrue(window.ClassListContains("page-a"), "page 1");
+
+            window.Advance();
+            yield return Settle();
+            Assert.IsTrue(window.ClassListContains("page-b"), "page 2: new class");
+            Assert.IsFalse(window.ClassListContains("page-a"), "page 2: previous class");
+        }
+
+        // 同じ className のページへ進んでも、クラスは付いたまま
+        [UnityTest]
+        public IEnumerator Show_SameClassName_KeepsClass()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow();
+            root.Add(window);
+
+            window.Show(new MessageWindow.Page(null, "a", "page-a"), new MessageWindow.Page(null, "b", "page-a"));
+            yield return Settle();
+            window.Advance();
+            yield return Settle();
+
+            Assert.AreEqual(1, window.pageIndex);
+            Assert.IsTrue(window.ClassListContains("page-a"), "page 2 (same className)");
+        }
+
+        // className が空文字列のページでは、クラスが増えない
+        [UnityTest]
+        public IEnumerator Show_EmptyClassName_AddsNoClass()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow();
+            root.Add(window);
+            var before = new List<string>(window.GetClasses()).Count;
+
+            window.Show(new MessageWindow.Page(null, "a", ""));
+            yield return Settle();
+
+            Assert.AreEqual(before, new List<string>(window.GetClasses()).Count);
+        }
+
+        // completed の後に別のページで Show し直すと、前のクラスが外れる
+        [UnityTest]
+        public IEnumerator Show_AfterCompleted_RemovesPreviousClass()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow();
+            root.Add(window);
+            var completed = 0;
+            window.completed += () => completed++;
+
+            window.Show(new MessageWindow.Page(null, "a", "page-a"));
+            yield return Settle();
+            window.Advance();
+            Assert.AreEqual(1, completed);
+
+            window.Show(new MessageWindow.Page(null, "c", "page-c"));
+            yield return Settle();
+            Assert.IsTrue(window.ClassListContains("page-c"), "new class");
+            Assert.IsFalse(window.ClassListContains("page-a"), "previous class");
+        }
+
+        // (C) ページ無しにしたとき、と、別のページで Show し直したときに、前のクラスが外れる
+        [UnityTest]
+        public IEnumerator Show_NoPagesOrOtherPages_RemovesPreviousClass()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow();
+            root.Add(window);
+
+            window.Show(new MessageWindow.Page(null, "a", "page-a"));
+            yield return Settle();
+            Assert.IsTrue(window.ClassListContains("page-a"), "before");
+
+            window.Show((MessageWindow.Page[])null);
+            yield return Settle();
+            Assert.IsFalse(window.ClassListContains("page-a"), "no pages");
+
+            window.Show(new MessageWindow.Page(null, "a", "page-a"));
+            yield return Settle();
+            window.Show(new MessageWindow.Page(null, "c", "page-c"));
+            yield return Settle();
+            Assert.IsTrue(window.ClassListContains("page-c"), "Show again: new class");
+            Assert.IsFalse(window.ClassListContains("page-a"), "Show again: previous class");
+        }
+
+        // (D) 文字送りの途中（.is-revealing が付いている間）から、ページのクラスが付いている
+        [UnityTest]
+        public IEnumerator Show_PageClassWhileRevealing_AppliesFromStart()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow { charactersPerSecond = 1 };
+            root.Add(window);
+
+            window.Show(new MessageWindow.Page(null, "0123456789", "page-a"));
+
+            Assert.IsTrue(window.ClassListContains("is-revealing"), "is-revealing");
+            Assert.IsTrue(window.ClassListContains("page-a"), "page-a while revealing");
+        }
+
         // Page の text が null なら、本文は空文字列として出る（例外にならない）
         [UnityTest]
         public IEnumerator Show_PageWithNullText_ShowsEmptyText()

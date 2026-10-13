@@ -67,6 +67,11 @@
     white-space: pre-wrap;
 }
 
+/* ページの className（MessageWindow.Page）で、そのページの本文だけを赤で出す。▼ は白のまま */
+.room-retro-indie-rpg .hone-message-window.page-determination .hone-message-window__text {
+    color: rgb(255, 0, 0);
+}
+
 /* ▼ は枠の中の右下に重ねる */
 .room-retro-indie-rpg .hone-message-window__indicator {
     position: absolute;

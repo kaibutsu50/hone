@@ -27,6 +27,8 @@ namespace Hone.Sandbox.ModelRooms
             {
                 new MessageWindow.Page(null, "＊（いつかネズミは　すあなからでて\n　　チーズを　かじるかもしれない…）"),
                 new MessageWindow.Page(null, "＊（そうおもったら\n　　ケツイが　みなぎった）"),
+                // 2・3 列目では、このページだけ本文を赤で出す（1 列目は素のまま。page-determination は RetroIndieRpg.uss）
+                new MessageWindow.Page(null, "ケツイ", "page-determination"),
             },
             // はい / いいえ の Dialog はセーブの窓として使う。問いは 1 行目に記録の名前・LV・時間、1 行空けて中央に「―」。
             // 桁は全角（14px）と半角（7px）の空白でそろえる（RetroIndieRpg.uss の pre-wrap）。参考の文言から少し変えてある
