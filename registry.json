@@ -14,12 +14,13 @@
         { "path": "Core/Runtime/BackStack.cs", "type": "registry:lib" },
         { "path": "Core/Runtime/IDismissable.cs", "type": "registry:lib" },
         { "path": "Core/Runtime/FocusScope.cs", "type": "registry:lib" },
+        { "path": "Core/Runtime/INavigationMoveConsumer.cs", "type": "registry:lib" },
         { "path": "Core/Editor/Hone.Core.Editor.asmdef", "type": "registry:lib" },
         { "path": "Core/Editor/HoneSync.cs", "type": "registry:lib" }
       ],
       "registryDependencies": [],
       "dependencies": [],
-      "classes": ["Hone.Core.BackStack", "Hone.Core.IDismissable", "Hone.Core.FocusScope", "Hone.Core.Editor.HoneSync"]
+      "classes": ["Hone.Core.BackStack", "Hone.Core.IDismissable", "Hone.Core.FocusScope", "Hone.Core.INavigationMoveConsumer", "Hone.Core.Editor.HoneSync"]
     },
     {
       "name": "Button",
@@ -125,6 +126,21 @@
       "registryDependencies": ["Core", "Button"],
       "dependencies": [],
       "classes": ["Hone.Pagination"]
+    },
+    {
+      "name": "Cycle",
+      "type": "registry:ui",
+      "title": "Cycle",
+      "description": "左右で選択肢を 1 つずつ巡る（前後の Button と中央の文字列、root だけがフォーカスを持ち左右で value が動く、端で巡る wrap）",
+      "files": [
+        { "path": "UI/Cycle/Cycle.cs", "type": "registry:ui" },
+        { "path": "UI/Cycle/Cycle.uxml", "type": "registry:ui" },
+        { "path": "UI/Cycle/Cycle.uss", "type": "registry:ui" },
+        { "path": "UI/Cycle/README.md", "type": "registry:ui" }
+      ],
+      "registryDependencies": ["Core", "Button"],
+      "dependencies": [],
+      "classes": ["Hone.Cycle"]
     },
     {
       "name": "Default",

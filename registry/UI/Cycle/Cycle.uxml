@@ -1,0 +1,3 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:hone="Hone">
+    <hone:Cycle choices="Low,Medium,High" value="1" />
+</ui:UXML>

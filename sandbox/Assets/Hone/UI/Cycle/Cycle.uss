@@ -1,0 +1,24 @@
+/* 余白・角丸・フォントサイズ・色は Tokens.uss のトークン。
+ * 前後の Button の見た目は Hone.Button の Ghost のまま（Button.uss）。ここでは Button を上書きしない。disabled は .hone-button:disabled のまま。
+ * root の border は、フォーカス時に .hone-focusable.hone-focusable:focus（Core.uss）の ring を Button と同じ太さと角丸で描くためのもの。
+ * 普段は transparent にする（Button.uss の ghost と同じ例外）。 */
+.hone-cycle {
+    flex-direction: row;
+    align-items: center;
+    border-width: var(--hone-border-width);
+    border-color: transparent;
+    border-radius: var(--hone-radius-md);
+}
+
+/* 幅は固定しない。Cycle の幅に従って伸び縮みし、収まらなければ省略記号で切れる */
+.hone-cycle__value {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: var(--hone-space-8);
+    -unity-text-align: middle-center;
+    font-size: var(--hone-font-size-sm);
+    color: var(--hone-color-foreground);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}

@@ -10,6 +10,7 @@ namespace Hone.Core
     // UXML では C# の namespace を宣言して書く: xmlns:core="Hone.Core" のうえで <core:FocusScope trap="true" auto-focus="false">
     //
     // trap の方式: scope のルートで NavigationMoveEvent を TrickleDown で受け、IgnoreEvent で既定の移動を止め、同じ handler の中で次の要素に Focus() する。
+    // ただし target が INavigationMoveConsumer で、その方向を消費すると返すときは何もしない（Cycle の左右など。止めるのは target 側）。
     // Next / Previous（Tab）も同じ NavigationMoveEvent で届く。
     // フォーカスが無いとき、D-pad の NavigationMoveEvent の target は panel の最上位で、この handler は呼ばれない（6000.7.0b2 で実測）。
     // 最初の入力が scope の外へ着地しないよう、scope を開いた時点で初期フォーカスを当てておく（autoFocus なら Activate()、そうでなければ FocusFirst()）。
@@ -79,6 +80,9 @@ namespace Hone.Core
                 return;
             var target = evt.target as VisualElement;
             if (target == null || !IsInnermostTrap(target))
+                return;
+            // その方向を target 自身が消費する（Cycle の左右など）なら任せる。止めるのも target の handler が行う
+            if (target is INavigationMoveConsumer consumer && consumer.ConsumesNavigationMove(evt.direction))
                 return;
 
             // 先に既定の移動を止める。移動先が無い方向でも止める（止めないと既定のナビが scope の外へ出る）

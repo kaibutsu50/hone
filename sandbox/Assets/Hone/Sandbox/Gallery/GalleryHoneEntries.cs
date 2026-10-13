@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -7,7 +8,7 @@ namespace Hone.Sandbox.Gallery
     // Hone.Sandbox.UI を参照すると、namespace Hone の中の Button は Hone.Button を指す。ここの Button は Unity 標準のもの
     using Button = UnityEngine.UIElements.Button;
 
-    // Hone.Button、Hone.Dialog、Hone.MessageWindow、Hone.Switch、Hone.Toggle、Hone.ToggleGroup、Hone.Pagination と、Core.uss の .hone-text と .hone-focusable を Gallery に載せる。左のリストで素の "Label" "Button" と選び比べて、見た目の差を見る。
+    // Hone.Button、Hone.Dialog、Hone.MessageWindow、Hone.Switch、Hone.Toggle、Hone.ToggleGroup、Hone.Pagination、Hone.Cycle と、Core.uss の .hone-text と .hone-focusable を Gallery に載せる。左のリストで素の "Label" "Button" と選び比べて、見た目の差を見る。
     // Register は sandbox 側から呼ぶ（registry/ 配下のコードには書かない）。呼ぶ時点は README の Gallery の節を参照。
     static class GalleryHoneEntries
     {
@@ -118,6 +119,17 @@ namespace Hone.Sandbox.Gallery
             // 数字と記号だけなので文字列は使わず、言語を切り替えても同じに写る。pageCount を先に設定する（value は pageCount の範囲に収められる）。
             // 前の Button が hone-focusable を持つので、Toggle と同じく RefocusLater（または言語の切り替え）で en の行の 1 つ目の前の Button に ring が写る
             GalleryController.Register("Hone.Pagination", text => new Pagination { pageCount = 10, value = 4 });
+            // 途中（value 1。前後とも有効）と最初（value 0。前の Button が disabled）を 1 つのセルに縦に積む。choices の 3 つは同じ文字列にする（写すのは中央の文字列と前後の Button の状態だけ）。
+            // 中央の文字列は収まらなければ省略記号で切れ、前後の Button は縮まない（en と Japanese の長文は、Screen Space と World Space のどちらでも切れずに入った。6000.7.0b4）。choices を value より先に設定する（value は choices の範囲に収められる）。
+            // root が hone-focusable を持つので、Toggle と同じく RefocusLater（または言語の切り替え）で en の行の 1 つ目の root に ring が写る
+            GalleryController.Register("Hone.Cycle", text =>
+            {
+                var cell = new VisualElement();
+                cell.AddToClassList("gallery-cell");
+                cell.Add(new Cycle { choices = new List<string> { text, text, text }, value = 1 });
+                cell.Add(new Cycle { choices = new List<string> { text, text, text }, value = 0 });
+                return cell;
+            });
         }
     }
 }
