@@ -112,6 +112,21 @@
       "classes": ["Hone.ToggleGroup"]
     },
     {
+      "name": "Pagination",
+      "type": "registry:ui",
+      "title": "Pagination",
+      "description": "前後のページ送りと、ページ番号と省略記号の並び（8 ページ以上は常に 7 項目、今のページは value）",
+      "files": [
+        { "path": "UI/Pagination/Pagination.cs", "type": "registry:ui" },
+        { "path": "UI/Pagination/Pagination.uxml", "type": "registry:ui" },
+        { "path": "UI/Pagination/Pagination.uss", "type": "registry:ui" },
+        { "path": "UI/Pagination/README.md", "type": "registry:ui" }
+      ],
+      "registryDependencies": ["Core", "Button"],
+      "dependencies": [],
+      "classes": ["Hone.Pagination"]
+    },
+    {
       "name": "Default",
       "type": "registry:theme",
       "title": "Default",

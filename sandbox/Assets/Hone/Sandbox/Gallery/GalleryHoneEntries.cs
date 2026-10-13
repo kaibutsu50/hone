@@ -7,7 +7,7 @@ namespace Hone.Sandbox.Gallery
     // Hone.Sandbox.UI を参照すると、namespace Hone の中の Button は Hone.Button を指す。ここの Button は Unity 標準のもの
     using Button = UnityEngine.UIElements.Button;
 
-    // Hone.Button、Hone.Dialog、Hone.MessageWindow、Hone.Switch、Hone.Toggle、Hone.ToggleGroup と、Core.uss の .hone-text と .hone-focusable を Gallery に載せる。左のリストで素の "Label" "Button" と選び比べて、見た目の差を見る。
+    // Hone.Button、Hone.Dialog、Hone.MessageWindow、Hone.Switch、Hone.Toggle、Hone.ToggleGroup、Hone.Pagination と、Core.uss の .hone-text と .hone-focusable を Gallery に載せる。左のリストで素の "Label" "Button" と選び比べて、見た目の差を見る。
     // Register は sandbox 側から呼ぶ（registry/ 配下のコードには書かない）。呼ぶ時点は README の Gallery の節を参照。
     static class GalleryHoneEntries
     {
@@ -114,6 +114,10 @@ namespace Hone.Sandbox.Gallery
                 cell.Add(group);
                 return cell;
             });
+            // 10 ページの 5 ページ目（value 4）。両側に省略記号が出る並び（1 … 4 [5] 6 … 10）を写す。
+            // 数字と記号だけなので文字列は使わず、言語を切り替えても同じに写る。pageCount を先に設定する（value は pageCount の範囲に収められる）。
+            // 前の Button が hone-focusable を持つので、Toggle と同じく RefocusLater（または言語の切り替え）で en の行の 1 つ目の前の Button に ring が写る
+            GalleryController.Register("Hone.Pagination", text => new Pagination { pageCount = 10, value = 4 });
         }
     }
 }

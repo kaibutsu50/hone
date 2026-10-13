@@ -1,0 +1,21 @@
+/* 余白・フォントサイズ・色は Tokens.uss のトークン。
+ * ページ番号と前後の Button の見た目は Hone.Button の Ghost / Outline のまま（Button.uss）。ここでは Button を上書きしない。
+ * 今のページの Button に付く .is-current には何も書かない。利用者が今のページの見た目を変えるための口（既定の見た目は variant Outline）。 */
+.hone-pagination {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.hone-pagination__items {
+    flex-direction: row;
+    align-items: center;
+}
+
+/* 省略記号は Button と同じ min-width と font-size を使う。padding が無いので、幅は番号の Button より狭い */
+.hone-pagination__ellipsis {
+    min-width: var(--hone-space-8);
+    -unity-text-align: middle-center;
+    font-size: var(--hone-font-size-sm);
+    color: var(--hone-color-foreground);
+}
