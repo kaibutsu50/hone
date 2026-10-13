@@ -8,16 +8,16 @@ namespace Hone.Sandbox.ModelRooms
 {
     // 同じ構造（Message.uxml の MessageWindow と YesNo.uxml の Dialog）を 3 列に並べる:
     // 1 列目は素（registry の既定のまま）、2 列目はルームの USS クラスだけ、3 列目はそれに加えて inject の演出。
-    // 上の DropdownField（name `room`）で選んだルームを 2 列目と 3 列目に当て、選び直すたびに 3 列すべてを組み直す。
+    // 上の見出し行の Cycle（name `room`）で選んだルームを 2 列目と 3 列目に当て、選び直すたびに 3 列すべてを組み直す。
     // 列の組み立てと流れ（メッセージを送り切ると Dialog が開き、はい / いいえ で結果を出して閉じる）はこのクラスが持つ。部品の振る舞いは Hone の部品が持つ。
     // Register は sandbox 側のファイルから、[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)] で呼ぶ。
     // registry/ 配下のコードには書かない（配布物が sandbox の asmdef に依存してしまう）。
-    // dropdown は PanelRenderer の UI が読み込まれた時点の登録内容で作る（それより後の Register / Unregister は dropdown に反映されない）。
+    // ルームの Cycle は PanelRenderer の UI が読み込まれた時点の登録内容で作る（それより後の Register / Unregister は Cycle に反映されない）。
     // 型名は、Hone の部品（Hone.Button、Hone.Dialog、Hone.MessageWindow）と Unity 標準の Button を取り違えないよう、Button だけ完全修飾で書く。
     [RequireComponent(typeof(PanelRenderer))]
     public class ModelRoomsController : MonoBehaviour
     {
-        // ルームが 1 つも無いときの dropdown の項目。何も当てていない（registry の既定のまま）ことが分かる名前にする
+        // ルームが 1 つも無いときの Cycle の項目。何も当てていない（registry の既定のまま）ことが分かる名前にする
         const string NoRoomName = "デフォルト";
 
         static readonly string[] StageNames = { "素", "USS だけ", "注入あり" };
@@ -34,9 +34,9 @@ namespace Hone.Sandbox.ModelRooms
         [SerializeField] VisualTreeAsset m_Message;
         [SerializeField] VisualTreeAsset m_YesNo;
 
-        // dropdown の選択肢（ルームが無いときの「デフォルト」は含まない）。index が dropdown の index と対応する
+        // Cycle の選択肢（ルームが無いときの「デフォルト」は含まない）。index が Cycle の value と対応する
         readonly List<ModelRoom> m_Selectable = new List<ModelRoom>();
-        DropdownField m_Room;
+        Cycle m_Room;
         // Rebuild が最後まで配線できたときに、その callback を外す。reload callback は何度でも呼ばれ、前回と同じ要素が渡ることがある（sandbox/README.md の Gallery 節）。
         // 外さないと同じ要素に登録が重なり、1 回の切り替えで 3 列の組み直しが複数回走る
         Action m_Unwire;
@@ -87,10 +87,10 @@ namespace Hone.Sandbox.ModelRooms
                 Debug.LogError("ModelRooms: Message or YesNo is not assigned", this);
                 return;
             }
-            var room = root.Q<DropdownField>("room");
+            var room = root.Q<Cycle>("room");
             if (room == null)
             {
-                Debug.LogError("ModelRooms: DropdownField named 'room' was not found (the PanelRenderer's UXML is not ModelRooms.uxml, or it has no such element)", this);
+                Debug.LogError("ModelRooms: Cycle named 'room' was not found (the PanelRenderer's UXML is not ModelRooms.uxml, or it has no such element)", this);
                 return;
             }
             var container = root.Q("columns");
@@ -101,15 +101,15 @@ namespace Hone.Sandbox.ModelRooms
             }
 
             var selectable = s_Rooms.ToList();
-            // 例外を出しうる最初の組み立てを、dropdown を配線する前に済ませる。
+            // 例外を出しうる最初の組み立てを、Cycle を配線する前に済ませる。
             // 失敗したときに、配線済みで列が空の半端な状態を残さない（m_Room と columns が null のままなので、SelectRoom が例外を返す）
             BuildColumns(container, selectable.Count == 0 ? null : selectable[0]);
 
             room.choices = selectable.Count == 0
                 ? new List<string> { NoRoomName }
                 : selectable.Select(r => r.displayName).ToList();
-            room.SetValueWithoutNotify(room.choices[0]);
-            EventCallback<ChangeEvent<string>> onRoomChanged = _ => BuildColumns(container, selectable.Count == 0 ? null : selectable[room.index]);
+            room.SetValueWithoutNotify(0);
+            EventCallback<ChangeEvent<int>> onRoomChanged = _ => BuildColumns(container, selectable.Count == 0 ? null : selectable[room.value]);
             room.RegisterValueChangedCallback(onRoomChanged);
             m_Selectable.AddRange(selectable);
             m_Room = room;
@@ -148,7 +148,7 @@ namespace Hone.Sandbox.ModelRooms
             var status = new Label();
             status.AddToClassList("model-room-status");
             header.Add(status);
-            var again = new UnityEngine.UIElements.Button { name = "again", text = "もう一度" };
+            var again = new Hone.Button { name = "again", text = "もう一度", variant = Hone.Button.Variant.Outline };
             header.Add(again);
             column.Add(header);
 
@@ -215,7 +215,7 @@ namespace Hone.Sandbox.ModelRooms
             dialog.Close();
         }
 
-        // dropdown でルームを選んだのと同じ経路（ChangeEvent）で切り替える。eval からルームを切り替えて撮るための入口。
+        // Cycle でルームを選んだのと同じ経路（ChangeEvent）で切り替える。eval からルームを切り替えて撮るための入口。
         // すでに選ばれている className を渡すと、ChangeEvent が出ないので何も起きない
         public void SelectRoom(string className)
         {
@@ -225,7 +225,7 @@ namespace Hone.Sandbox.ModelRooms
             var index = m_Selectable.FindIndex(r => r.className == className);
             if (index < 0)
                 throw new ArgumentException($"'{className}' is not selectable", nameof(className));
-            m_Room.index = index;
+            m_Room.value = index;
         }
     }
 }

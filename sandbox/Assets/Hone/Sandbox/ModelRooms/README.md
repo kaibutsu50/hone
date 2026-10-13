@@ -14,13 +14,13 @@
 
 ## 使い方
 
-`ModelRooms.unity` を開いて Play する。上の dropdown（`Room`）でルームを選ぶと、2 列目と 3 列目にそのルームが当たり、3 列とも組み直されてメッセージが 1 ページ目から出る。
+`ModelRooms.unity` を開いて Play する。上の見出し行の Cycle（`Room`）でルームを選ぶと、2 列目と 3 列目にそのルームが当たり、3 列とも組み直されてメッセージが 1 ページ目から出る。
 
 - メッセージを送る（Submit かクリック）と、最後のページで はい / いいえ の Dialog が開く
 - はい / いいえ を選ぶと、見出しに結果が出て Dialog が閉じる
 - 見出しの「もう一度」で、メッセージを最初から出す
 
-ルームが 1 つも登録されていないときは、dropdown が「デフォルト」だけになり、3 列とも素（registry の既定）の見た目になる。
+ルームが 1 つも登録されていないときは、ルームの Cycle が「デフォルト」だけになり、3 列とも素（registry の既定）の見た目になる。
 
 見出しは舞台の外にある。ルームのテーマは舞台（`.model-room-stage`）にだけ掛かる。
 
@@ -31,7 +31,7 @@
 | `ModelRooms.unity` | `PanelRenderer` が 1 つ（Screen Space）。EventSystem は置かない |
 | `ModelRoomsPanelSettings.asset` | `Sandbox/PanelSettings.asset` の複製。Theme Style Sheet だけ `ModelRoomsTheme.tss` |
 | `ModelRoomsTheme.tss` | `Assets/Hone/HoneTheme.tss` と同じ `@import` に続けてルームの USS の `@import` を並べ、`:root`（HoneTheme.tss と同じ）はその後 |
-| `ModelRooms.uxml` / `ModelRooms.uss` | 画面の枠（dropdown と 3 列）。sandbox の枠なので、幅や高さは実値で書いてある |
+| `ModelRooms.uxml` / `ModelRooms.uss` | 画面の枠（ルームの Cycle がある見出し行と 3 列）。sandbox の枠なので、幅や高さは実値で書いてある |
 | `Message.uxml` / `YesNo.uxml` | 全ルーム共通の構造。特定のルームのためのクラスや要素は足さない |
 | `ModelRoom.cs` | ルームの定義（`displayName` `className` `pages` `question` `yes` `no` `inject`） |
 | `ModelRoomsController.cs` | 登録、列の組み立て、流れ |
@@ -70,11 +70,11 @@ static void Register()
 - `pages` はメッセージの文面（`MessageWindow.Page`。話者は `speaker` で渡すと名札に出る。null なら名札なし）。ルームを選ぶと 3 列とも（素の列も）この文面になる（見比べるのは見た目なので、文面は揃える）。null か空なら既定の文面。
   そのゲームらしい、キャラクター個人のものではない印象的なセリフにする。話者の名前に原作のキャラクター名は使わない。送り待ちの ▼ を見せるため、2 ページ以上にする
 - `question` `yes` `no` は、はい / いいえ の Dialog の問い（`.hone-dialog__description` の Label）とボタンの文面。null のものは `YesNo.uxml` の文面のまま。`pages` と同じく 3 列とも差し替わる（UXML は変えない）。見出しの結果には押したボタンの文面が出る
-- 同じ `className` の再登録は置き換わる。dropdown には登録順に並ぶ
+- 同じ `className` の再登録は置き換わる。ルームの Cycle には登録順に並ぶ
 - `displayName` と `className` は空にできない（`Register` が例外を投げる）。`className` は登録の識別子なので、`Register` の後で変えない
 - `inject` は 3 列目の舞台が panel に attach された後に、組むたびに 1 回呼ばれる。メッセージの `Show` は `inject` の後なので、`inject` で `MessageWindow` の設定（`charactersPerSecond` など）を変えれば 1 ページ目から効く
 - このプロジェクトは Domain Reload を無効にしているので、`Register` した内容は Play をまたいで残る。テストで一時的に登録したものは `Unregister(className)` で消す
-- dropdown は UI が読み込まれた時点の登録内容で作る。それより後の `Register` は dropdown に出ない
+- ルームの Cycle は UI が読み込まれた時点の登録内容で作る。それより後の `Register` は Cycle に出ない
 - 登録した後も、registry の既定の見た目にルームの見た目を持ち込まない。2 つ以上のルームに同じ規則の上書きが出たらトークンの候補、同じ画面の型が出たら block の候補にする
 - ルームの USS は theme（`ModelRoomsTheme.tss`）から読まれるので、`ModelRooms.uss`（`ModelRooms.uxml` の Style）の規則には、詳細度を上げても勝てない（舞台の `padding` で確認。6000.7.0b2）。
   舞台の枠（`.model-room-stage` の `padding` と枠線）はルームから変えられない前提で置く。`ModelRooms.uss` が書いていないプロパティ（舞台の `background-color` など）は、ルームの USS で付けられる
@@ -97,7 +97,7 @@ static void Register()
 
 Gallery の Screen Space の手順（`sandbox/README.md` の「Gallery」の撮影手順）と同じで、シーンが `ModelRooms.unity` になるだけ。Editor は `sandbox/README.md` の「Editor の開き方」で開いておく。
 
-3 列とも Dialog が開いた状態で撮る。各列のメッセージを最後まで送ってから撮る。送りは eval から各列の `MessageWindow.Advance()` を呼んでよい。ルームは `ModelRoomsController.SelectRoom(className)` で切り替える（dropdown の代わりに、eval から切り替えて撮るための入口）。
+3 列とも Dialog が開いた状態で撮る。各列のメッセージを最後まで送ってから撮る。送りは eval から各列の `MessageWindow.Advance()` を呼んでよい。ルームは `ModelRoomsController.SelectRoom(className)` で切り替える（Cycle の代わりに、eval から切り替えて撮るための入口）。
 
 ```bash
 unity command open_scene --path Assets/Hone/Sandbox/ModelRooms/ModelRooms.unity --project-path <sandbox の絶対パス>
@@ -122,7 +122,7 @@ foreach (var c in controllers)
 return controllers.Length;
 ```
 
-- `SelectRoom` は dropdown の `index` を変えて ChangeEvent を出す。すでに選ばれている `className` を渡すと何も起きない。切り替えると 3 列が組み直され、メッセージは 1 ページ目に戻る。切り替えてから `advance.cs` を実行する
+- `SelectRoom` は Cycle の `value` を変えて ChangeEvent を出す。すでに選ばれている `className` を渡すと何も起きない。切り替えると 3 列が組み直され、メッセージは 1 ページ目に戻る。切り替えてから `advance.cs` を実行する
 - 切り替えの中（組み直しと `inject`）で起きた例外は、ChangeEvent の callback の中で出るので eval には返らない。撮る前に Console に ModelRooms のエラーが出ていないことを確かめる
 
 メッセージを最後まで送る（`advance.cs`。3 列とも Dialog が開く）:

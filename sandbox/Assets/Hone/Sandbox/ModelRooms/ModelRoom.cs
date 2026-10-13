@@ -7,7 +7,7 @@ namespace Hone.Sandbox.ModelRooms
     // ModelRoomsController.Register で登録する。
     public sealed class ModelRoom
     {
-        // dropdown に出す名前（ジャンル名。例: 「クラシック JRPG 風」）。空は登録できない
+        // ルームの Cycle に出す名前（ジャンル名。例: 「クラシック JRPG 風」）。空は登録できない
         public string displayName;
 
         // 2 列目と 3 列目の舞台に付ける USS クラス（例: "room-classic-jrpg"）。登録の識別子でもあるので、Register の後で変えない（Unregister が効かなくなる）

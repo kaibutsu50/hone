@@ -4,6 +4,11 @@
 @import url("../../UI/Button/Button.uss");
 @import url("../../UI/Dialog/Dialog.uss");
 @import url("../../UI/MessageWindow/MessageWindow.uss");
+@import url("../../UI/Switch/Switch.uss");
+@import url("../../UI/Toggle/Toggle.uss");
+@import url("../../UI/ToggleGroup/ToggleGroup.uss");
+@import url("../../UI/Pagination/Pagination.uss");
+@import url("../../UI/Cycle/Cycle.uss");
 @import url("ClassicJrpg/ClassicJrpg.uss");
 @import url("TextAdventure/TextAdventure.uss");
 @import url("RetroIndieRpg/RetroIndieRpg.uss");
