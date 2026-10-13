@@ -26,7 +26,7 @@ namespace Hone.Sandbox.Gallery
         }
     }
 
-    // 列の上に出す説明。variant の一覧（無い部品は null か空で、「なし」と出す）と、UXML の使用例。言語に依らず、en のまま 1 つだけ出す
+    // 列の上に出す説明。variant の一覧（無い部品は null か空で、「なし」と出す）と、UXML の使用例。テスト文字列を使わないので、言語を切り替えても変わらず、1 つだけ出す
     public readonly struct ComponentDescription
     {
         public readonly string Variants;
@@ -73,7 +73,7 @@ namespace Hone.Sandbox.Gallery
         // 外さないと同じ要素に登録が重なり、1 回の切り替えで Build が複数回走る
         Action m_Unwire;
 
-        // 同じ name の再登録は factory を置き換える（Domain Reload 無効でも二重に並ばない）。
+        // 同じ name の再登録は factory と description を置き換える（Domain Reload 無効でも二重に並ばない。description を省くと説明は消える）。
         // 異なる name の登録は残り続けるので、テストなどで登録したものは Unregister で消す。
         // factory は呼ぶたびに新しい要素を返すこと（同じインスタンスを返すと、後から追加した行に付け替わって前の行から消える）。
         // description を渡すと、列の見出しの下に説明（variant の一覧と UXML の使用例）が 1 つ出る。渡さなければ説明の領域は出ない。
@@ -140,7 +140,7 @@ namespace Hone.Sandbox.Gallery
             return null;
         }
 
-        // container の中身を作り直す。name の factory を、渡された文字列の短文・長文で 1 回ずつ呼ぶ。name が未登録なら ArgumentException
+        // container の中身を作り直す。name の factory を、渡された文字列の短文・長文で 1 回ずつ呼ぶ。description があれば見出しの下に置く。name が未登録なら ArgumentException
         public static void Build(VisualElement container, string name, IReadOnlyList<ScriptStrings> strings)
         {
             var index = s_Entries.FindIndex(e => e.Name == name);

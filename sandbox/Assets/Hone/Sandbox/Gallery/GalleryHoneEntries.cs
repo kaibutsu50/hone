@@ -63,7 +63,7 @@ namespace Hone.Sandbox.Gallery
                 dialog.Add(footer);
                 dialog.RegisterCallbackOnce<AttachToPanelEvent>(evt => dialog.Open());
                 return dialog;
-            }, Describe("Dialog"));
+            }, Describe("Dialog", "hone-dialog--blur (opt-in, Screen Space only)"));
             // 2 ページにして、1 ページ目で次のページがある状態（.is-waiting の ▼）を写す。charactersPerSecond は 0（即時表示）のまま。
             // MessageWindow は親の幅に従うので、セルの幅は Gallery.uss の .gallery-message-window で確定させる。
             // Show は Dialog の Open と揃えて attach の時点で呼ぶ（即時表示なので attach 前に呼んでも同じに出る）。
@@ -134,12 +134,17 @@ namespace Hone.Sandbox.Gallery
         }
 
         // Hone/UI/<component>/<component>.uxml を読んで説明にする。Editor 専用（Player には Assets/ のファイルが無く、説明なしになる）。
-        // variants は variant を持つ部品だけ渡す（無ければ null で、Gallery は「なし」と出す）
+        // Editor でファイルが無いとき（component の誤りやリネーム）は、説明なしにして警告を出す。
+        // variants は variant（variant プロパティの値と、README の opt-in の variant クラス）を持つ部品だけ渡す（無ければ null で、Gallery は「なし」と出す）
         static ComponentDescription? Describe(string component, string variants = null)
         {
             var path = Path.Combine(Application.dataPath, "Hone/UI", component, component + ".uxml");
             if (!File.Exists(path))
+            {
+                if (Application.isEditor)
+                    Debug.LogWarning($"Gallery: {path} was not found; {component} is shown without a description");
                 return null;
+            }
             return new ComponentDescription(variants, File.ReadAllText(path).Replace("\r\n", "\n").TrimEnd());
         }
     }

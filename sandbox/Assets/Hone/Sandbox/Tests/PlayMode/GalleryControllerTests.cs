@@ -240,11 +240,16 @@ namespace Hone.Sandbox.Tests
             CollectionAssert.AreEqual(new[] { "en", "ko" }, tags);
         }
 
-        static List<string> DescriptionTexts(VisualElement container)
+        const string DescriptionClass = "gallery-description";
+
+        // 列の中に説明がちょうど 1 つあることを確かめて、その本文（variant の一覧、UXML の順）を返す
+        static List<string> DescriptionTexts(VisualElement container, string name)
         {
-            var description = container.Q(className: "gallery-description");
-            Assert.IsNotNull(description);
-            return description.Query<Label>(className: "gallery-description__text").ToList().Select(l => l.text).ToList();
+            var column = container.Q(className: GalleryController.ColumnClass(name));
+            Assert.IsNotNull(column);
+            var descriptions = column.Query(className: DescriptionClass).ToList();
+            Assert.AreEqual(1, descriptions.Count);
+            return descriptions[0].Query<Label>(className: "gallery-description__text").ToList().Select(l => l.text).ToList();
         }
 
         [Test]
@@ -256,7 +261,34 @@ namespace Hone.Sandbox.Tests
 
             GalleryController.Build(container, name, LoadTestStrings());
 
-            CollectionAssert.AreEqual(new[] { "Default / Outline", "<hone:Button />" }, DescriptionTexts(container));
+            CollectionAssert.AreEqual(new[] { "Default / Outline", "<hone:Button />" }, DescriptionTexts(container, name));
+        }
+
+        [Test]
+        public void Build_AnotherScript_KeepsDescription()
+        {
+            const string name = "GalleryControllerTests.DescriptionScript";
+            Register(name, text => new Label(text), new ComponentDescription("Default", "<hone:Button />"));
+            var all = LoadTestStrings();
+            var container = new VisualElement();
+
+            GalleryController.Build(container, name, GalleryController.Pick(all, "ja"));
+            var before = DescriptionTexts(container, name);
+            GalleryController.Build(container, name, GalleryController.Pick(all, "ko"));
+
+            CollectionAssert.AreEqual(before, DescriptionTexts(container, name));
+        }
+
+        // GalleryHoneEntries は BeforeSceneLoad で登録するので、PlayMode のテストからは登録済みに見える。
+        // Describe が UXML を見つけられないと黙って説明なしになるので、実際の登録で説明があることを確かめる（内容は見ない）
+        [Test]
+        public void Build_HoneButton_HasDescription()
+        {
+            var container = new VisualElement();
+
+            GalleryController.Build(container, "Hone.Button", LoadTestStrings());
+
+            Assert.AreEqual(2, DescriptionTexts(container, "Hone.Button").Count);
         }
 
         [TestCase(null)]
@@ -269,7 +301,7 @@ namespace Hone.Sandbox.Tests
 
             GalleryController.Build(container, name, LoadTestStrings());
 
-            CollectionAssert.AreEqual(new[] { "なし", "<hone:Dialog />" }, DescriptionTexts(container));
+            CollectionAssert.AreEqual(new[] { "なし", "<hone:Dialog />" }, DescriptionTexts(container, name));
         }
 
         [Test]
@@ -281,7 +313,7 @@ namespace Hone.Sandbox.Tests
 
             GalleryController.Build(container, name, LoadTestStrings());
 
-            Assert.IsNull(container.Q(className: "gallery-description"));
+            Assert.IsNull(container.Q(className: DescriptionClass));
         }
 
         [Test]
