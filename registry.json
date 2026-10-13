@@ -143,6 +143,21 @@
       "classes": ["Hone.Cycle"]
     },
     {
+      "name": "Tabs",
+      "type": "registry:ui",
+      "title": "Tabs",
+      "description": "上に並べたタブ（ToggleGroup）で下の中身を切り替える（選んだタブの中身だけを表示、タブから Down で中身へ、中身の最上段から Up で選択中のタブへ）",
+      "files": [
+        { "path": "UI/Tabs/Tabs.cs", "type": "registry:ui" },
+        { "path": "UI/Tabs/Tabs.uxml", "type": "registry:ui" },
+        { "path": "UI/Tabs/Tabs.uss", "type": "registry:ui" },
+        { "path": "UI/Tabs/README.md", "type": "registry:ui" }
+      ],
+      "registryDependencies": ["Core", "Button", "ToggleGroup"],
+      "dependencies": [],
+      "classes": ["Hone.Tabs"]
+    },
+    {
       "name": "SettingsScreen",
       "type": "registry:block",
       "title": "SettingsScreen",

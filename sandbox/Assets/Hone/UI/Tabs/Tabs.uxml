@@ -1,0 +1,12 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:hone="Hone">
+    <hone:Tabs tabs="Account,Password">
+        <ui:VisualElement>
+            <ui:Label text="Make changes to your account here." class="hone-text" />
+            <hone:Button text="Save changes" />
+        </ui:VisualElement>
+        <ui:VisualElement>
+            <ui:Label text="Change your password here." class="hone-text" />
+            <hone:Button text="Save password" />
+        </ui:VisualElement>
+    </hone:Tabs>
+</ui:UXML>

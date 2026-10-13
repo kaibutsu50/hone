@@ -1,0 +1,28 @@
+/* 色・余白・角丸は Tokens.uss のトークン。shadcn の Tabs（list は muted の地、選ばれたタブは background の地）に合わせる。
+ * タブは Hone.ToggleGroup の子の Hone.Button なので、ToggleGroup.uss の規則（.hone-toggle-group .hone-button、クラス 2 つ）の上に、
+ * .hone-tabs .hone-tabs__list .hone-button（クラス 3 つ）で上書きする。:checked もクラス 3 つ + pseudo-class で、ToggleGroup の :hover と :checked に勝つ。
+ * 選ばれていないタブの hover は ToggleGroup.uss のまま（muted の地。list の地と同じ色なので、背景は変わって見えない）。
+ * shadcn の選ばれたタブの shadow-sm は持たない（drop-shadow は必須の見た目にしない）。 */
+.hone-tabs {
+    flex-direction: column;
+}
+
+.hone-tabs__list {
+    background-color: var(--hone-color-muted);
+    border-radius: var(--hone-radius-lg);
+    padding: var(--hone-space-1);
+}
+
+.hone-tabs .hone-tabs__list .hone-button {
+    color: var(--hone-color-muted-foreground);
+}
+
+.hone-tabs .hone-tabs__list .hone-button:checked {
+    background-color: var(--hone-color-background);
+    color: var(--hone-color-foreground);
+}
+
+/* 中身の表示の切り替えは Tabs.cs が inline の display で行う。ここでは書かない */
+.hone-tabs__panels {
+    margin-top: var(--hone-space-2);
+}
