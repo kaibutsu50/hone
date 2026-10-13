@@ -16,7 +16,8 @@ namespace Hone.Sandbox.Gallery
         const long DelayMilliseconds = 200;
 
         VisualElement m_Root;
-        // reload callback は同じ要素に対して再度呼ばれる（PanelRenderer の GameObject を Disable → Enable したとき）ので、前回の登録を外してから登録し直す
+        // reload callback は何度でも呼ばれ、前回と同じ要素が渡ることがある（sandbox/README.md の Gallery 節）ので、前回の登録を外してから登録し直す。
+        // 外さないと同じ要素に登録が重なり、1 回の言語の切り替えで FocusFirst が複数回走る
         DropdownField m_Language;
         EventCallback<ChangeEvent<string>> m_OnLanguageChanged;
 
@@ -24,8 +25,7 @@ namespace Hone.Sandbox.Gallery
         {
             GetComponent<PanelRenderer>().RegisterUIReloadCallback((panelRenderer, root, version) =>
             {
-                if (m_OnLanguageChanged != null)
-                    m_Language?.UnregisterValueChangedCallback(m_OnLanguageChanged);
+                m_Language?.UnregisterValueChangedCallback(m_OnLanguageChanged);
                 m_Root = root;
                 root.schedule.Execute(() => FocusFirst(root)).ExecuteLater(DelayMilliseconds);
 

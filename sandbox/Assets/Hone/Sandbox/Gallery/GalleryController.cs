@@ -55,7 +55,8 @@ namespace Hone.Sandbox.Gallery
         ListView m_Components;
         // ListView の itemsSource と同じ内容（index が ListView の index と対応する）
         readonly List<string> m_ComponentNames = new List<string>();
-        // Rebuild が配線した callback を外す。reload callback は同じ要素に対して再度呼ばれる（PanelRenderer の GameObject を Disable → Enable したとき）ので、外さないと切り替えのたびに Build が重なる
+        // Rebuild が最後まで配線できたときに、その callback を外す。reload callback は何度でも呼ばれ、前回と同じ要素が渡ることがある（sandbox/README.md の Gallery 節）。
+        // 外さないと同じ要素に登録が重なり、1 回の切り替えで Build が複数回走る
         Action m_Unwire;
 
         // 同じ name の再登録は factory を置き換える（Domain Reload 無効でも二重に並ばない）。
