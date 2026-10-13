@@ -21,14 +21,19 @@ namespace Hone
 
         // value より先に宣言する。UXML の属性は、UXML に書いた順ではなく宣言の順に適用される（UXML に value を先に書いても 10 / 4 が残った。6000.7.0b4）。
         // value が先の宣言だと、既定の 1 ページに収められてしまう
-        // 0 未満は 0 として扱う。変えると value を範囲に収めるが、ChangeEvent は出さない
+        // 0 未満は 0 として扱う。変えると value を範囲に収めるが、ChangeEvent は出さない。
+        // 0 未満を 0 にした pageCount が今と同じなら何もしない（作り直すとページ番号の Button のフォーカスが外れる）
         [UxmlAttribute]
         public int pageCount
         {
             get => m_PageCount;
             set
             {
-                m_PageCount = Mathf.Max(value, 0);
+                var clamped = Mathf.Max(value, 0);
+                if (m_PageCount == clamped)
+                    return;
+
+                m_PageCount = clamped;
                 SetValueWithoutNotify(m_Value);
             }
         }
