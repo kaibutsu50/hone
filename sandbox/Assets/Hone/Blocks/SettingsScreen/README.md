@@ -23,7 +23,7 @@
             <hone:Button name="delete" class="hone-settings-screen__control" variant="destructive" text="Delete" />
         </ui:VisualElement>
         <hone:Dialog name="confirm-delete">
-            <!-- タイトル、本文、Cancel と確定の Button -->
+            <!-- タイトル、本文、Cancel（name="cancel"）と確定（name="confirm"）の Button -->
         </hone:Dialog>
     </ui:VisualElement>
 </ui:UXML>
@@ -33,7 +33,7 @@
 
 ## 配線（Destructive の行）
 
-block は振る舞いを持たない。確認は Dialog に委ね、開閉とフォーカスの復元（開く前にフォーカスしていた Button へ戻る）は Dialog が行う。利用者のコードがするのは、ボタンと Dialog をつなぐことだけ。
+block は振る舞いを持たない。確認は Dialog に委ね、開閉とフォーカスの復元（開く前にフォーカスがあれば、その Button へ戻る。Dialog の README）は Dialog が行う。利用者のコードがするのは、ボタンと Dialog をつなぐことだけ。
 
 ```csharp
 var dialog = root.Q<Hone.Dialog>("confirm-delete");
@@ -47,7 +47,8 @@ dialog.Q<Hone.Button>("confirm").clicked += () =>
 ```
 
 Destructive の Button に `commit-delay` は付けない。確認は Dialog が担うので、押し込みの間は要らない。
-Dialog は親の全面を覆う（Dialog の README）ので、`hone-settings-screen` の最後の子に置く。
+Dialog は `position: absolute` で親の全面を覆う（Dialog の README）。UI Toolkit は hierarchy の順で描画とポインタの判定をするので、後ろの兄弟が overlay の上に描かれて入力も受けないよう、`hone-settings-screen` の最後の子に置く。
+この Dialog が覆うのは `hone-settings-screen` の範囲だけで、panel 全体ではない。panel 全体を覆いたいときは、Dialog を panel の root の直下の最後の子へ移す。
 
 ## USS クラス
 
@@ -62,10 +63,10 @@ Dialog は親の全面を覆う（Dialog の README）ので、`hone-settings-sc
 
 ## レイアウトの規約
 
-- 説明は折り返し、左の列が縮む。操作は縮まない。長い文字列は、操作の中で省略記号になる（Cycle の値、ToggleGroup と Button のラベル）。
+- 説明は折り返し、左の列が縮む。操作は縮まない。長い文字列は、操作の中で省略記号になる（Cycle の値と ToggleGroup のラベル。Gallery で確かめた）。Button は `max-width` で切られるが、長いラベルが省略記号になるかは確かめていない。
 - 操作の幅は行の割合で決める。固定幅を書かない（言語によって文字列の幅が変わる）。
 - 画面の背景色・固定幅・中央寄せは持たない。World Space では panel 自体が画面の大きさになる。Screen Space で中央に置きたいときは、利用者が親に書く。
-- 行の区切りと見出しの見た目はこの block の USS に書いている。見た目だけの部品（Card と Separator）が配布されたら、置き換えてよい。
+- 行の区切りと見出しの見た目は、この block の USS に書いている。
 
 ## headless 層との関係
 

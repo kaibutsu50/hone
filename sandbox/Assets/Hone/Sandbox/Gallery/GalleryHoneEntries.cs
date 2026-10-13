@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 
 namespace Hone.Sandbox.Gallery
 {
-    // Hone.Button、Hone.Dialog、Hone.MessageWindow、Hone.Switch、Hone.Toggle、Hone.ToggleGroup、Hone.Pagination、Hone.Cycle と、block の Hone.SettingsScreen を Gallery に載せる。
+    // Hone.Button、Hone.Dialog、Hone.MessageWindow、Hone.Switch、Hone.Toggle、Hone.ToggleGroup、Hone.Pagination、Hone.Cycle と、block の SettingsScreen（Gallery の名前は Hone.SettingsScreen。C# のクラスは無い）を Gallery に載せる。
     // Register は sandbox 側から呼ぶ（registry/ 配下のコードには書かない）。呼ぶ時点は README の Gallery の節を参照。
     static class GalleryHoneEntries
     {
@@ -116,11 +116,11 @@ namespace Hone.Sandbox.Gallery
                 cell.Add(new Cycle { choices = new List<string> { text, text, text }, value = 0 });
                 return cell;
             }, Describe("Cycle"));
-            // block。SettingsScreen.uxml を読み込み、各行の見出しと説明に text を入れる（長文の言語では説明が折り返す）。
-            // 操作は UXML のまま使い、Cycle の選択肢と ToggleGroup のラベルだけ text にする（収まらなければ省略記号になる）。Button の文言（Refresh / Delete）は短い固定文字列のまま（Button は縮まず折り返さない）。
+            // block。SettingsScreen.uxml を読み込み、各行の見出しと説明、確認の Dialog のタイトルと本文に text を入れる（長文の言語では説明が折り返す）。
+            // 操作は UXML のまま使い、Cycle の選択肢と ToggleGroup のラベルだけ text にする（収まらなければ省略記号になる）。Button の文言（Refresh / Delete、Dialog の Cancel / Delete）は短い固定文字列のまま（行の中で max-width に切られた Button の長いラベルは確かめていない）。
             // Destructive の行の Button で確認の Dialog を開き、Cancel / 確定で閉じる（block は振る舞いを持たないので、配線はここでする）。Dialog は閉じた状態で並ぶ。
-            // UXML は Editor でだけ読む（Player には Assets/ のファイルが無い）。Player では説明の Label だけを返す。
-            // 説明（variant の一覧と UXML の使用例）は渡さない。UXML が 60 行ほどあり、列の先頭に出すと画面が画面外へ押し下げられる（使用例は README にある）。
+            // UXML は Editor でだけ読む（AssetDatabase は Editor 専用）。Player では代わりの案内の Label を返す。
+            // 説明（variant の一覧と UXML の使用例）は渡さない。UXML が長く、列の先頭に出すと SettingsScreen が表示領域の外へ押し下げられる（使用例は README にある）。
             // 初期選択（先頭の登録）は Hone.Button のままにするため、最後に登録する
             GalleryController.Register("Hone.SettingsScreen", CreateSettingsScreen, null);
         }
