@@ -21,8 +21,8 @@ AGENTS.md                  このファイル
 registry.json              shadcn 互換の配布定義。形式は「registry.json の形式」節
 registry/                  中身は利用者側の Assets/Hone/ と同じ構造
   Core/                    headless 層。全コンポーネントが依存する
-  UI/<Name>/               プリミティブ。<Name>.cs <Name>.uxml <Name>.uss README.md の4点セット。見た目だけの部品は <Name>.cs を持たない3点セット
-  Blocks/<Name>/           プリミティブの合成で作る画面単位のパターン
+  UI/<Name>/               プリミティブと見た目だけの部品。プリミティブは <Name>.cs <Name>.uxml <Name>.uss README.md の4点セット。見た目だけの部品は <Name>.cs を持たない3点セット
+  Blocks/<Name>/           プリミティブや見た目だけの部品の合成で作る画面単位のパターン
   Tokens.uss               トークン定義
   HoneTheme.tss            テーマの雛形。Unity 既定テーマ、Tokens.uss、Core の USS、追加した各コンポーネントの USS を @import する
 cli/                       hone CLI
@@ -39,12 +39,12 @@ sandbox/                   検証用 Unity プロジェクト。多言語スク�
 
 | フィールド | 型 | 意味 |
 |---|---|---|
-| `name` | string | CLI で指定する名前。PascalCase で、ディレクトリ名・クラス名と同じ（`Button`, `Core`, `PauseMenu`） |
+| `name` | string | CLI で指定する名前。PascalCase で、ディレクトリ名と同じ。クラスを持つ項目はクラス名とも同じ（`Button`, `Core`, `PauseMenu`） |
 | `type` | `registry:ui` / `registry:block` / `registry:lib` / `registry:theme` | 項目の種別。配置先は決めない |
 | `title` | string | 表示名（`Button`） |
 | `description` | string | 一行説明 |
 | `files` | `{ path, type }[]` | `registry/` からの相対パス。出力先からの相対パスでもある。`type` は項目の type と同じ |
-| `registryDependencies` | string[] | 先にコピーが必要な Hone の項目名。ui は必ず `Core` を含む |
+| `registryDependencies` | string[] | 先にコピーが必要な Hone の項目名。ui は必ず `Core` を含む（`.cs` を持たない見た目だけの部品も `["Core"]`。`.hone-text` などの USS を使うため） |
 | `dependencies` | string[] | 必要な UPM パッケージ名（`com.unity.render-pipelines.universal` 等）。CLI は検出して警告するだけで、インストールはしない |
 | `classes` | string[] | 項目が定義する C# クラス名（`Hone.Button`）。将来の `--prefix` 用。今は記録するだけ。`.cs` を持たない項目（見た目だけの部品）は空配列にする |
 
@@ -54,15 +54,15 @@ sandbox/                   検証用 Unity プロジェクト。多言語スク�
 
 ## コンポーネントと block の境界
 
-判定基準は一つ。「既存プリミティブの組み合わせでは供給できない headless な振る舞いを持つか」。
+判定基準は「既存プリミティブの組み合わせでは供給できない headless な振る舞いを持つか」。
 持つならプリミティブとして `registry/UI/` に置く。持たないなら block として `registry/Blocks/` に置く（プリミティブにも依存しない見た目だけの部品を除く。次の段落）。
-block は必ず `registryDependencies` でプリミティブを宣言し、自前で振る舞いを実装しない。
+block は必ず `registryDependencies` でプリミティブ（または見た目だけの部品）を宣言し、自前で振る舞いを実装しない。
 
 振る舞いを持たず、依存するプリミティブも無いもの（Card、Separator のような見た目だけの部品）は、shadcn と同じく `registry:ui` として `registry/UI/` に置く。
 `.cs` は持たず、`.uss` `.uxml`（使用例）`README.md` だけで構成する。利用者は UXML で `<ui:VisualElement class="hone-card">` のように USS クラスを付けて使う。
 
-- 見た目だけの部品を作る範囲は、需要が出たものに絞る。今は Card と Separator。Badge と Table は需要が出るまで作らない。
-- 既存プリミティブを使う画面単位の構成は、見た目だけの部品ではなく block に置く。
+- 見た目だけの部品を作る範囲は、需要が出たものに絞る。
+- プリミティブや見た目だけの部品を組み合わせた画面単位の構成は、何で組んでいても block に置く。
 - 見た目だけの部品に振る舞い（状態・フォーカス・入力）が必要になったら、`.cs` を足してプリミティブにする。
 
 「振る舞い」と「演出」を分ける。
@@ -76,7 +76,7 @@ block は必ず `registryDependencies` でプリミティブを宣言し、自�
 
 - C# namespace は `Hone`。headless 層は `Hone.Core`。
 - C# クラス名は shadcn と同じ短い名前にする（例: `Hone.Button`）。prefix は付けない。
-- UXML タグ名はクラス名そのままで、`xmlns:hone="Hone"` を宣言して `<hone:Button>` と書く。
+- `.cs` を持つ部品の UXML タグ名はクラス名そのままで、`xmlns:hone="Hone"` を宣言して `<hone:Button>` と書く。
 - `UnityEngine.UIElements` にも `Button` `Toggle` `Slider` 等の同名クラスがある。同じファイルで両方の namespace を `using` すると曖昧参照エラーになる。衝突したファイルでは `using Button = Hone.Button;` のエイリアスを書くか、Unity 側を完全修飾で書く。Hone のクラス定義自身は基底クラスを完全修飾で書く（例: `class Button : UnityEngine.UIElements.Button`）。
 - USS クラスは BEM 風。ブロックは `.hone-button`、variant は `.hone-button--outline`。状態は pseudo-class（`:focus` `:disabled` `:hover`）を優先し、pseudo-class で表せない状態のみ `.is-open` 形式のクラスを使う。
 - トークンは `--hone-color-*` `--hone-radius-*` `--hone-space-*` `--hone-font-*` `--hone-border-*` `--hone-ring-*` `--hone-size-*` `--hone-backdrop-*`。prefix は利用者の変数との衝突回避のため。
@@ -105,7 +105,7 @@ block は必ず `registryDependencies` でプリミティブを宣言し、自�
   UI Builder の canvas は既定テーマのままだと theme の `:root` の変数を反映しないので、UI Builder で見た目を確認する利用者にはこの制限を README で案内する。
 - fallback が空の状態で未収録文字に当たると OS フォントの全列挙が走り、フリーズする報告がある。CJK を表示するプロジェクトでは `hone add font <lang>` で fallback を追加することを必須手順として案内する。
 - レイアウトの規約。テキストを含む要素の幅を固定しない。ボタンは min-width と flex で伸ばす。行高はスクリプトごとに変わる前提で余白を組む。切り詰めは省略記号。
-- sandbox の Gallery は、左のリストで選んだ 1 コンポーネント（見た目だけの部品は variant の一覧と使用例だけを出す）を、英語と、選んだ 1 スクリプトのテスト文字列（日本語、한국어、中文、العربية、ไทย、長いドイツ語）で並べて表示する。
+- sandbox の Gallery は、左のリストで選んだ 1 コンポーネント（見た目だけの部品は状態のデモを持たず、variant の一覧と使用例を出す）を、英語と、選んだ 1 スクリプトのテスト文字列（日本語、한국어、中文、العربية、ไทย、長いドイツ語）で並べて表示する。
 - 見た目の変更を伴う PR には、変更したコンポーネントを Gallery で選び、英語と日本語（Gallery の既定）のスクリーンショットを添付する。ほかの言語のスクリーンショットは添付しない。レビューで判断できるのは英語と日本語だけで、ほかの言語の画像は判断材料にならない。ほかの言語は Gallery で切り替えて手元で確かめてよいが、PR には貼らない。
 
 ## headless 層の責務
@@ -138,7 +138,7 @@ UI Toolkit のランタイムが既定でやらないことが、そのまま `H
 - `<Name>.cs` `[UxmlElement]` 付きの partial class。見た目だけの部品（`.cs` を持たない `registry:ui`）には置かない。
 - `<Name>.uxml` 使用例。
 - `<Name>.uss` トークン参照のみのスタイル。
-- `README.md` 数行の説明、UXML の使用例、variant の一覧、headless 層との関係。見た目だけの部品では、headless 層との関係は「持たない」と書く。
+- `README.md` 数行の説明、UXML の使用例、variant の一覧、headless 層との関係。見た目だけの部品では、headless 層との関係は「振る舞いは持たない。Core は `.hone-text` などの USS だけを使う」の形で書く。
 
 ## モデルルーム
 
