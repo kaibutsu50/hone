@@ -39,11 +39,11 @@ namespace Hone.Sandbox.Gallery
         }
     }
 
-    // 登録されたコンポーネントのうち、左の ListView（name `components`）で選んだ 1 つの生成関数から 1 列を作り、渡された文字列（短文と長文）で 1 行ずつ並べる。
-    // Build は渡された文字列をそのまま並べる。画面では en と、dropdown で選んだ 1 スクリプトを渡す。
+    // 登録されたコンポーネントのうち、左のメニュー（Hone.ToggleGroup、name `components`）で選んだ 1 つの生成関数から 1 列を作り、渡された文字列（短文と長文）で 1 行ずつ並べる。
+    // Build は渡された文字列をそのまま並べる。画面では en と、カードの見出し行の Hone.Cycle（name `language`）で選んだ 1 スクリプトを渡す。
     // Register は sandbox 側のファイルから呼ぶ（registry/ 配下のコードには書かない。配布物が sandbox の asmdef に依存してしまう）。
     // 呼ぶ時点は [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]。
-    // 左のリストは PanelRenderer の UI が読み込まれた時点の登録内容で作る（それより後の Register / Unregister はリストに反映されない）。
+    // 左のメニューは PanelRenderer の UI が読み込まれた時点の登録内容で作る（それより後の Register / Unregister はメニューに反映されない）。
     // 右の列は、読み込み時と、コンポーネントまたは言語を切り替えるたびに、選んだ name の factory で作り直す。
     // 読み込み時から画面に出すには、それより前（BeforeSceneLoad）に Register する。
     [RequireComponent(typeof(PanelRenderer))]
@@ -63,20 +63,23 @@ namespace Hone.Sandbox.Gallery
 
         [SerializeField] TextAsset m_TestStrings;
 
-        // dropdown の選択肢（BaseScript 以外）。index が dropdown の index と対応する
+        // 言語の Cycle の選択肢（BaseScript 以外）。index が Cycle の value と対応する
         readonly List<ScriptStrings> m_Selectable = new List<ScriptStrings>();
-        DropdownField m_Language;
-        ListView m_Components;
-        // ListView の itemsSource と同じ内容（index が ListView の index と対応する）
+        Cycle m_Language;
+        ToggleGroup m_Components;
+        // メニューの項目の name（index がメニューの子の Hone.Button の index と対応する）
         readonly List<string> m_ComponentNames = new List<string>();
-        // Rebuild が最後まで配線できたときに、その callback を外す。reload callback は何度でも呼ばれ、前回と同じ要素が渡ることがある（sandbox/README.md の Gallery 節）。
+        // Rebuild が最後まで配線できたときに入り、次の Rebuild の冒頭でその callback を外す。reload callback は何度でも呼ばれ、前回と同じ要素が渡ることがある（sandbox/README.md の Gallery 節）。
         // 外さないと同じ要素に登録が重なり、1 回の切り替えで Build が複数回走る
         Action m_Unwire;
+
+        // 右のプレビュー（ScrollView、name `gallery`）。Rebuild が最後まで配線できたときだけ入り、それまでは null。テストと eval の入口
+        public ScrollView preview { get; private set; }
 
         // 同じ name の再登録は factory と description を置き換える（Domain Reload 無効でも二重に並ばない。description を省くと説明は消える）。
         // 異なる name の登録は残り続けるので、テストなどで登録したものは Unregister で消す。
         // factory は呼ぶたびに新しい要素を返すこと（同じインスタンスを返すと、後から追加した行に付け替わって前の行から消える）。
-        // description を渡すと、列の見出しの下に説明（variant の一覧と UXML の使用例）が 1 つ出る。渡さなければ説明の領域は出ない。
+        // description を渡すと、列の先頭に説明（variant の一覧と UXML の使用例）が 1 つ出る。渡さなければ説明の領域は出ない。
         public static void Register(string name, Func<string, VisualElement> factory, ComponentDescription? description = null)
         {
             if (string.IsNullOrEmpty(name))
@@ -97,7 +100,7 @@ namespace Hone.Sandbox.Gallery
             s_Entries.RemoveAll(e => e.Name == name);
         }
 
-        // 登録順の name の一覧。左の ListView の並びと初期選択（先頭）はこれで決まる
+        // 登録順の name の一覧。左のメニューの並びと初期選択（先頭）はこれで決まる
         public static IReadOnlyList<string> Names => s_Entries.Select(e => e.Name).ToList();
 
         public static IReadOnlyList<ScriptStrings> ParseTestStrings(string json)
@@ -140,7 +143,7 @@ namespace Hone.Sandbox.Gallery
             return null;
         }
 
-        // container の中身を作り直す。name の factory を、渡された文字列の短文・長文で 1 回ずつ呼ぶ。description があれば見出しの下に置く。name が未登録なら ArgumentException
+        // container の中身を作り直す。name の factory を、渡された文字列の短文・長文で 1 回ずつ呼ぶ。description があれば列の先頭に置く。name が未登録なら ArgumentException
         public static void Build(VisualElement container, string name, IReadOnlyList<ScriptStrings> strings)
         {
             var index = s_Entries.FindIndex(e => e.Name == name);
@@ -153,10 +156,6 @@ namespace Hone.Sandbox.Gallery
             var column = new VisualElement();
             column.AddToClassList("gallery-column");
             column.AddToClassList(ColumnClass(entry.Name));
-
-            var heading = new Label(entry.Name);
-            heading.AddToClassList("gallery-heading");
-            column.Add(heading);
 
             if (entry.Description.HasValue)
                 column.Add(CreateDescription(entry.Description.Value));
@@ -227,6 +226,7 @@ namespace Hone.Sandbox.Gallery
             m_Components = null;
             m_Selectable.Clear();
             m_ComponentNames.Clear();
+            preview = null;
 
             var scrollView = root.Q<ScrollView>("gallery");
             if (scrollView == null)
@@ -239,16 +239,22 @@ namespace Hone.Sandbox.Gallery
                 Debug.LogError("Gallery: TestStrings is not assigned", this);
                 return;
             }
-            var language = root.Q<DropdownField>("language");
+            var language = root.Q<Cycle>("language");
             if (language == null)
             {
-                Debug.LogError("Gallery: DropdownField named 'language' was not found (the PanelRenderer's UXML is not Gallery.uxml, or it has no such element)", this);
+                Debug.LogError("Gallery: Cycle named 'language' was not found (the PanelRenderer's UXML is not Gallery.uxml, or it has no such element)", this);
                 return;
             }
-            var components = root.Q<ListView>("components");
+            var components = root.Q<ToggleGroup>("components");
             if (components == null)
             {
-                Debug.LogError("Gallery: ListView named 'components' was not found (the PanelRenderer's UXML is not Gallery.uxml, or it has no such element)", this);
+                Debug.LogError("Gallery: ToggleGroup named 'components' was not found (the PanelRenderer's UXML is not Gallery.uxml, or it has no such element)", this);
+                return;
+            }
+            var componentName = root.Q<Label>("component-name");
+            if (componentName == null)
+            {
+                Debug.LogError("Gallery: Label named 'component-name' was not found (the PanelRenderer's UXML is not Gallery.uxml, or it has no such element)", this);
                 return;
             }
             var names = Names.ToList();
@@ -260,49 +266,67 @@ namespace Hone.Sandbox.Gallery
 
             var all = ParseTestStrings(m_TestStrings.text);
             var selectable = all.Where(s => s.Script != BaseScript).ToList();
-            // 例外を出しうる Pick と初回の Build を、dropdown と ListView を配線する前に済ませる。
+            // 例外を出しうる Pick と初回の Build を、Cycle と ToggleGroup を配線する前に済ませる。
             // 失敗したときに、配線済みで右が空の半端な状態を残さない（m_Language と m_Components が null のままなので、SelectScript と SelectComponent が例外を返す）
             Build(scrollView.contentContainer, names[0], Pick(all, selectable[0].Script));
+            componentName.text = names[0];
 
             // 選んでいるコンポーネントを、今の言語で作り直す。コンポーネントと言語のどちらを切り替えても、もう一方は今のまま
             void BuildSelected()
             {
-                var index = components.selectedIndex;
+                var index = SelectedIndex(components.value, names.Count);
                 if (index < 0)
                     return;
-                Build(scrollView.contentContainer, names[index], Pick(all, selectable[language.index].Script));
+                Build(scrollView.contentContainer, names[index], Pick(all, selectable[language.value].Script));
+                componentName.text = names[index];
             }
 
             language.choices = selectable.Select(s => s.Name).ToList();
-            language.SetValueWithoutNotify(language.choices[0]);
-            EventCallback<ChangeEvent<string>> onLanguageChanged = _ => BuildSelected();
+            language.SetValueWithoutNotify(0);
+            EventCallback<ChangeEvent<int>> onLanguageChanged = _ => BuildSelected();
             language.RegisterValueChangedCallback(onLanguageChanged);
             m_Selectable.AddRange(selectable);
             m_Language = language;
 
-            // itemsSource は makeItem と bindItem の後に入れる（先に入れると既定の項目で一度作ってから作り直す）
-            components.makeItem = () =>
-            {
-                var item = new Label();
-                item.AddToClassList("gallery-components__item");
-                return item;
-            };
-            components.bindItem = (element, index) => ((Label)element).text = names[index];
-            components.itemsSource = names;
-            components.selectionType = SelectionType.Single;
-            components.SetSelectionWithoutNotify(new[] { 0 });
-            Action<IEnumerable<int>> onSelectionChanged = _ => BuildSelected();
-            components.selectedIndicesChanged += onSelectionChanged;
+            // 再読み込みでは前回と同じ ToggleGroup が渡る（GalleryTests の再読み込みのテストで確かめている）ので、前回の項目を消してから足す。
+            // 項目は Hone.Button と完全修飾で書く（このファイルの Button は Unity 標準を指す）
+            components.Clear();
+            foreach (var name in names)
+                components.Add(new Hone.Button { text = name });
+            components.SetValueWithoutNotify(OnlySelected(components.value, 0));
+            EventCallback<ChangeEvent<ToggleButtonGroupState>> onSelectionChanged = _ => BuildSelected();
+            components.RegisterValueChangedCallback(onSelectionChanged);
             m_ComponentNames.AddRange(names);
             m_Components = components;
             m_Unwire = () =>
             {
                 language.UnregisterValueChangedCallback(onLanguageChanged);
-                components.selectedIndicesChanged -= onSelectionChanged;
+                components.UnregisterValueChangedCallback(onSelectionChanged);
             };
+            preview = scrollView;
         }
 
-        // dropdown で script を選んだのと同じ経路（ChangeEvent）で切り替える。eval から言語を切り替えて撮るための入口。
+        // 0〜count - 1 で最初に選ばれている index。無ければ -1
+        static int SelectedIndex(ToggleButtonGroupState state, int count)
+        {
+            for (var i = 0; i < count; i++)
+            {
+                if (state[i])
+                    return i;
+            }
+            return -1;
+        }
+
+        // index だけが選ばれた state（ToggleButtonGroupState の length は子の数ではなく 64 なので、全部外してから 1 つを選ぶ。ToggleGroup の README）
+        static ToggleButtonGroupState OnlySelected(ToggleButtonGroupState state, int index)
+        {
+            for (var i = 0; i < state.length; i++)
+                state[i] = false;
+            state[index] = true;
+            return state;
+        }
+
+        // 言語の Cycle で script を選んだのと同じ経路（ChangeEvent）で切り替える。eval から言語を切り替えて撮るための入口。
         // すでに選ばれている script を渡すと、ChangeEvent が出ないので何も起きない
         public void SelectScript(string script)
         {
@@ -312,11 +336,11 @@ namespace Hone.Sandbox.Gallery
             var index = m_Selectable.FindIndex(s => s.Script == script);
             if (index < 0)
                 throw new ArgumentException($"'{script}' is not selectable", nameof(script));
-            m_Language.index = index;
+            m_Language.value = index;
         }
 
-        // ListView で name を選んだのと同じ経路で切り替える。eval からコンポーネントを切り替えて撮るための入口。
-        // すでに選ばれている name を渡すと、選択が変わらないので何も起きない
+        // メニューで name を選んだのと同じ経路（ChangeEvent）で切り替える。eval からコンポーネントを切り替えて撮るための入口。
+        // すでに選ばれている name を渡すと何も起きない
         public void SelectComponent(string name)
         {
             if (m_Components == null || m_Components.panel == null)
@@ -324,8 +348,10 @@ namespace Hone.Sandbox.Gallery
 
             var index = m_ComponentNames.IndexOf(name);
             if (index < 0)
-                throw new ArgumentException($"'{name}' is not in the component list", nameof(name));
-            m_Components.selectedIndex = index;
+                throw new ArgumentException($"'{name}' is not in the menu", nameof(name));
+            if (SelectedIndex(m_Components.value, m_ComponentNames.Count) == index)
+                return;
+            m_Components.value = OnlySelected(m_Components.value, index);
         }
     }
 }

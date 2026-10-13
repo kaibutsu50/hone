@@ -3,61 +3,53 @@ using UnityEngine.UIElements;
 
 namespace Hone.Sandbox.Gallery
 {
-    // 撮影用。Gallery の UI が読み込まれたあと、最初の .hone-focusable にフォーカスを当てて focus ring を写す。言語を切り替えたときと、RefocusLater を呼んだときも当て直す。
+    // 撮影用。Gallery の UI が読み込まれたあとと、RefocusLater を呼んだときに、カードの中（GalleryController.preview）の最初の .hone-focusable にフォーカスを当てて focus ring を写す。
+    // 探す範囲をカードの中に絞るのは、左のメニューの Hone.Button と言語の Hone.Cycle も .hone-focusable を持ち、絞らないと ring がそちらに付くため。
     // reload callback の中では当てず、schedule で後回しにする（GalleryController が同じ callback で列を作り終えてから探すため）。
-    // 待ち時間は経験値で、これより短くて足りるかは確かめていない（読み込み時、言語の切り替え時、RefocusLater のいずれでも、Build と Dialog の Open() がこの間に終わる前提）。
+    // 待ち時間は経験値で、これより短くて足りるかは確かめていない（読み込み時と RefocusLater のどちらでも、Build と Dialog の Open() がこの間に終わる前提）。
     // 対象が無いときは何もしない（Label などフォーカスを持たないコンポーネントを選んでいることがある）。フォーカスが移らなかったときは LogError を出す（ring が写っていない画像を黙って撮らないため）。
-    // コンポーネントを選んだときは当て直さない（左のリストを上下で選んでいる途中でフォーカスが右へ飛び、続けて選べなくなる）。
-    // 撮影では eval で SelectComponent に続けて RefocusLater を呼んで当てる。
+    // コンポーネントや言語を選んだときは当て直さない（メニューで Submit して選ぶたびにフォーカスがカードへ飛んで続けて上下で次の項目へ移れなくなり、Cycle を左右で巡っている途中でもカードへ飛ぶ）。
+    // 切り替えるとカードの中が作り直され、フォーカスしていた要素は外れる。撮影では eval で SelectComponent と SelectScript のあとに RefocusLater を呼んで当てる。
     [RequireComponent(typeof(PanelRenderer))]
     [RequireComponent(typeof(GalleryController))]
     public class GalleryFocus : MonoBehaviour
     {
         const long DelayMilliseconds = 200;
 
+        GalleryController m_Controller;
         VisualElement m_Root;
-        // reload callback は何度でも呼ばれ、前回と同じ要素が渡ることがある（sandbox/README.md の Gallery 節）ので、前回の登録を外してから登録し直す。
-        // 外さないと同じ要素に登録が重なり、1 回の言語の切り替えで FocusFirst が複数回走る
-        DropdownField m_Language;
-        EventCallback<ChangeEvent<string>> m_OnLanguageChanged;
 
         void Awake()
         {
+            m_Controller = GetComponent<GalleryController>();
             GetComponent<PanelRenderer>().RegisterUIReloadCallback((panelRenderer, root, version) =>
             {
-                m_Language?.UnregisterValueChangedCallback(m_OnLanguageChanged);
                 m_Root = root;
-                root.schedule.Execute(() => FocusFirst(root)).ExecuteLater(DelayMilliseconds);
-
-                // 言語を切り替えると GalleryController が Dialog を作り直し、各 Dialog が attach 時の Open() で自分の Cancel にフォーカスを移す。
-                // 当て直さないと ring は最後に開いた Dialog の Cancel に残る。schedule で後回しにするのは、Build と Open() が終わってから当てるため。
-                // dropdown が無いときは何もしない（エラーは GalleryController が出す）
-                m_Language = root.Q<DropdownField>("language");
-                m_OnLanguageChanged = _ => root.schedule.Execute(() => FocusFirst(root)).ExecuteLater(DelayMilliseconds);
-                m_Language?.RegisterValueChangedCallback(m_OnLanguageChanged);
+                root.schedule.Execute(FocusFirst).ExecuteLater(DelayMilliseconds);
             });
         }
 
-        // 撮影用。DelayMilliseconds 後に、右の最初の .hone-focusable に当てる（言語の切り替え時と同じ）
+        // 撮影用。DelayMilliseconds 後に、カードの中の最初の .hone-focusable に当てる（読み込み時と同じ）。
+        // GalleryController の読み込みが済んでいない（または失敗した）ときは、SelectComponent と同じく InvalidOperationException を返す
         public void RefocusLater()
         {
-            if (m_Root == null || m_Root.panel == null)
+            if (m_Root == null || m_Root.panel == null || m_Controller.preview == null)
                 throw new System.InvalidOperationException("Gallery: the UI is not loaded yet");
 
-            var root = m_Root;
-            root.schedule.Execute(() => FocusFirst(root)).ExecuteLater(DelayMilliseconds);
+            m_Root.schedule.Execute(FocusFirst).ExecuteLater(DelayMilliseconds);
         }
 
-        void FocusFirst(VisualElement root)
+        void FocusFirst()
         {
-            var target = root.Q(className: "hone-focusable");
+            // preview が無いときは何もしない（読み込みに失敗したときのエラーは GalleryController が出す）
+            var target = m_Controller.preview?.contentContainer.Q(className: "hone-focusable");
             if (target == null)
                 return;
             target.Focus();
             // フォーカス変更は非同期なので、確かめるのも後回しにする
-            root.schedule.Execute(() =>
+            m_Root.schedule.Execute(() =>
             {
-                // 待つ間に言語が切り替わると、target は作り直しで panel から外れる。次の FocusFirst が当て直すので、ここでは確かめない
+                // 待つ間にコンポーネントか言語が切り替わると、target は作り直しで panel から外れる。当て直しは撮影側が RefocusLater で行うので、ここでは確かめない
                 if (target.panel == null)
                     return;
                 if (target.focusController?.focusedElement != target)

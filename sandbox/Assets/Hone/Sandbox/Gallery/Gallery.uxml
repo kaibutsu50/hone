@@ -1,9 +1,19 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:hone="Hone">
     <Style src="Gallery.uss" />
     <ui:VisualElement class="gallery-page">
-        <ui:DropdownField name="language" label="Language" class="gallery-language" />
-        <ui:VisualElement class="gallery-body">
-            <ui:ListView name="components" class="gallery-components" />
+        <ui:VisualElement class="gallery-sidebar">
+            <ui:Label text="Hone Gallery" class="gallery-title hone-text" />
+            <ui:Label text="Components" class="gallery-caption hone-text" />
+            <hone:ToggleGroup name="components" class="gallery-components" />
+        </ui:VisualElement>
+        <ui:VisualElement class="gallery-card">
+            <ui:VisualElement class="gallery-card__header">
+                <ui:Label name="component-name" class="gallery-card__title hone-text" />
+                <ui:VisualElement class="gallery-language">
+                    <ui:Label text="Language" class="gallery-language__label hone-text" />
+                    <hone:Cycle name="language" wrap="true" class="gallery-language__cycle" />
+                </ui:VisualElement>
+            </ui:VisualElement>
             <ui:ScrollView name="gallery" class="gallery" mode="Vertical" />
         </ui:VisualElement>
     </ui:VisualElement>
