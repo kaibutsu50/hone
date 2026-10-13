@@ -65,7 +65,7 @@ using Button = Hone.Button;
 
 - `hone-focusable`（`Core.uss`）を付けてあり、フォーカス時の ring は `Core.uss` が描く。Button 側では何も書かない。
 - `hone-text`（`Core.uss`）を付けてあり、本文フォントに従う。
-- `unity-button` クラスは外してあり、既定テーマの Button の見た目は効かない。
+- `unity-button` クラスは外してあり、`.unity-button` に当たる既定テーマの規則は効かない（Button 型に当たる `:focus` の枠の色などは残る。`Core.uss` の注記）。
 - `FocusScope` や `BackStack` は使わない。単独で完結する。
 
 ## World Space での置き方
