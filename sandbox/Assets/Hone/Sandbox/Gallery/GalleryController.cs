@@ -69,7 +69,7 @@ namespace Hone.Sandbox.Gallery
         ToggleGroup m_Components;
         // メニューの項目の name（index がメニューの子の Hone.Button の index と対応する）
         readonly List<string> m_ComponentNames = new List<string>();
-        // Rebuild が最後まで配線できたときに、その callback を外す。reload callback は何度でも呼ばれ、前回と同じ要素が渡ることがある（sandbox/README.md の Gallery 節）。
+        // Rebuild が最後まで配線できたときに入り、次の Rebuild の冒頭でその callback を外す。reload callback は何度でも呼ばれ、前回と同じ要素が渡ることがある（sandbox/README.md の Gallery 節）。
         // 外さないと同じ要素に登録が重なり、1 回の切り替えで Build が複数回走る
         Action m_Unwire;
 
@@ -79,7 +79,7 @@ namespace Hone.Sandbox.Gallery
         // 同じ name の再登録は factory と description を置き換える（Domain Reload 無効でも二重に並ばない。description を省くと説明は消える）。
         // 異なる name の登録は残り続けるので、テストなどで登録したものは Unregister で消す。
         // factory は呼ぶたびに新しい要素を返すこと（同じインスタンスを返すと、後から追加した行に付け替わって前の行から消える）。
-        // description を渡すと、列の見出しの下に説明（variant の一覧と UXML の使用例）が 1 つ出る。渡さなければ説明の領域は出ない。
+        // description を渡すと、列の先頭に説明（variant の一覧と UXML の使用例）が 1 つ出る。渡さなければ説明の領域は出ない。
         public static void Register(string name, Func<string, VisualElement> factory, ComponentDescription? description = null)
         {
             if (string.IsNullOrEmpty(name))
@@ -288,7 +288,7 @@ namespace Hone.Sandbox.Gallery
             m_Selectable.AddRange(selectable);
             m_Language = language;
 
-            // 再読み込みでは前回と同じ ToggleGroup が渡るので、前回の項目を消してから足す。
+            // 再読み込みでは前回と同じ ToggleGroup が渡る（GalleryTests の再読み込みのテストで確かめている）ので、前回の項目を消してから足す。
             // 項目は Hone.Button と完全修飾で書く（このファイルの Button は Unity 標準を指す）
             components.Clear();
             foreach (var name in names)
@@ -348,7 +348,7 @@ namespace Hone.Sandbox.Gallery
 
             var index = m_ComponentNames.IndexOf(name);
             if (index < 0)
-                throw new ArgumentException($"'{name}' is not in the component list", nameof(name));
+                throw new ArgumentException($"'{name}' is not in the menu", nameof(name));
             if (SelectedIndex(m_Components.value, m_ComponentNames.Count) == index)
                 return;
             m_Components.value = OnlySelected(m_Components.value, index);

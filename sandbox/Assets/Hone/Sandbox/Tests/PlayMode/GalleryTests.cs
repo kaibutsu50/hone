@@ -21,7 +21,7 @@ namespace Hone.Sandbox.Tests
         const string PanelRendererName = "PanelRenderer";
         const string CounterName = "Gallery.Test.Counter";
         const int MaxWaitFrames = 60;
-        // GalleryFocus の DelayMilliseconds（200）の 2 倍（当て直しと確認）より長く待つ
+        // GalleryFocus の DelayMilliseconds の 2 倍（当て直しと確認）より長く待つ
         const float FocusWaitSeconds = 0.6f;
         // 1 回の Build で factory が呼ばれる回数（en と選んだ言語の 2 行 × 短文と長文）
         const int CallsPerBuild = 4;
@@ -119,13 +119,14 @@ namespace Hone.Sandbox.Tests
             Assert.IsNotNull(Column(controller, names[0]));
         }
 
-        // (B)
+        // (B) 言語を既定から変えておき、コンポーネントの切り替えで既定に戻らないことを見る
         [UnityEngine.TestTools.UnityTest]
         public IEnumerator SubmitThirdMenuItem_SwitchesComponent_KeepsLanguage()
         {
             GalleryController controller = null;
             yield return LoadScene(c => controller = c);
             var names = GalleryController.Names;
+            controller.SelectScript("ko");
             var language = Language(controller).value;
 
             Submit(MenuItems(controller)[2]);
@@ -134,9 +135,10 @@ namespace Hone.Sandbox.Tests
             Assert.IsNotNull(Column(controller, names[2]));
             Assert.IsNull(Column(controller, names[0]));
             Assert.AreEqual(language, Language(controller).value);
+            CollectionAssert.AreEqual(new[] { "en", "ko" }, Tags(controller));
         }
 
-        // (C)
+        // (C) コンポーネントを先頭以外に変えておき、言語の切り替えで先頭に戻らないことを見る
         [UnityEngine.TestTools.UnityTest]
         public IEnumerator Language_ChoicesFollowTestStrings_SelectScriptSwitchesSecondRow()
         {
@@ -145,15 +147,18 @@ namespace Hone.Sandbox.Tests
             var path = Path.Combine(Application.dataPath, "Hone/Sandbox/Gallery/TestStrings.json");
             var expected = GalleryController.ParseTestStrings(File.ReadAllText(path))
                 .Where(s => s.Script != GalleryController.BaseScript).Select(s => s.Name).ToList();
-            var componentName = ComponentName(controller).text;
+            var names = GalleryController.Names;
 
             CollectionAssert.AreEqual(expected, Language(controller).choices);
             Assert.AreEqual(0, Language(controller).value);
+            Assert.IsTrue(Language(controller).wrap);
+            controller.SelectComponent(names[2]);
 
             controller.SelectScript("ko");
 
             CollectionAssert.AreEqual(new[] { "en", "ko" }, Tags(controller));
-            Assert.AreEqual(componentName, ComponentName(controller).text);
+            Assert.AreEqual(names[2], ComponentName(controller).text);
+            Assert.IsNotNull(Column(controller, names[2]));
         }
 
         // (D) 読み込み時の当て直しが終わってから、Cycle にフォーカスを置いて言語を切り替える（選んでいるのは Dialog 以外の Hone.Button）
@@ -163,6 +168,8 @@ namespace Hone.Sandbox.Tests
             GalleryController controller = null;
             yield return LoadScene(c => controller = c);
             yield return new WaitForSecondsRealtime(FocusWaitSeconds);
+            // カードの中に当てる先が無いと、当て直しが戻っても何も起きず、このテストが回帰を見逃す
+            Assert.IsNotNull(controller.preview.contentContainer.Q(className: "hone-focusable"), "precondition: the preview has a .hone-focusable");
             var language = Language(controller);
             language.Focus();
             yield return null;
@@ -181,14 +188,15 @@ namespace Hone.Sandbox.Tests
             GalleryController controller = null;
             yield return LoadScene(c => controller = c);
             yield return new WaitForSecondsRealtime(FocusWaitSeconds);
+            var expected = controller.preview.contentContainer.Q(className: "hone-focusable");
+            Assert.IsNotNull(expected, "precondition: the preview has a .hone-focusable");
+            Assert.AreSame(expected, Focused(controller), "the first .hone-focusable in the preview was not focused on load");
             Language(controller).Focus();
             yield return null;
 
             controller.GetComponent<GalleryFocus>().RefocusLater();
             yield return new WaitForSecondsRealtime(FocusWaitSeconds);
 
-            var expected = controller.preview.contentContainer.Q(className: "hone-focusable");
-            Assert.IsNotNull(expected, "precondition: the preview has a .hone-focusable");
             Assert.AreSame(expected, Focused(controller));
         }
 
@@ -202,6 +210,7 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual(CallsPerBuild, m_CounterCalls, "precondition: the counter was built once");
 
             controller.SelectComponent(CounterName);
+            controller.SelectScript("ja");
 
             Assert.AreEqual(CallsPerBuild, m_CounterCalls);
         }
@@ -214,6 +223,9 @@ namespace Hone.Sandbox.Tests
             yield return LoadScene(c => controller = c);
             var names = GalleryController.Names;
             controller.SelectComponent(names[1]);
+            Assert.IsNotNull(Column(controller, names[1]), "precondition: names[1] is selected before the reload");
+            var componentsBefore = Components(controller);
+            var languageBefore = Language(controller);
             var go = PanelRendererObject();
 
             go.SetActive(false);
@@ -225,12 +237,21 @@ namespace Hone.Sandbox.Tests
                 frames++;
                 yield return null;
             }
+            Assert.IsNotNull(controller.preview?.panel, $"the UI was not reloaded within {MaxWaitFrames} frames");
             Assert.IsNotNull(Column(controller, names[0]), $"the UI was not reloaded within {MaxWaitFrames} frames");
+            // 前回と同じ要素が渡る前提（README の Gallery 節）。新しい要素が渡るようになると、下の重複の検査は意味を失う
+            Assert.AreSame(componentsBefore, Components(controller));
+            Assert.AreSame(languageBefore, Language(controller));
 
             Assert.AreEqual(names.Count, MenuItems(controller).Length);
             m_CounterCalls = 0;
             controller.SelectComponent(CounterName);
             Assert.AreEqual(CallsPerBuild, m_CounterCalls);
+            controller.SelectScript("ko");
+            Assert.AreEqual(CallsPerBuild * 2, m_CounterCalls);
+            // 人が押す経路（足し直した子への Submit）でも切り替わる
+            Submit(MenuItems(controller)[2]);
+            Assert.AreEqual(names[2], ComponentName(controller).text);
         }
     }
 }
