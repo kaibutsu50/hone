@@ -230,6 +230,11 @@ unity command editor_stop --project-path <sandbox の絶対パス>
 - コンポーネントと言語の切り替えは Screen Space と同じ `SelectComponent` と `SelectScript`。World Space の panel は論理サイズが 1920×1080 で、`Japanese` では Dialog も MessageWindow も en と ja の 2 行が 1 画面に収まった（ほかの言語は確かめていない。6000.7.0b2）。収まらないときは、Screen Space と同じく `ScrollView`（name `gallery`）の `scrollOffset` を書き換えながら複数枚撮る。
 - 同じ Gallery でも、World Space は論理サイズが 1920×1080 の panel なので、Screen Space と列の幅が違い、省略記号になる位置も違う（6000.7.0b2。原因は調べていない）。
 
+UI の再読み込み（Play 中に `PanelRenderer` の GameObject を Disable → Enable する）では、reload callback が同じ root・同じ `components`（ListView）・同じ `language`（DropdownField）に対して再度呼ばれる（Enable の次のフレームに 1 回。インスタンスは前回と同じ。Screen Space、6000.7.0b4）。
+そのため `GalleryController` と `GalleryFocus` は、前回の登録を外してから登録し直す。外さないと、Disable → Enable を N 回繰り返したあとの 1 回の切り替えで `Build` が N+1 回（言語の切り替えでは `FocusFirst` も N+1 回）走る。
+外したあとは、2 回繰り返しても 1 回ずつだった。`GalleryFocus` が reload callback の中で予約する `FocusFirst` は、もともと再読み込みごとに 1 回だけ。
+`unity command set_active` は Play 中は使えない（`This cannot be used during play mode.`）。再読み込みを試すときは、eval で `GameObject.SetActive(false)` と `SetActive(true)` を別のコマンドで呼ぶ（無効な GameObject は `GameObject.Find` で見つからないので、有効にするほうはシーンのルートから探す）。
+
 撮った画像で、文字列が読めるか、豆腐（□）になっていないか、行や列がはみ出していないかを人が見る。画像の自動比較はしない。
 
 フォントは同梱しない。既定フォントと fallback で、ar、th などがどう描画されるかを見るのも、この画像の目的のひとつ。

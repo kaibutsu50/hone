@@ -16,19 +16,25 @@ namespace Hone.Sandbox.Gallery
         const long DelayMilliseconds = 200;
 
         VisualElement m_Root;
+        // reload callback は同じ要素に対して再度呼ばれる（PanelRenderer の GameObject を Disable → Enable したとき）ので、前回の登録を外してから登録し直す
+        DropdownField m_Language;
+        EventCallback<ChangeEvent<string>> m_OnLanguageChanged;
 
         void Awake()
         {
             GetComponent<PanelRenderer>().RegisterUIReloadCallback((panelRenderer, root, version) =>
             {
+                if (m_OnLanguageChanged != null)
+                    m_Language?.UnregisterValueChangedCallback(m_OnLanguageChanged);
                 m_Root = root;
                 root.schedule.Execute(() => FocusFirst(root)).ExecuteLater(DelayMilliseconds);
 
                 // 言語を切り替えると GalleryController が Dialog を作り直し、各 Dialog が attach 時の Open() で自分の Cancel にフォーカスを移す。
                 // 当て直さないと ring は最後に開いた Dialog の Cancel に残る。schedule で後回しにするのは、Build と Open() が終わってから当てるため。
                 // dropdown が無いときは何もしない（エラーは GalleryController が出す）
-                root.Q<DropdownField>("language")?.RegisterValueChangedCallback(_ =>
-                    root.schedule.Execute(() => FocusFirst(root)).ExecuteLater(DelayMilliseconds));
+                m_Language = root.Q<DropdownField>("language");
+                m_OnLanguageChanged = _ => root.schedule.Execute(() => FocusFirst(root)).ExecuteLater(DelayMilliseconds);
+                m_Language?.RegisterValueChangedCallback(m_OnLanguageChanged);
             });
         }
 
