@@ -7,9 +7,6 @@ using UnityEngine.UIElements;
 
 namespace Hone.Sandbox.Gallery
 {
-    // Hone.Sandbox.UI を参照すると、namespace Hone の中の Button は Hone.Button を指す。ここの Button は Unity 標準のもの
-    using Button = UnityEngine.UIElements.Button;
-
     public readonly struct ScriptStrings
     {
         public readonly string Script;
@@ -210,8 +207,6 @@ namespace Hone.Sandbox.Gallery
 
         void Awake()
         {
-            Register("Label", text => new Label(text));
-            Register("Button", text => new Button { text = text });
             GetComponent<PanelRenderer>().RegisterUIReloadCallback((panelRenderer, root, version) => Rebuild(root));
         }
 
@@ -289,7 +284,6 @@ namespace Hone.Sandbox.Gallery
             m_Language = language;
 
             // 再読み込みでは前回と同じ ToggleGroup が渡る（GalleryTests の再読み込みのテストで確かめている）ので、前回の項目を消してから足す。
-            // 項目は Hone.Button と完全修飾で書く（このファイルの Button は Unity 標準を指す）
             components.Clear();
             foreach (var name in names)
                 components.Add(new Hone.Button { text = name });

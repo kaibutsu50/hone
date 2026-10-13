@@ -6,10 +6,7 @@ using UnityEngine.UIElements;
 
 namespace Hone.Sandbox.Gallery
 {
-    // Hone.Sandbox.UI を参照すると、namespace Hone の中の Button は Hone.Button を指す。ここの Button は Unity 標準のもの
-    using Button = UnityEngine.UIElements.Button;
-
-    // Hone.Button、Hone.Dialog、Hone.MessageWindow、Hone.Switch、Hone.Toggle、Hone.ToggleGroup、Hone.Pagination、Hone.Cycle と、Core.uss の .hone-text と .hone-focusable を Gallery に載せる。左のメニューで素の "Label" "Button" と選び比べて、見た目の差を見る。
+    // Hone.Button、Hone.Dialog、Hone.MessageWindow、Hone.Switch、Hone.Toggle、Hone.ToggleGroup、Hone.Pagination、Hone.Cycle を Gallery に載せる。
     // Register は sandbox 側から呼ぶ（registry/ 配下のコードには書かない）。呼ぶ時点は README の Gallery の節を参照。
     static class GalleryHoneEntries
     {
@@ -26,18 +23,6 @@ namespace Hone.Sandbox.Gallery
                     cell.Add(new Hone.Button { text = text, variant = variant });
                 return cell;
             }, Describe("Button", string.Join(" / ", Enum.GetNames(typeof(Hone.Button.Variant)))));
-            GalleryController.Register("Label.hone-text", text =>
-            {
-                var label = new Label(text);
-                label.AddToClassList("hone-text");
-                return label;
-            });
-            GalleryController.Register("Button.hone-focusable", text =>
-            {
-                var button = new Button { text = text };
-                button.AddToClassList("hone-focusable");
-                return button;
-            });
             // 開いた状態の Hone.Dialog。文字列はタイトルと本文に入れ、ボタンは短い固定文字列にする（Button は縮まず折り返さないため）。
             // Dialog は親の全面を覆う absolute なので、セルの中では relative にして内容の高さで並べる。
             // Open() は panel に attach されてから呼ぶ（attach 前だと初期フォーカスが当たらない）。

@@ -7,7 +7,7 @@ namespace Hone.Sandbox.Gallery
     // 探す範囲をカードの中に絞るのは、左のメニューの Hone.Button と言語の Hone.Cycle も .hone-focusable を持ち、絞らないと ring がそちらに付くため。
     // reload callback の中では当てず、schedule で後回しにする（GalleryController が同じ callback で列を作り終えてから探すため）。
     // 待ち時間は経験値で、これより短くて足りるかは確かめていない（読み込み時と RefocusLater のどちらでも、Build と Dialog の Open() がこの間に終わる前提）。
-    // 対象が無いときは何もしない（Label などフォーカスを持たないコンポーネントを選んでいることがある）。フォーカスが移らなかったときは LogError を出す（ring が写っていない画像を黙って撮らないため）。
+    // 対象が無いときは何もしない（Hone.Switch などフォーカスを持たないコンポーネントを選んでいることがある）。フォーカスが移らなかったときは LogError を出す（ring が写っていない画像を黙って撮らないため）。
     // コンポーネントや言語を選んだときは当て直さない（メニューで Submit して選ぶたびにフォーカスがカードへ飛んで続けて上下で次の項目へ移れなくなり、Cycle を左右で巡っている途中でもカードへ飛ぶ）。
     // 切り替えるとカードの中が作り直され、フォーカスしていた要素は外れる。撮影では eval で SelectComponent と SelectScript のあとに RefocusLater を呼んで当てる。
     [RequireComponent(typeof(PanelRenderer))]
