@@ -64,6 +64,57 @@ namespace Hone.Sandbox.Tests
             Assert.IsTrue(button.ClassListContains("hone-button"), "the block class must stay");
         }
 
+        // (Secondary A) UXML の variant="secondary" が hone-button と hone-button--secondary のクラスになる
+        [Test]
+        public void Uxml_SecondaryVariant_HasBlockAndVariantClass()
+        {
+            var tree = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(ButtonUxmlPath);
+            Assert.IsNotNull(tree, $"{ButtonUxmlPath} was not found");
+
+            var root = tree.Instantiate();
+            var secondary = root.Q<Button>(className: "hone-button--secondary");
+
+            Assert.IsNotNull(secondary, "no Hone.Button with hone-button--secondary");
+            Assert.IsTrue(secondary.ClassListContains("hone-button"));
+            Assert.AreEqual(Button.Variant.Secondary, secondary.variant);
+            CollectionAssert.AreEqual(new[] { "hone-button--secondary" }, VariantClasses(secondary));
+        }
+
+        // (Secondary A) Secondary へ変えると前の variant のクラスが外れ、Secondary から変えると hone-button--secondary が外れる
+        [Test]
+        public void Variant_ChangeToAndFromSecondary_ReplacesVariantClass()
+        {
+            var button = new Button { variant = Button.Variant.Destructive };
+
+            button.variant = Button.Variant.Secondary;
+            CollectionAssert.AreEqual(new[] { "hone-button--secondary" }, VariantClasses(button));
+
+            button.variant = Button.Variant.Outline;
+            CollectionAssert.AreEqual(new[] { "hone-button--outline" }, VariantClasses(button));
+        }
+
+        // (Secondary B) Secondary の background-color が #f4f4f5（--hone-color-secondary の値）になり、color が #18181b（--hone-color-secondary-foreground の値）になる。
+        // muted / accent も #f4f4f5 なので、参照先のトークンまでは区別しない。Default の primary とは別の色になる
+        [UnityTest]
+        public IEnumerator Secondary_ResolvedBackgroundColor_IsSecondaryToken()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+
+            var secondary = new Button { text = "secondary", variant = Button.Variant.Secondary };
+            var primary = new Button { text = "default" };
+            root.Add(secondary);
+            root.Add(primary);
+            yield return null;
+            yield return null;
+
+            Assert.IsTrue(ColorUtility.TryParseHtmlString("#f4f4f5", out var expectedBackground));
+            Assert.IsTrue(ColorUtility.TryParseHtmlString("#18181b", out var expectedColor));
+            Assert.AreEqual((Color32)expectedBackground, (Color32)secondary.resolvedStyle.backgroundColor);
+            Assert.AreEqual((Color32)expectedColor, (Color32)secondary.resolvedStyle.color);
+            Assert.AreNotEqual((Color32)primary.resolvedStyle.backgroundColor, (Color32)secondary.resolvedStyle.backgroundColor);
+        }
+
         // (C) 既定テーマの見た目（unity-button）が付いていない。基底の Button が付けるクラスを外してある
         [Test]
         public void Constructor_HasNoUnityButtonClass()

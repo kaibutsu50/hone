@@ -28,6 +28,12 @@
     opacity: 0.8;
 }
 
+.hone-button--secondary {
+    background-color: var(--hone-color-secondary);
+    color: var(--hone-color-secondary-foreground);
+    border-color: var(--hone-color-secondary);
+}
+
 .hone-button--outline {
     background-color: var(--hone-color-background);
     color: var(--hone-color-foreground);

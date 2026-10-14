@@ -9,7 +9,7 @@ namespace Hone
     [UxmlElement]
     public partial class Button : UnityEngine.UIElements.Button
     {
-        public enum Variant { Default, Outline, Ghost, Destructive }
+        public enum Variant { Default, Secondary, Outline, Ghost, Destructive }
 
         Variant m_Variant;
         IVisualElementScheduledItem m_Commit;
