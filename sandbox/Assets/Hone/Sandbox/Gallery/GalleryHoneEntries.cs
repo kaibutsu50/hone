@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 
 namespace Hone.Sandbox.Gallery
 {
-    // Hone.Button、Hone.Dialog、Hone.MessageWindow、Hone.Switch、Hone.Toggle、Hone.ToggleGroup、Hone.Pagination、Hone.Cycle と、block の SettingsScreen（Gallery の名前は Hone.SettingsScreen。C# のクラスは無い）を Gallery に載せる。
+    // Hone.Button、Hone.Dialog、Hone.MessageWindow、Hone.Switch、Hone.Toggle、Hone.ToggleGroup、Hone.Pagination、Hone.Cycle、Hone.Tabs と、block の SettingsScreen（Gallery の名前は Hone.SettingsScreen。C# のクラスは無い）を Gallery に載せる。
     // Register は sandbox 側から呼ぶ（registry/ 配下のコードには書かない）。呼ぶ時点は README の Gallery の節を参照。
     static class GalleryHoneEntries
     {
@@ -116,6 +116,27 @@ namespace Hone.Sandbox.Gallery
                 cell.Add(new Cycle { choices = new List<string> { text, text, text }, value = 0 });
                 return cell;
             }, Describe("Cycle"));
+            // 3 つのタブのラベルを text にし、2 番目（value 1）を選んだ状態にする。タブは ToggleGroup と同じく均等に広がり、長文の言語では縮んで省略記号になる。
+            // 中身は文字列の Label と短い固定文字列の Button（Button は縮まず折り返さないため）。表示されるのは 2 番目の中身だけ。
+            // tabs を value より先に設定する（value は tabs の範囲に収められる）。中身は attach 前に足す（表示は attach の時点で揃う）。
+            // タブの Button が hone-focusable を持つので、Toggle と同じく RefocusLater で en の行の 1 つ目のタブに ring が写る
+            GalleryController.Register("Hone.Tabs", text =>
+            {
+                var tabs = new Tabs { tabs = new List<string> { text, text, text }, value = 1 };
+                for (var i = 0; i < 3; i++)
+                {
+                    var content = new VisualElement();
+                    var label = new Label(text);
+                    label.AddToClassList("hone-text");
+                    content.Add(label);
+                    content.Add(new Hone.Button { text = "Save " + (i + 1) });
+                    tabs.Add(content);
+                }
+                var cell = new VisualElement();
+                cell.AddToClassList("gallery-cell");
+                cell.Add(tabs);
+                return cell;
+            }, Describe("Tabs"));
             // block。SettingsScreen.uxml を読み込み、各行の見出しと説明、確認の Dialog のタイトルと本文に text を入れる（長文の言語では説明が折り返す）。
             // 操作は UXML のまま使い、Cycle の選択肢と ToggleGroup のラベルだけ text にする（収まらなければ省略記号になる）。Button の文言（Refresh / Delete、Dialog の Cancel / Delete）は短い固定文字列のまま（行の中で max-width に切られた Button の長いラベルは確かめていない）。
             // Destructive の行の Button で確認の Dialog を開き、Cancel / 確定で閉じる（block は振る舞いを持たないので、配線はここでする）。Dialog は閉じた状態で並ぶ。
