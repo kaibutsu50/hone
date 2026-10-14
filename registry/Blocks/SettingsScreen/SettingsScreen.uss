@@ -1,0 +1,57 @@
+/* 色・余白・フォントサイズ・枠の太さは Tokens.uss のトークン。幅の割合（%）と、見出しの太字（-unity-font-style: bold）はトークンを持たない。
+ * 行は「左: 見出しと説明 / 右: 操作」。左の列が残りの幅を取って縮み、説明は折り返す。右の操作は縮まない。
+ * 既定の Label は折り返さない（white-space: nowrap）ので、見出しと説明は white-space: normal にする。
+ * 操作の幅は行の割合で決める（USS に calc() と min() は無い）。操作が行の半分を超えるときは max-width で切る（Cycle の値と ToggleGroup のラベルは省略記号になる。Button のラベルは確かめていない）。
+ * Cycle は横並びの親で幅を決めないと、値が変わるたびに幅が変わる（Cycle の README）ので、行の 40% を与える。
+ * 画面全体の背景・中央寄せ・固定幅は持たない（World Space では panel 自体が画面の大きさになる）。 */
+.hone-settings-screen {
+    flex-direction: column;
+    padding: var(--hone-space-4);
+}
+
+.hone-settings-screen__title {
+    font-size: var(--hone-font-size-lg);
+    -unity-font-style: bold;
+    color: var(--hone-color-foreground);
+    white-space: normal;
+    margin-bottom: var(--hone-space-4);
+}
+
+/* 行の区切りは上の線。先頭の行の線はタイトルとの区切りになる */
+.hone-settings-screen__row {
+    flex-direction: row;
+    align-items: center;
+    padding: var(--hone-space-4) 0;
+    border-top-width: var(--hone-border-width);
+    border-color: var(--hone-color-border);
+}
+
+.hone-settings-screen__text {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+    margin-right: var(--hone-space-4);
+}
+
+.hone-settings-screen__heading {
+    font-size: var(--hone-font-size-sm);
+    -unity-font-style: bold;
+    color: var(--hone-color-foreground);
+    white-space: normal;
+}
+
+.hone-settings-screen__description {
+    font-size: var(--hone-font-size-sm);
+    color: var(--hone-color-muted-foreground);
+    white-space: normal;
+    margin-top: var(--hone-space-1);
+}
+
+.hone-settings-screen__control {
+    flex-shrink: 0;
+    max-width: 50%;
+}
+
+.hone-settings-screen__control.hone-cycle {
+    width: 40%;
+}

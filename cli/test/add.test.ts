@@ -108,6 +108,30 @@ describe("hone add", () => {
     expect((await readManifest(root)).components).toEqual(["Button"]);
   });
 
+  it("registry の block（settingsscreen）を追加すると、依存のプリミティブと block の 3 ファイルがコピーされ、USS の @import と components が入る", async () => {
+    const root = await makeInitializedProject();
+
+    await runAdd({ cwd: root, names: ["settingsscreen"], ...silent });
+
+    const files = await listFiles(root);
+    for (const f of [
+      "Assets/Hone/Blocks/SettingsScreen/README.md",
+      "Assets/Hone/Blocks/SettingsScreen/SettingsScreen.uss",
+      "Assets/Hone/Blocks/SettingsScreen/SettingsScreen.uxml",
+      "Assets/Hone/UI/Button/Button.cs",
+      "Assets/Hone/UI/Switch/Switch.cs",
+      "Assets/Hone/UI/Cycle/Cycle.cs",
+      "Assets/Hone/UI/ToggleGroup/ToggleGroup.cs",
+      "Assets/Hone/UI/Dialog/Dialog.cs",
+    ]) {
+      expect(files).toContain(f);
+    }
+    expect(await read(root, "Assets/Hone/HoneTheme.tss")).toContain(
+      '@import url("Blocks/SettingsScreen/SettingsScreen.uss");',
+    );
+    expect((await readManifest(root)).components).toContain("SettingsScreen");
+  });
+
   it("(B) dialog を追加すると、依存の Button を先にコピーし、@import も Button が先に入る", async () => {
     const root = await makeInitializedProject();
     const lines: string[] = [];
