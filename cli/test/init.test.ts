@@ -64,6 +64,7 @@ describe("hone init", () => {
       "Assets/Hone/Core/Runtime/FocusScope.cs",
       "Assets/Hone/Core/Runtime/Hone.Core.asmdef",
       "Assets/Hone/Core/Runtime/IDismissable.cs",
+      "Assets/Hone/Core/Runtime/INavigationMoveConsumer.cs",
       "Assets/Hone/HoneTheme.tss",
       "Assets/Hone/Tokens.uss",
       "Assets/Hone/hone.manifest.json",
