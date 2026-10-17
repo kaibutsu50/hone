@@ -165,3 +165,14 @@
     flex-shrink: 0;
     margin-right: 4px;
 }
+
+/* block の ListDetailScreen は、一覧の列（画面の 40%）に Pagination の前後とページ番号の 5 つの Button（縮まない）を収める幅が要る。
+ * 短文と長文を横に並べると Screen Space の 1 画面の幅が足りないので、この列だけ行の中を縦に積み、それぞれにカードの幅を使わせる */
+.gallery-column--hone-listdetailscreen > .gallery-row {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.gallery-list-detail-screen {
+    margin-bottom: var(--hone-space-3);
+}

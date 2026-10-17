@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 
 namespace Hone.Sandbox.Gallery
 {
-    // Hone.Button、Hone.Dialog、Hone.MessageWindow、Hone.Switch、Hone.Toggle、Hone.ToggleGroup、Hone.Pagination、Hone.Cycle、Hone.Tabs、見た目だけの Hone.Card と Hone.Separator と Hone.ScrollArea（Gallery の名前だけで、C# のクラスは無い）と、block の SettingsScreen（Gallery の名前は Hone.SettingsScreen。C# のクラスは無い）を Gallery に載せる。
+    // Hone.Button、Hone.Dialog、Hone.MessageWindow、Hone.Switch、Hone.Toggle、Hone.ToggleGroup、Hone.Pagination、Hone.Cycle、Hone.Tabs、見た目だけの Hone.Card と Hone.Separator と Hone.ScrollArea（Gallery の名前だけで、C# のクラスは無い）と、block の SettingsScreen と ListDetailScreen（Gallery の名前は Hone.SettingsScreen と Hone.ListDetailScreen。block の C# のクラスは無い。ListDetailScreen の配線は sandbox の GalleryListDetailScreen）を Gallery に載せる。
     // Register は sandbox 側から呼ぶ（registry/ 配下のコードには書かない）。呼ぶ時点は README の Gallery の節を参照。
     static class GalleryHoneEntries
     {
@@ -200,8 +200,14 @@ namespace Hone.Sandbox.Gallery
             // Destructive の行の Button で確認の Dialog を開き、Cancel / 確定で閉じる（block は振る舞いを持たないので、配線はここでする）。Dialog は閉じた状態で並ぶ。
             // UXML は Editor でだけ読む（AssetDatabase は Editor 専用）。Player では代わりの案内の Label を返す。
             // 説明（variant の一覧と UXML の使用例）は渡さない。UXML が長く、列の先頭に出すと SettingsScreen が表示領域の外へ押し下げられる（使用例は README にある）。
-            // 初期選択（先頭の登録）は Hone.Button のままにするため、最後に登録する
+            // 初期選択（先頭の登録）は Hone.Button のままにするため、先頭には登録しない
             GalleryController.Register("Hone.SettingsScreen", CreateSettingsScreen, null);
+            // block。ListDetailScreen.uxml を読み込み、画面のタイトルに text を入れ、12 件・1 ページ 5 件のサンプルのデータを GalleryListDetailScreen で配線する（block は振る舞いを持たないので、配線はここでする）。
+            // 各項目の項目名と詳細の説明は text、補足は "#<番号>"。詳細の項目の行の名前（Category / Size / Updated）と値、決定の Button の文言は短い固定文字列のまま。
+            // 最初の項目を選んだ状態で出す（Screen Space の長文の言語では、行の項目名が省略記号になり、詳細の見出しと説明が折り返す）。読み込み中と空は、block の root の userData の GalleryListDetailScreen から SetLoading / SetItems で切り替える。
+            // 一覧の列（40%）に Pagination の前後とページ番号の 5 つの Button が収まるよう、Gallery.uss で短文と長文を縦に積む。
+            // UXML は Editor でだけ読む（SettingsScreen と同じ）。説明は渡さない（SettingsScreen と同じく UXML が長い。使用例は README にある）
+            GalleryController.Register("Hone.ListDetailScreen", CreateListDetailScreen, null);
         }
 
         static Label CreateSeparatorLabel(string text, bool margin)
@@ -278,6 +284,38 @@ namespace Hone.Sandbox.Gallery
             return screen;
 #else
             return new Label("SettingsScreen is shown only in the Editor");
+#endif
+        }
+
+        const string ListDetailScreenPath = "Assets/Hone/Blocks/ListDetailScreen/ListDetailScreen.uxml";
+        const int ListDetailScreenItemCount = 12;
+
+        static VisualElement CreateListDetailScreen(string text)
+        {
+#if UNITY_EDITOR
+            var asset = UnityEditor.AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(ListDetailScreenPath);
+            if (asset == null)
+            {
+                Debug.LogWarning($"Gallery: {ListDetailScreenPath} was not found; ListDetailScreen is shown as a placeholder");
+                return new Label($"{ListDetailScreenPath} was not found");
+            }
+            var screen = asset.Instantiate();
+            screen.AddToClassList("gallery-list-detail-screen");
+            var block = screen.Q(className: "hone-list-detail-screen");
+            block.Q<Label>(className: "hone-list-detail-screen__title").text = text;
+            var categories = new[] { "General", "Tools", "Media" };
+            var items = new List<ListDetailItem>();
+            for (var i = 0; i < ListDetailScreenItemCount; i++)
+            {
+                var number = i + 1;
+                items.Add(new ListDetailItem(text, "#" + number, text, new[] { categories[i % categories.Length], number * 3 + " MB", "Day " + number }));
+            }
+            var wiring = new GalleryListDetailScreen(block);
+            wiring.SetItems(items, 0);
+            block.userData = wiring;
+            return screen;
+#else
+            return new Label("ListDetailScreen is shown only in the Editor");
 #endif
         }
 
