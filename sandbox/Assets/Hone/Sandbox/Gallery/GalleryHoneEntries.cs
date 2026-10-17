@@ -148,7 +148,7 @@ namespace Hone.Sandbox.Gallery
                 return cell;
             }, Describe("Card", "Default / hone-card--compact"));
             // 見た目だけの部品（.cs を持たない）。状態のデモは無いので、横線を text の Label の間に、縦線を短い固定文字列の Label の間に置いて 1 つのセルに縦に積む。
-            // 横線の上下の Label は幅に収まらなければ折り返す（既定の Label は折り返さない）。縦線の行は固定文字列なので、言語を切り替えても変わらない
+            // Label はすべて幅に収まらなければ折り返す（既定の Label は折り返さない）。縦線の行は短い固定文字列なので、実際には折り返さず、言語を切り替えても変わらない
             GalleryController.Register("Hone.Separator", text =>
             {
                 var cell = new VisualElement();

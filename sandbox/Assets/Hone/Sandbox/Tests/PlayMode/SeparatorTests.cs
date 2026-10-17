@@ -11,7 +11,7 @@ using Object = UnityEngine.Object;
 namespace Hone.Sandbox.Tests
 {
     // Editor で実行する前提（UXML と PanelSettings を AssetDatabase から読む）。
-    // Separator は .cs を持たない見た目だけの部品なので、確かめるのは USS が theme を通して当たっていること（resolvedStyle がトークンの値になること）だけ。
+    // Separator は .cs を持たない見た目だけの部品なので、確かめるのは、USS が theme を通して当たっていること（resolvedStyle がトークンの値になること）と、親の幅（高さ）いっぱいに伸びること。
     // 期待値は Tokens.uss の値を書き写したもの。
     // コメントの (B) は Issue #115 の受け入れ条件の番号
     public class SeparatorTests
@@ -64,7 +64,8 @@ namespace Hone.Sandbox.Tests
         }
 
         // Separator.uxml を Instantiate して panel に置き、レイアウトされるまで待つ。
-        // 横線の親（縦並びの枠）は幅を 200px に固定し、縦線の親（横並びの行）の高さは中の Label で決まる
+        // 横線の親（縦並びの枠）は幅を 200px に固定し、縦線の親（横並びの行）の高さは中の Label で決まる。
+        // 2 つの親は align-items を flex-start にして、線が親の既定の stretch ではなく自分の align-self: stretch で伸びることを確かめる
         IEnumerator PlaceSeparators(System.Action<VisualElement, VisualElement, VisualElement> onReady)
         {
             VisualElement root = null;
@@ -75,21 +76,24 @@ namespace Hone.Sandbox.Tests
             root.Add(container);
             var column = container[0];
             column.style.width = 200;
-            var horizontal = column.Q(className: "hone-separator");
+            var horizontal = column.Query(className: "hone-separator").Where(e => !e.ClassListContains("hone-separator--vertical")).First();
             var vertical = column.Q(className: "hone-separator--vertical");
             Assert.IsNotNull(horizontal);
             Assert.IsNotNull(vertical);
+            var row = vertical.parent;
+            column.style.alignItems = Align.FlexStart;
+            row.style.alignItems = Align.FlexStart;
             var frames = 0;
-            while (frames < MaxWaitFrames && !(vertical.worldBound.height > 1f))
+            while (frames < MaxWaitFrames && !(row.worldBound.height > 0f))
             {
                 frames++;
                 yield return null;
             }
-            Assert.Greater(vertical.worldBound.height, 1f, "the separators were not laid out");
+            Assert.Greater(row.worldBound.height, 0f, "the separators were not laid out");
             onReady(column, horizontal, vertical);
         }
 
-        // (B) 横線の高さが --hone-border-width（1px）、背景色が --hone-color-border。縦並びの親の幅いっぱいに伸び、縮まない
+        // (B) 横線の高さが --hone-border-width（1px）、背景色が --hone-color-border。縦並びの親の幅いっぱいに伸びる。flex-shrink は 0
         [UnityTest]
         public IEnumerator Horizontal_ResolvesHeightAndColorFromTokensAndFillsParentWidth()
         {
@@ -101,11 +105,10 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual(1f, style.height);
             Assert.AreEqual(new Color32(0xe4, 0xe4, 0xe7, 0xff), (Color32)style.backgroundColor);
             Assert.AreEqual(column.resolvedStyle.width, style.width);
-            Assert.AreEqual(200f, style.width);
             Assert.AreEqual(0f, style.flexShrink);
         }
 
-        // (B) 縦線の幅が --hone-border-width（1px）、背景色が --hone-color-border。横並びの親の高さいっぱいに伸び、縮まない
+        // (B) 縦線の幅が --hone-border-width（1px）、背景色が --hone-color-border。横並びの親の高さいっぱいに伸びる。flex-shrink は 0
         [UnityTest]
         public IEnumerator Vertical_ResolvesWidthAndColorFromTokensAndFillsParentHeight()
         {

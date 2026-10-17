@@ -1,6 +1,6 @@
 # Separator
 
-要素の間に引く 1px の線。`.cs` を持たない見た目だけの部品で、USS クラスを `VisualElement` に付けて使う。
+要素の間に引く、`--hone-border-width` の太さの線。`.cs` を持たない見た目だけの部品で、USS クラスを `VisualElement` に付けて使う。
 
 ```xml
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
@@ -23,15 +23,15 @@
 
 | variant | USS クラス | 用途 |
 |---|---|---|
-| Horizontal | `hone-separator` | 横線。高さが `--hone-border-width`。縦に並べた親の幅いっぱいに伸びる |
-| Vertical | `hone-separator hone-separator--vertical` | 縦線。幅が `--hone-border-width`。横に並べた親の高さいっぱいに伸びる |
+| Horizontal | `hone-separator` のみ | 横線。高さが `--hone-border-width` |
+| Vertical | `hone-separator hone-separator--vertical` | 縦線。幅が `--hone-border-width` |
 
 どちらも色は `--hone-color-border`。縦線は `hone-separator` と `hone-separator--vertical` の両方を付ける。
 
 ## レイアウト
 
-横線は縦並びの親（既定の `flex-direction: column`）の中で、縦線は横並びの親（`flex-direction: row`）の中で、親の幅（高さ）いっぱいに伸びる。向きが逆の親の中に置くと、線の長さが 0 になる。
-`flex-shrink: 0` なので、親が狭くなっても線は消えない。
+横線は縦並びの親（既定の `flex-direction: column`）の中で、縦線は横並びの親（`flex-direction: row`）の中で、親の幅（高さ）いっぱいに伸びる。向きが逆の親の中に置くと、線の長さが 0 になる（伸ばしたいときは、`flex-grow: 1` か `width` / `height` を自分で付ける）。
+`flex-shrink: 0` なので、並びの方向に親の大きさが足りなくても（横線は親の高さ、縦線は親の幅）、線の太さは縮まない。
 線の両側の余白は持たない。使用例の Label のように、隣の要素に `margin` を付ける。
 文字を挟んだ区切り（「または」付きの線）は持たない。
 
