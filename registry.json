@@ -63,7 +63,7 @@
         { "path": "UI/MessageWindow/MessageWindow.uss", "type": "registry:ui" },
         { "path": "UI/MessageWindow/README.md", "type": "registry:ui" }
       ],
-      "registryDependencies": ["Core"],
+      "registryDependencies": ["Core", "Button"],
       "dependencies": [],
       "classes": ["Hone.MessageWindow"]
     },

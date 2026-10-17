@@ -157,13 +157,17 @@
     padding: 4px;
 }
 
-/* Hone.MessageWindow のセル。MessageWindow は親の幅に従うので、幅が中身で決まる行に置くと最小幅まで潰れて 1 文字ずつ折り返す（6000.7.0b2）。
+/* Hone.MessageWindow のセル（▼ の窓と選択肢の窓を縦に積む）。MessageWindow は親の幅に従うので、幅が中身で決まる行に置くと最小幅まで潰れて 1 文字ずつ折り返す（6000.7.0b2）。
  * 幅の決め方は .gallery-dialog と同じ（基準を px で持ち、行の残りまで伸ばす） */
 .gallery-message-window {
     width: 480px;
     flex-grow: 1;
     flex-shrink: 0;
     margin-right: 4px;
+}
+
+.gallery-message-window > * {
+    margin-bottom: 2px;
 }
 
 /* block の ListDetailScreen は、一覧の列（画面の 40%）に Pagination の前後とページ番号の 5 つの Button（縮まない）を収める幅が要る。

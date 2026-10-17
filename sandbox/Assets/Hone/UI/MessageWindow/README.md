@@ -2,7 +2,7 @@
 
 複数ページの文章を 1 ページずつ出し、Submit（またはクリック）で次へ送るメッセージウィンドウ。文字送り（1 文字ずつ表示）を持つ。
 既定は即時表示で、速さは `charactersPerSecond` で受け取る。headless 層（`Hone.Core`）の `FocusScope` や `BackStack` は使わない（下の「headless 層との関係」）。
-話者はページごとに `Page` で渡すと名札の `Label` に出る。選択肢、送りの音、1 文字ごとのイベントは持たない。
+話者はページごとに `Page` で渡すと名札の `Label` に出る。ページの最後に 1 個か 2 個の選択肢を出せる（下の「選択肢」）。送りの音、1 文字ごとのイベントは持たない。
 
 ```xml
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:hone="Hone">
@@ -26,7 +26,7 @@ window.Show((string[])null);
 window.Focus();
 ```
 
-slot は持たず、UXML の子要素は想定しない（入れると ▼ の後ろに並ぶ）。中身は名札の `Label`、text の `Label`、▼ の `Label` で、コンストラクタが作る。
+slot は持たず、UXML の子要素は想定しない（入れると選択肢の並びの後ろに並ぶ）。中身は名札の `Label`、text の `Label`、▼ の `Label`、選択肢の並びで、コンストラクタが作る。
 `text` 属性は 1 ページだけを出す UXML での確認用。複数ページは `Show()` で渡す。
 
 ### 話者の渡し方
@@ -69,29 +69,54 @@ window.Show(
 }
 ```
 
+### 選択肢
+
+ページの `choices` に文字列を 1 個か 2 個渡すと、そのページの全文が出たところで、選択肢ごとの `Hone.Button`（variant は `outline`）を本文の下に右寄せの横並びで出す。
+押すと `choiceSelected` が選択肢の index で 1 回出て、そのあと `Advance()` と同じく次のページへ進むか、最後のページなら `completed` が出る。
+
+- 選択肢を出している間（`is-choosing`）は、窓への Submit と、選択肢の外のクリックでは進まない（`Advance()` も何もしない）。▼ は出ない。
+- 選択肢を出した時点で窓にフォーカスがあれば、最初の選択肢へフォーカスを移す（ゲームパッドで続けて選べる）。`FocusScope` の trap はしない。
+- 選択肢を押した後は Button が消える。押す前にフォーカスが窓の中にあったなら、次のページの窓（次のページも選択肢なら最初の選択肢）へフォーカスを戻す。`completed` が出たときは戻さない。
+- 分岐は持たない。どの選択肢でどのページへ行くかは、利用者が `choiceSelected` を受けて `Show` し直す。`choiceSelected` の中で `Show` したときは、部品は次のページへ進まない（新しい 1 ページ目がそのまま出る）。
+- `choices` が `null` のページは選択肢なし（今までどおり Submit とクリックで送る）。空の配列と 3 個以上は `Page` のコンストラクタが `ArgumentException` にする（選択肢 0 個のページは、何も押せなくなるため）。`null` の要素は空文字列として出す。
+- 選択肢の Button は縮まず折り返さない（Button.uss）。幅が足りないときは並びが折り返して次の行に出る。長い文言を入れない。
+
+```csharp
+window.choiceSelected += index =>
+{
+    if (index == 0)
+        window.Show("セーブしました。");
+};
+window.Show(new Hone.MessageWindow.Page(null, "旅の記録を 残していきますか？", choices: new[] { "はい", "いいえ" }));
+window.Focus();
+```
+
 ## API
 
 | 名前 | 意味 |
 |---|---|
 | `text` | 属性。set は `Show(value)` と同じだが、空文字列と `null` はページ無しになる（`Show("")` は空のページが 1 つになり、`Advance()` で `completed` が出る）。get は今のページの文字列（ページが無ければ空文字列） |
 | `charactersPerSecond` | 属性。文字送りの速さ。既定 0。ページの開始時に 0 以下（NaN と無限大も）なら即時表示。文字送りの途中で変えると、その時点から新しい速さで進む（出ている文字は減らない）。0 以下にすると全文が出る |
-| `Page` | `MessageWindow` の中の型（`speaker` と `text` と `className`）。値は渡したまま持つ。`Page(speaker, text, className = null)`。`Show` は、`speaker` が `null` か空文字列のページを話者なし、`text` が `null` のページを空文字列として扱う。`className` はそのページを出している間だけ窓に付くクラス名（下の「ページごとの見た目」） |
+| `Page` | `MessageWindow` の中の型（`speaker` と `text` と `className` と `choices`）。値は渡したまま持つ。`Page(speaker, text, className = null, choices = null)`。`Show` は、`speaker` が `null` か空文字列のページを話者なし、`text` が `null` のページを空文字列として扱う。`className` はそのページを出している間だけ窓に付くクラス名（上の「ページごとの見た目」）。`choices` は選択肢の文字列で、`null` か 1〜2 個（空の配列と 3 個以上は `ArgumentException`。上の「選択肢」） |
 | `Show(params Page[] pages)` | 1 ページ目から出し直す。送りの途中でも最初からやり直す。`null` と空の配列はページ無し。`null` は型を付けて渡す（`Show((Page[])null)`。`Show(null)` と引数なしの `Show()` は 2 つの `Show` のどちらか決まらずコンパイルエラー） |
 | `Show(params string[] pages)` | 話者なしのページとして `Show(params Page[])` と同じに扱う。`null` のページは空文字列 |
 | `Advance()` | Submit とクリックと同じ処理（下の表） |
 | `pageIndex` | 今のページ。ページが無いときは -1（読み取りのみ） |
 | `pageCount` | ページ数（読み取りのみ） |
-| `completed` | 最後のページで全文が出た後に `Advance()` されたとき 1 回出るイベント。次の `Show` まで再び出ない |
+| `completed` | 最後のページで全文が出た後に `Advance()` されたとき 1 回出るイベント。最後のページの選択肢を押したときも出る。次の `Show` まで再び出ない |
+| `choiceSelected` | 選択肢を押したとき 1 回出るイベント（`Action<int>`。引数は `choices` の index）。このあと次のページへ進むか `completed` が出る。この中で `Show` したときは進まない |
 
 ## Advance の処理
 
 入力は `NavigationSubmitEvent`（フォーカスがあるとき）と `ClickEvent`（ウィンドウのどこでも）の 2 つだけ。どちらも `Advance()` を呼び、祖先には伝播させない。
+選択肢の Button への Submit とクリックは、その選択肢を押したことになり、窓の `Advance()` は呼ばない（祖先にも伝播させない）。
 押すたびに 1 歩進む。出ている途中なら全部出し、出きっていれば次へ。
 
 | 今の状態 | Advance したとき |
 |---|---|
 | ページが無い（`Show` 前） | 何もしない |
 | 文字送りの途中 | そのページの全文を出す（ページは進めない） |
+| 選択肢を出している（`is-choosing`） | 何もしない（選択肢を押すと進む） |
 | 全文が出ていて、次のページがある | 次のページへ進み、文字送りを始める |
 | 最後のページで全文が出ている（`completed` 前） | `completed` を 1 回出す |
 | `completed` の後 | 何もしない（次の `Show` まで） |
@@ -103,14 +128,17 @@ window.Show(
 | `hone-message-window` | MessageWindow 自身。`hone-focusable` も付く（Submit を受け取るためにフォーカスを取る。`tabIndex = 0`） |
 | `hone-message-window__speaker` | 話者の名札の `Label`（先頭の子）。`is-speaker-set` の間だけ出る。文字送りしない。rich text として解釈しない。長い名前は省略記号で切る |
 | `hone-message-window__text` | ページの文字列の `Label`。折り返す |
-| `hone-message-window__indicator` | ▼ の `Label`。`is-waiting` の間だけ見える |
+| `hone-message-window__indicator` | ▼ の `Label`。`is-waiting` の間だけ見える。`is-choosing` の間は行ごと詰める（`display: none`） |
+| `hone-message-window__choices` | 選択肢の並び（最後の子）。選択肢の無いページでは子が無く、高さは 0 |
+| `hone-message-window__choice` | 選択肢の `Hone.Button`（variant は `outline`）。`is-choosing` の間だけ並びの子にある |
 | `is-speaker-set` | MessageWindow に付く状態クラス。今のページの `speaker` が `null` でも空文字列でもない間。名札の表示はこのクラスと USS で切り替わり、C# から `display` を書かない（利用者の USS で隠せなくなるため）。ページが無いときは付かない |
 | ページの `className` | MessageWindow 自身に付く、利用者が `Page` で渡したクラス。そのページを出している間（文字送りの途中の `.is-revealing` の間も）付く。`null` か空文字列なら付かない。窓に既に付いているクラス（`hone-message-window` `hone-focusable`、状態クラスの `is-speaker-set` `is-revealing` `is-waiting`、利用者が自分で付けたクラス）と同じ名前は使わない。ページが変わるとそのクラスごと外れる |
 | `is-revealing` | MessageWindow に付く状態クラス。文字送りの途中の間 |
-| `is-waiting` | MessageWindow に付く状態クラス。全文が出ていて、次のページがある間（▼ が見える） |
+| `is-waiting` | MessageWindow に付く状態クラス。全文が出ていて、次のページがある間（▼ が見える）。選択肢を出している間は付かない |
+| `is-choosing` | MessageWindow に付く状態クラス。選択肢を出していて、まだ押されていない間 |
 
-最後のページで全文が出ているときは、`is-revealing` も `is-waiting` も付かない。
-部品は演出を持たない。▼ の点滅や揺れ、送りの音は、この 2 つの状態クラスを使って利用者が書く。
+最後のページで全文が出ているときは、`is-revealing` も `is-waiting` も付かない（選択肢のあるページなら `is-choosing` が付く）。
+部品は演出を持たない。▼ の点滅や揺れ、送りの音、選択肢の決定の音は、これらの状態クラスとイベントを使って利用者が書く。
 
 幅は親に従い、高さは内容に従う。ページで行数が変わると高さが変わる。
 フォーカスの ring（`.hone-focusable`）は border の幅を `--hone-border-width` から `--hone-ring-width` に変えるので、その分だけ text の幅が狭まり、折り返しと高さが変わることがある。クリックもフォーカスを取るので、最初のクリックで変わりうる。
@@ -131,3 +159,4 @@ window.Show(
 ## headless 層との関係
 
 C# では `Hone.Core`（`FocusScope`、`BackStack`）を使わない。見た目は Core.uss の `.hone-focusable`（focus ring）と `.hone-text`（本文フォント）に依存するので、registry の依存に `Core` がある。
+選択肢に `Hone.Button` を使うので、registry の依存に `Button` もある。選択肢へのフォーカスは移すだけで、`FocusScope` の trap は使わない。

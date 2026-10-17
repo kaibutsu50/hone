@@ -11,29 +11,41 @@ namespace Hone
     // 未表示の文字も描かれる（透明なだけ）ので、行の折り返しと高さは送りの途中でも全文のときと同じになる。
     // 演出（速さ、▼ の点滅、送りの音）は持たない。.is-revealing と .is-waiting の状態クラスを付け外しするだけで、速さは charactersPerSecond で受け取る。
     //
+    // 選択肢（1 個か 2 個）は Page の choices で渡す。全文が出たら選択肢ごとの Hone.Button を出し、.is-choosing の間は Advance() が何もしない。
+    // 選択肢を押すと choiceSelected（index）を出してから、Advance() と同じく次のページへ進むか completed を出す。分岐は利用者が choiceSelected で Show し直して行う。
+    //
     // 話者の名札は、ページごとに Page で渡す。名札は文字送りせず、ページの開始時に全文を出す。表示の切り替えは .is-speaker-set と USS に任せる（C# から display を書かない）。
     // ページごとの見た目（文字色、フォント）は、Page の className を窓に付けるだけで、値は USS が決める（C# から style を書かない）。
     //
-    // 構造: MessageWindow（.hone-message-window）> 名札の Label（.hone-message-window__speaker）+ text の Label（.hone-message-window__text）+ ▼ の Label（.hone-message-window__indicator）。
-    // slot は持たず、UXML の子要素は想定しない（contentContainer は自分自身なので、入れると ▼ の後ろに並ぶ）。
+    // 構造: MessageWindow（.hone-message-window）> 名札の Label（.hone-message-window__speaker）+ text の Label（.hone-message-window__text）+ ▼ の Label（.hone-message-window__indicator）
+    // + 選択肢の並び（.hone-message-window__choices。選択肢を出している間だけ、子に .hone-message-window__choice の Hone.Button を持つ）。
+    // slot は持たず、UXML の子要素は想定しない（contentContainer は自分自身なので、入れると選択肢の並びの後ろに並ぶ）。
     [UxmlElement]
     public partial class MessageWindow : VisualElement
     {
         // 1 ページ分。値は渡したまま持つ。Show は、speaker が null か空文字列のページを話者なし（名札は出ない）、text が null のページを空文字列として扱う。
-        // className は、そのページを出している間だけ窓（MessageWindow 自身）に付くクラス名。null か空文字列なら付かない
+        // className は、そのページを出している間だけ窓（MessageWindow 自身）に付くクラス名。null か空文字列なら付かない。
+        // choices は選択肢の文字列。null は選択肢なし。選択肢 0 個のページは操作できなくなるので、空の配列と 3 個以上は ArgumentException。null の要素は空文字列として出す
         public readonly struct Page
         {
             public readonly string speaker;
             public readonly string text;
             public readonly string className;
+            public readonly string[] choices;
 
-            public Page(string speaker, string text, string className = null)
+            public Page(string speaker, string text, string className = null, string[] choices = null)
             {
+                if (choices != null && (choices.Length == 0 || choices.Length > MaxChoices))
+                    throw new ArgumentException($"choices must be null or have 1 to {MaxChoices} items, but had {choices.Length}", nameof(choices));
                 this.speaker = speaker;
                 this.text = text;
                 this.className = className;
+                this.choices = choices;
             }
         }
+
+        const int MaxChoices = 2;
+        const string ChoiceClass = "hone-message-window__choice";
 
         const long TickIntervalMs = 16;
 
@@ -63,11 +75,15 @@ namespace Hone
 
         public int pageCount => m_Pages.Length;
 
-        // 最後のページで、全文が出た後に Advance() されたとき 1 回。次の Show まで再び出ない
+        // 最後のページで、全文が出た後に Advance() されたとき 1 回。次の Show まで再び出ない。選択肢を押して最後のページを終えたときも出る
         public event Action completed;
+
+        // 選択肢を押したとき 1 回。引数は choices の index。このあと次のページへ進むか completed を出す（この中で Show したときは進まない）
+        public event Action<int> choiceSelected;
 
         readonly Label m_Speaker;
         readonly Label m_Text;
+        readonly VisualElement m_Choices;
 
         Page[] m_Pages = Array.Empty<Page>();
         int m_PageIndex = -1;
@@ -81,6 +97,12 @@ namespace Hone
         IVisualElementScheduledItem m_Ticker;
         // 窓に付けているページのクラス名（付けていなければ null）
         string m_PageClass;
+        // 選択肢を出していて、まだ選ばれていない間 true
+        bool m_Choosing;
+        // Show の回数。choiceSelected の中で Show されたかを見分ける
+        int m_ShowCount;
+        // 選択肢を押した処理の中で、次に出す選択肢へフォーカスを移すか（押した Button はもう外れているので、フォーカスの位置からは判定できない）
+        bool m_FocusNextChoices;
 
         public MessageWindow()
         {
@@ -105,6 +127,10 @@ namespace Hone
             indicator.AddToClassList("hone-text");
             Add(indicator);
 
+            m_Choices = new VisualElement();
+            m_Choices.AddToClassList("hone-message-window__choices");
+            Add(m_Choices);
+
             RegisterCallback<NavigationSubmitEvent>(OnSubmit);
             RegisterCallback<ClickEvent>(OnClick);
             RegisterCallback<DetachFromPanelEvent>(OnDetachFromPanel);
@@ -128,10 +154,12 @@ namespace Hone
         // null は型を付けて渡す（Show(null) と引数なしの Show() は、2 つの Show のどちらか決まらずコンパイルエラー）
         public void Show(params Page[] pages)
         {
+            m_ShowCount++;
             StopReveal();
             m_Completed = false;
             if (pages == null || pages.Length == 0)
             {
+                ClearChoices();
                 m_Pages = Array.Empty<Page>();
                 m_PageIndex = -1;
                 m_ElementStarts = Array.Empty<int>();
@@ -143,21 +171,27 @@ namespace Hone
             }
             m_Pages = new Page[pages.Length];
             for (var i = 0; i < pages.Length; i++)
-                m_Pages[i] = new Page(pages[i].speaker, pages[i].text ?? "", pages[i].className);
+                m_Pages[i] = new Page(pages[i].speaker, pages[i].text ?? "", pages[i].className, pages[i].choices);
             StartPage(0);
         }
 
         // Submit とクリックと同じ処理。文字送りの途中なら全文を出し、全文が出ていれば次のページへ進む。
-        // 最後のページで全文が出ていれば completed を 1 回出す。ページが無いときと completed の後は何もしない
+        // 最後のページで全文が出ていれば completed を 1 回出す。ページが無いとき、選択肢を出している間、completed の後は何もしない
         public void Advance()
         {
-            if (m_PageIndex < 0)
+            if (m_PageIndex < 0 || m_Choosing)
                 return;
             if (m_Revealing)
             {
                 FinishReveal();
                 return;
             }
+            Next();
+        }
+
+        // 全文が出ているページから、次のページへ進むか completed を出す
+        void Next()
+        {
             if (m_PageIndex < m_Pages.Length - 1)
             {
                 StartPage(m_PageIndex + 1);
@@ -175,6 +209,7 @@ namespace Hone
         void StartPage(int index)
         {
             StopReveal();
+            ClearChoices();
             m_PageIndex = index;
             var page = m_Pages[index].text;
             m_Speaker.text = m_Pages[index].speaker ?? "";
@@ -189,6 +224,7 @@ namespace Hone
             else
             {
                 Render(m_ElementStarts.Length);
+                ShowChoices();
             }
             UpdateStateClasses();
             UpdatePageClass();
@@ -220,7 +256,65 @@ namespace Hone
         {
             StopReveal();
             Render(m_ElementStarts.Length);
+            ShowChoices();
             UpdateStateClasses();
+        }
+
+        // 全文が出たときに呼ぶ。今のページに選択肢があれば Button を出し、窓（か押した選択肢）にフォーカスがあれば最初の選択肢へ移す
+        void ShowChoices()
+        {
+            var choices = m_Pages[m_PageIndex].choices;
+            if (choices == null || m_Choosing)
+                return;
+            var moveFocus = m_FocusNextChoices || HasFocusWithin();
+            m_Choosing = true;
+            for (var i = 0; i < choices.Length; i++)
+            {
+                var index = i;
+                var button = new Button { text = choices[i] ?? "", variant = Button.Variant.Outline };
+                button.AddToClassList(ChoiceClass);
+                button.clicked += () => Choose(index);
+                m_Choices.Add(button);
+            }
+            if (moveFocus)
+                m_Choices[0].Focus();
+        }
+
+        void ClearChoices()
+        {
+            m_Choosing = false;
+            m_Choices.Clear();
+        }
+
+        // 選択肢を外してから choiceSelected を出し、その中で Show されていなければ次へ進む。
+        // 押す前にフォーカスが窓の中にあったなら、外した Button に残らないよう、次の選択肢か窓へ移す（completed の後は、利用者が移した先を上書きしないよう移さない）
+        void Choose(int index)
+        {
+            if (!m_Choosing)
+                return;
+            var hadFocus = HasFocusWithin();
+            ClearChoices();
+            UpdateStateClasses();
+            var showCount = m_ShowCount;
+            m_FocusNextChoices = hadFocus;
+            try
+            {
+                choiceSelected?.Invoke(index);
+                if (m_ShowCount == showCount)
+                    Next();
+            }
+            finally
+            {
+                m_FocusNextChoices = false;
+            }
+            if (hadFocus && !m_Choosing && !m_Completed && m_PageIndex >= 0)
+                Focus();
+        }
+
+        bool HasFocusWithin()
+        {
+            var focused = focusController?.focusedElement as VisualElement;
+            return focused != null && (focused == this || Contains(focused));
         }
 
         void StopReveal()
@@ -255,7 +349,8 @@ namespace Hone
         {
             EnableInClassList("is-speaker-set", m_PageIndex >= 0 && !string.IsNullOrEmpty(m_Pages[m_PageIndex].speaker));
             EnableInClassList("is-revealing", m_Revealing);
-            EnableInClassList("is-waiting", !m_Revealing && m_PageIndex >= 0 && m_PageIndex < m_Pages.Length - 1);
+            EnableInClassList("is-waiting", !m_Revealing && !m_Choosing && m_PageIndex >= 0 && m_PageIndex < m_Pages.Length - 1);
+            EnableInClassList("is-choosing", m_Choosing);
         }
 
         // 前のページのクラスを外してから、今のページのクラスを付ける（同じ名前なら付いたまま）。値は検証せず、1 つのクラス名としてそのまま付ける
@@ -273,18 +368,23 @@ namespace Hone
                 AddToClassList(m_PageClass);
         }
 
-        // Submit とクリックは、この部品が 1 歩進める入力として消費し、祖先には届けない
+        // Submit とクリックは、この部品が 1 歩進める入力として消費し、祖先には届けない。
+        // 選択肢の Button からの泡立ちでは進めない（押した処理で次のページへ進み、Button が外れた後に届くので、状態ではなく target のクラスで見分ける）
         void OnSubmit(NavigationSubmitEvent evt)
         {
-            Advance();
+            if (!IsChoice(evt.target))
+                Advance();
             evt.StopPropagation();
         }
 
         void OnClick(ClickEvent evt)
         {
-            Advance();
+            if (!IsChoice(evt.target))
+                Advance();
             evt.StopPropagation();
         }
+
+        static bool IsChoice(IEventHandler target) => target is VisualElement element && element.ClassListContains(ChoiceClass);
 
         // panel から外れたら送りを止め、そのページの全文を出した状態にする（付け直しても再開しない）
         void OnDetachFromPanel(DetachFromPanelEvent evt)

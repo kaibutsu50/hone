@@ -52,14 +52,20 @@ namespace Hone.Sandbox.Gallery
             // 2 ページにして、1 ページ目で次のページがある状態（.is-waiting の ▼）を写す。charactersPerSecond は 0（即時表示）のまま。
             // MessageWindow は親の幅に従うので、セルの幅は Gallery.uss の .gallery-message-window で確定させる。
             // Show は Dialog の Open と揃えて attach の時点で呼ぶ（即時表示なので attach 前に呼んでも同じに出る）。
-            // 1 ページ目は話者を text を 3 回つないだものにして名札を写す（長文のセルでは幅を超え、省略記号で切れる）。2 ページ目は話者なし
+            // 1 ページ目は話者を text を 3 回つないだものにして名札を写す（長文のセルでは幅を超え、省略記号で切れる）。2 ページ目は話者なし。
+            // その下に、2 個の選択肢を持つ 1 ページの窓を積んで、選択肢を出した状態（.is-choosing）を写す。選択肢の文言は Dialog のボタンと同じ理由（Button は縮まず折り返さない）で短い固定文字列にする
             GalleryController.Register("Hone.MessageWindow", text =>
             {
+                var cell = new VisualElement();
+                cell.AddToClassList("gallery-message-window");
                 var window = new MessageWindow();
-                window.AddToClassList("gallery-message-window");
                 var speaker = text + " " + text + " " + text;
                 window.RegisterCallbackOnce<AttachToPanelEvent>(evt => window.Show(new MessageWindow.Page(speaker, text), new MessageWindow.Page(null, text)));
-                return window;
+                cell.Add(window);
+                var choosing = new MessageWindow();
+                choosing.RegisterCallbackOnce<AttachToPanelEvent>(evt => choosing.Show(new MessageWindow.Page(null, text, choices: new[] { "Yes", "No" })));
+                cell.Add(choosing);
+                return cell;
             }, Describe("MessageWindow"));
             // off と on を 1 つのセルに縦に積む。文言は label に入れる（text は track の中に入る）。長文の言語では label が省略記号で切れ、track は右端に残る。
             // hone-focusable は付けていないので ring は写らない（Switch の ring は track の border。GalleryFocus の当て先にもならない）
