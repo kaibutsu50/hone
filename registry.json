@@ -200,6 +200,35 @@
       "classes": []
     },
     {
+      "name": "Progress",
+      "type": "registry:ui",
+      "title": "Progress",
+      "description": "ProgressBar を継承し、value の割合を細いバーで出す進捗表示（見た目だけを変え、title は既定で出さない）",
+      "files": [
+        { "path": "UI/Progress/Progress.cs", "type": "registry:ui" },
+        { "path": "UI/Progress/Progress.uxml", "type": "registry:ui" },
+        { "path": "UI/Progress/Progress.uss", "type": "registry:ui" },
+        { "path": "UI/Progress/README.md", "type": "registry:ui" }
+      ],
+      "registryDependencies": ["Core"],
+      "dependencies": [],
+      "classes": ["Hone.Progress"]
+    },
+    {
+      "name": "Spinner",
+      "type": "registry:ui",
+      "title": "Spinner",
+      "description": "待っていることを示す、上の 1 辺を透明にした輪（見た目だけの部品。.cs を持たず、回転は利用者が注入する）",
+      "files": [
+        { "path": "UI/Spinner/Spinner.uxml", "type": "registry:ui" },
+        { "path": "UI/Spinner/Spinner.uss", "type": "registry:ui" },
+        { "path": "UI/Spinner/README.md", "type": "registry:ui" }
+      ],
+      "registryDependencies": ["Core"],
+      "dependencies": [],
+      "classes": []
+    },
+    {
       "name": "SettingsScreen",
       "type": "registry:block",
       "title": "SettingsScreen",

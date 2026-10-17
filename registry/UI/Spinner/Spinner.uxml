@@ -1,0 +1,6 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement style="flex-direction: row; align-items: center;">
+        <ui:VisualElement class="hone-spinner" />
+        <ui:Label text="Loading..." class="hone-text" style="margin-left: 8px;" />
+    </ui:VisualElement>
+</ui:UXML>

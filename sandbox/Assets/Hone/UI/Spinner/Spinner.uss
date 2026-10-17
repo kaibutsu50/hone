@@ -1,0 +1,14 @@
+/* 大きさ・角丸・枠の太さ・色は Tokens.uss のトークン。transparent はトークンを持たない。
+ * shadcn の Spinner（Loader2Icon の size-4。色は文字色）を、枠の上の 1 辺を透明にした円で描く。
+ * 角丸は --hone-size-spinner の半分の --hone-radius-spinner で、正方形の要素が円になる。
+ * 回転は持たない（transition も rotate も書かない）。回転は演出なので、利用者が Manipulator などで注入する（README）。
+ * flex-shrink: 0 は、横並びの親（文言と並べた行）の幅が足りなくても、円が潰れないようにする。 */
+.hone-spinner {
+    width: var(--hone-size-spinner);
+    height: var(--hone-size-spinner);
+    flex-shrink: 0;
+    border-width: var(--hone-border-width);
+    border-radius: var(--hone-radius-spinner);
+    border-color: var(--hone-color-foreground);
+    border-top-color: transparent;
+}

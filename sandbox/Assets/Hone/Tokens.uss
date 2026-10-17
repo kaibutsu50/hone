@@ -19,6 +19,8 @@
     --hone-color-ring: #a1a1aa;
     /* Dialog の overlay。shadcn と同じ黒の半透明 */
     --hone-color-overlay: rgba(0, 0, 0, 0.5);
+    /* Progress の溝。shadcn の bg-primary/20 で、--hone-color-primary（#18181b）の 20%。var() は rgba() の中に書けないので完成形で持つ。--hone-color-primary を変えたら揃える */
+    --hone-color-progress-track: rgba(24, 24, 27, 0.2);
 
     --hone-radius-sm: 4px;
     --hone-radius-md: 6px;
@@ -33,6 +35,13 @@
     /* スクロールバーのつまみの角丸。下の --hone-size-scrollbar の半分で、つまみの両端が半円になる。
      * --hone-size-scrollbar を変えたら、その半分に揃える。理由は --hone-radius-switch と同じ（要素の大きさを超える角丸は、Unity が縦横の軸ごとに別々に縮めて楕円に描く） */
     --hone-radius-scrollbar: 5px;
+
+    /* Progress の track と indicator の角丸。下の --hone-size-progress の半分で、両端が半円になる。
+     * --hone-size-progress を変えたら、その半分に揃える。理由は --hone-radius-switch と同じ（要素の大きさを超える角丸は、Unity が縦横の軸ごとに別々に縮めて楕円に描く） */
+    --hone-radius-progress: 4px;
+
+    /* Spinner の輪の角丸。下の --hone-size-spinner の半分で、正方形の要素が円になる。--hone-size-spinner を変えたら、その半分に揃える */
+    --hone-radius-spinner: 8px;
 
     --hone-space-1: 4px;
     --hone-space-2: 8px;
@@ -59,6 +68,10 @@
     --hone-size-switch-thumb: 20px;
     /* 縦のスクロールバーの幅。shadcn の Scroll Area の w-2.5。World Space でレイ（ポインタ）で掴みやすくしたいときは、HoneTheme.tss の :root で上書きする。上書きしたら --hone-radius-scrollbar もその半分に揃える */
     --hone-size-scrollbar: 10px;
+    /* Progress の高さ。shadcn の Progress の h-2。角丸は上の --hone-radius-progress（高さの半分） */
+    --hone-size-progress: 8px;
+    /* Spinner の輪の大きさ（幅と高さ）。shadcn の Spinner の size-4。角丸は上の --hone-radius-spinner（大きさの半分） */
+    --hone-size-spinner: 16px;
 
     --hone-ring-width: 2px;
     /* 未使用。Core.uss の ring は border で描くので、offset を表現できない */
