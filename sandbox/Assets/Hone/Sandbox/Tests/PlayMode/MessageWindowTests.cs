@@ -886,7 +886,8 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual(0, bubbled, "the click on a choice must not reach the ancestors");
         }
 
-        // 選択肢の Button の子要素が target の ClickEvent では、窓は進まず、選ばれず、祖先へも伝わらない
+        // 選択肢の Button の子孫が target の ClickEvent では、窓は進まず、祖先へも伝わらない（合成した ClickEvent では Button の clicked は出ない）。
+        // 押した処理で Button が外れた後に届く ClickEvent は窓まで届かないので、祖先を辿る判定そのものは、このテストでも Submit 側のテストでも区別できない（古い判定の実装に戻しても通ることを確かめた）
         [UnityTest]
         public IEnumerator Choosing_ClickEventOnChoiceChild_DoesNotAdvanceOrReachAncestors()
         {
@@ -901,9 +902,11 @@ namespace Hone.Sandbox.Tests
             window.Show(ChoicePage("question", "yes", "no"), new MessageWindow.Page(null, "next"));
             yield return Settle();
             var child = new VisualElement();
+            var grandchild = new VisualElement();
+            child.Add(grandchild);
             ChoicesOf(window)[0].Add(child);
 
-            ClickTo(child);
+            ClickTo(grandchild);
             yield return Settle();
 
             Assert.AreEqual(0, window.pageIndex);
@@ -912,7 +915,7 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual(0, bubbled, "the click on a child of a choice must not reach the ancestors");
         }
 
-        // 選択肢の Button の子要素が target の NavigationSubmitEvent では、Button が 1 回選び、窓は重ねて進めない（次のページで止まる）
+        // 選択肢の Button の子孫が target の NavigationSubmitEvent では、Button が 1 回選び、窓の側の処理は重ねて進めない（次のページで止まる）
         [UnityTest]
         public IEnumerator Choosing_SubmitOnChoiceChild_SelectsOnceWithoutExtraAdvance()
         {
@@ -920,19 +923,23 @@ namespace Hone.Sandbox.Tests
             yield return CreatePanel(r => root = r);
             var window = new MessageWindow();
             var selected = new List<int>();
-            window.choiceSelected += selected.Add;
+            var choosingInHandler = true;
+            window.choiceSelected += index => { selected.Add(index); choosingInHandler = window.isChoosing; };
             root.Add(window);
             window.Show(ChoicePage("question", "yes", "no"), new MessageWindow.Page(null, "second"), new MessageWindow.Page(null, "third"));
             yield return Settle();
             var child = new VisualElement();
+            var grandchild = new VisualElement();
+            child.Add(grandchild);
             ChoicesOf(window)[1].Add(child);
 
-            SubmitTo(child);
+            SubmitTo(grandchild);
             yield return Settle();
 
             CollectionAssert.AreEqual(new[] { 1 }, selected);
             Assert.AreEqual(1, window.pageIndex);
             Assert.IsFalse(window.isChoosing);
+            Assert.IsFalse(choosingInHandler, "isChoosing inside choiceSelected");
         }
 
         // isChoosing は選択肢を出している間だけ true
@@ -959,7 +966,7 @@ namespace Hone.Sandbox.Tests
             Assert.IsFalse(window.isChoosing, "after choosing");
         }
 
-        // Show の後に元の choices 配列を書き換えても、出る選択肢の文字列は変わらない
+        // Show の後に元の choices 配列を書き換えても、これから出る選択肢の文字列は変わらない
         [UnityTest]
         public IEnumerator Show_MutatingChoicesArrayAfterShow_DoesNotChangeChoices()
         {
@@ -968,9 +975,12 @@ namespace Hone.Sandbox.Tests
             var window = new MessageWindow();
             root.Add(window);
             var choices = new[] { "yes", "no" };
-            window.Show(ChoicePage("question", choices));
+            window.Show(new MessageWindow.Page(null, "first"), ChoicePage("question", choices));
             choices[0] = "changed";
             choices[1] = "changed";
+            yield return Settle();
+
+            window.Advance();
             yield return Settle();
 
             var buttons = ChoicesOf(window);

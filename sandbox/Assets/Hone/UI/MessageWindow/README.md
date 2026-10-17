@@ -74,7 +74,7 @@ window.Show(
 ページの `choices` に文字列を 1 個か 2 個渡すと、そのページの全文が出たところで、選択肢ごとの `Hone.Button`（variant は `outline`）を本文の下に右寄せの横並びで出す。
 押すと `choiceSelected` が選択肢の index で 1 回出て、そのあと `Advance()` と同じく次のページへ進むか、最後のページなら `completed` が出る。
 
-- 選択肢を出している間（`is-choosing`）は、窓への Submit と、選択肢の外のクリックでは進まない（`Advance()` も何もしない）。選択肢の Button とその子要素への Submit とクリックも、窓は進めない（Button の押下で選ばれる）。この間 `isChoosing` が true。▼ は出ない。
+- 選択肢を出している間（`is-choosing`）は、窓への Submit と、選択肢の外のクリックでは進まない（`Advance()` も何もしない）。選択肢の Button とその子要素への Submit とクリックでは、窓自身は進めない（Button の押下で選ばれ、その結果として 1 回だけ進む）。この間 `isChoosing` が true。▼ は出ない。
 - 選択肢を出した時点で窓にフォーカスがあれば、最初の選択肢へフォーカスを移す（ゲームパッドで続けて選べる）。窓にフォーカスが無ければ移さない。
 - `FocusScope` の trap はしない。Tab や 2D ナビゲーションで、フォーカスは窓自身や窓の外へも出る（窓にフォーカスが戻っても、Submit では選べない）。Cancel で選択肢を選ぶ動作も持たない。
 - 選択肢を押した後は Button が消える。押す前にフォーカスが窓の中にあったなら、次の更新で、次のページの窓（次のページも選択肢なら最初の選択肢）へフォーカスを移す。`completed` の後と、`choiceSelected` の中で `Show` した後も同じ。`choiceSelected` か `completed` の中で利用者が別の要素へフォーカスを移していたら、移さない。
@@ -99,13 +99,13 @@ window.Focus();
 |---|---|
 | `text` | 属性。set は `Show(value)` と同じだが、空文字列と `null` はページ無しになる（`Show("")` は空のページが 1 つになり、`Advance()` で `completed` が出る）。get は今のページの文字列（ページが無ければ空文字列） |
 | `charactersPerSecond` | 属性。文字送りの速さ。既定 0。ページの開始時に 0 以下（NaN と無限大も）なら即時表示。文字送りの途中で変えると、その時点から新しい速さで進む（出ている文字は減らない）。0 以下にすると全文が出る |
-| `Page` | `MessageWindow` の中の型（`speaker` と `text` と `className` と `choices`）。値は渡したまま持つ（`choices` は `Show` がコピーする）。`Page(speaker, text, className = null, choices = null)`。`Show` は、`speaker` が `null` か空文字列のページを話者なし、`text` が `null` のページを空文字列として扱う。`className` はそのページを出している間だけ窓に付くクラス名（上の「ページごとの見た目」）。`choices` は選択肢の文字列で、`null` か 1〜2 個（空の配列と 3 個以上は `ArgumentException`。上の「選択肢」） |
+| `Page` | `MessageWindow` の中の型（`speaker` と `text` と `className` と `choices`）。`Page` は値を渡したまま持ち、`Show` が `choices` の配列をコピーする。`Page(speaker, text, className = null, choices = null)`。`Show` は、`speaker` が `null` か空文字列のページを話者なし、`text` が `null` のページを空文字列として扱う。`className` はそのページを出している間だけ窓に付くクラス名（上の「ページごとの見た目」）。`choices` は選択肢の文字列で、`null` か 1〜2 個（空の配列と 3 個以上は `ArgumentException`。上の「選択肢」） |
 | `Show(params Page[] pages)` | 1 ページ目から出し直す。送りの途中でも最初からやり直す。`null` と空の配列はページ無し。`null` は型を付けて渡す（`Show((Page[])null)`。`Show(null)` と引数なしの `Show()` は 2 つの `Show` のどちらか決まらずコンパイルエラー） |
 | `Show(params string[] pages)` | 話者なしのページとして `Show(params Page[])` と同じに扱う。`null` のページは空文字列 |
 | `Advance()` | Submit とクリックと同じ処理（下の表） |
 | `pageIndex` | 今のページ。ページが無いときは -1（読み取りのみ） |
 | `pageCount` | ページ数（読み取りのみ） |
-| `isChoosing` | 選択肢を出している間（`is-choosing` が付いている間）だけ true（読み取りのみ） |
+| `isChoosing` | 選択肢を出している間（`is-choosing` が付いている間）だけ true（読み取りのみ）。`choiceSelected` の中では選択肢を外した後なので false |
 | `completed` | 最後のページで全文が出た後に `Advance()` されたとき 1 回出るイベント。最後のページの選択肢を押したときも出る。次の `Show` まで再び出ない |
 | `choiceSelected` | 選択肢を押したとき 1 回出るイベント（`Action<int>`。引数は `choices` の index）。呼ばれている間、`pageIndex` は選択肢のページを指す。このあと次のページへ進むか `completed` が出る。この中で `Show` か `Advance()` をしたときは、部品はそれ以上進めない |
 
