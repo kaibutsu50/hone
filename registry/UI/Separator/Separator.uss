@@ -1,0 +1,15 @@
+/* 色と線の太さは Tokens.uss のトークン。shadcn の Separator（bg-border、横は h-[1px] w-full、縦は h-full w-[1px]）に合わせる。
+ * 横線は align-self: stretch で、縦に並べた親（flex-direction: column）の幅いっぱいに伸びる。
+ * 縦線は同じ align-self: stretch で、横に並べた親（flex-direction: row）の高さいっぱいに伸びる（height: auto にして、横線の height を外す）。
+ * どちらも flex-shrink: 0 で、親が狭くても線が消えない。 */
+.hone-separator {
+    align-self: stretch;
+    flex-shrink: 0;
+    height: var(--hone-border-width);
+    background-color: var(--hone-color-border);
+}
+
+.hone-separator--vertical {
+    width: var(--hone-border-width);
+    height: auto;
+}

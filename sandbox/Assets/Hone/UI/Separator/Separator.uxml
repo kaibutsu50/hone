@@ -1,0 +1,14 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement>
+        <ui:Label text="Hone" class="hone-text" />
+        <ui:VisualElement class="hone-separator" />
+        <ui:Label text="UI components for Unity UI Toolkit." class="hone-text" />
+        <ui:VisualElement style="flex-direction: row;">
+            <ui:Label text="Blog" class="hone-text" style="margin-left: 12px; margin-right: 12px;" />
+            <ui:VisualElement class="hone-separator hone-separator--vertical" />
+            <ui:Label text="Docs" class="hone-text" style="margin-left: 12px; margin-right: 12px;" />
+            <ui:VisualElement class="hone-separator hone-separator--vertical" />
+            <ui:Label text="Source" class="hone-text" style="margin-left: 12px; margin-right: 12px;" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
