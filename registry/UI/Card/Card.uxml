@@ -1,0 +1,14 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement class="hone-card">
+        <ui:VisualElement class="hone-card__header">
+            <ui:Label text="Create project" class="hone-card__title hone-text" />
+            <ui:Label text="Deploy your new project in one click." class="hone-card__description hone-text" />
+        </ui:VisualElement>
+        <ui:VisualElement class="hone-card__content">
+            <ui:Label text="Your project is created in the current workspace." class="hone-text" />
+        </ui:VisualElement>
+        <ui:VisualElement class="hone-card__footer">
+            <ui:Label text="Footer" class="hone-text" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
