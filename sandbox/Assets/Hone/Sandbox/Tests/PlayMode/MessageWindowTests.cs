@@ -886,6 +886,99 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual(0, bubbled, "the click on a choice must not reach the ancestors");
         }
 
+        // 選択肢の Button の子要素が target の ClickEvent では、窓は進まず、選ばれず、祖先へも伝わらない
+        [UnityTest]
+        public IEnumerator Choosing_ClickEventOnChoiceChild_DoesNotAdvanceOrReachAncestors()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow();
+            var bubbled = 0;
+            var selected = 0;
+            root.RegisterCallback<ClickEvent>(evt => bubbled++);
+            window.choiceSelected += index => selected++;
+            root.Add(window);
+            window.Show(ChoicePage("question", "yes", "no"), new MessageWindow.Page(null, "next"));
+            yield return Settle();
+            var child = new VisualElement();
+            ChoicesOf(window)[0].Add(child);
+
+            ClickTo(child);
+            yield return Settle();
+
+            Assert.AreEqual(0, window.pageIndex);
+            Assert.IsTrue(window.isChoosing);
+            Assert.AreEqual(0, selected);
+            Assert.AreEqual(0, bubbled, "the click on a child of a choice must not reach the ancestors");
+        }
+
+        // 選択肢の Button の子要素が target の NavigationSubmitEvent では、Button が 1 回選び、窓は重ねて進めない（次のページで止まる）
+        [UnityTest]
+        public IEnumerator Choosing_SubmitOnChoiceChild_SelectsOnceWithoutExtraAdvance()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow();
+            var selected = new List<int>();
+            window.choiceSelected += selected.Add;
+            root.Add(window);
+            window.Show(ChoicePage("question", "yes", "no"), new MessageWindow.Page(null, "second"), new MessageWindow.Page(null, "third"));
+            yield return Settle();
+            var child = new VisualElement();
+            ChoicesOf(window)[1].Add(child);
+
+            SubmitTo(child);
+            yield return Settle();
+
+            CollectionAssert.AreEqual(new[] { 1 }, selected);
+            Assert.AreEqual(1, window.pageIndex);
+            Assert.IsFalse(window.isChoosing);
+        }
+
+        // isChoosing は選択肢を出している間だけ true
+        [UnityTest]
+        public IEnumerator IsChoosing_TrueOnlyWhileChoicesShown()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow();
+            root.Add(window);
+            Assert.IsFalse(window.isChoosing, "no page");
+
+            window.Show(new MessageWindow.Page(null, "plain"), ChoicePage("question", "yes", "no"), new MessageWindow.Page(null, "last"));
+            yield return Settle();
+            Assert.IsFalse(window.isChoosing, "page without choices");
+
+            window.Advance();
+            yield return Settle();
+            Assert.IsTrue(window.isChoosing, "choices shown");
+            Assert.AreEqual(window.ClassListContains("is-choosing"), window.isChoosing);
+
+            SubmitTo(ChoicesOf(window)[0]);
+            yield return Settle();
+            Assert.IsFalse(window.isChoosing, "after choosing");
+        }
+
+        // Show の後に元の choices 配列を書き換えても、出る選択肢の文字列は変わらない
+        [UnityTest]
+        public IEnumerator Show_MutatingChoicesArrayAfterShow_DoesNotChangeChoices()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow();
+            root.Add(window);
+            var choices = new[] { "yes", "no" };
+            window.Show(ChoicePage("question", choices));
+            choices[0] = "changed";
+            choices[1] = "changed";
+            yield return Settle();
+
+            var buttons = ChoicesOf(window);
+            Assert.AreEqual(2, buttons.Count);
+            Assert.AreEqual("yes", buttons[0].text);
+            Assert.AreEqual("no", buttons[1].text);
+        }
+
         // (D) 選択肢への Submit で、choiceSelected がその index で 1 回出て、次のページへ 1 つだけ進む（窓への泡立ちでもう 1 つ進まない）
         [UnityTest]
         public IEnumerator Choice_Submit_FiresChoiceSelectedAndAdvancesOnce()

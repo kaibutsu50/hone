@@ -35,6 +35,9 @@ Assets/Hone/
     Cycle/            Hone.Cycle（Cycle.cs、Cycle.uxml、Cycle.uss、README.md）
     Tabs/             Hone.Tabs（Tabs.cs、Tabs.uxml、Tabs.uss、README.md）
     Progress/         Hone.Progress（Progress.cs、Progress.uxml、Progress.uss、README.md）
+    Card/             見た目だけの Card（.cs を持たない。Card.uxml、Card.uss、README.md）
+    Separator/        見た目だけの Separator（.cs を持たない。Separator.uxml、Separator.uss、README.md）
+    ScrollArea/       見た目だけの ScrollArea（.cs を持たない。ScrollArea.uxml、ScrollArea.uss、README.md）
     Spinner/          見た目だけの Spinner（.cs を持たない。Spinner.uxml、Spinner.uss、README.md）
   Blocks/             registry/Blocks の手コピー（asmdef は無い。今の block は C# を持たない）
     SettingsScreen/   SettingsScreen（SettingsScreen.uxml、SettingsScreen.uss、README.md）

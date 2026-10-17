@@ -26,7 +26,7 @@ namespace Hone
         // 1 ページ分。値は渡したまま持つ。Show は、speaker が null か空文字列のページを話者なし（名札は出ない）、text が null のページを空文字列として扱う。
         // className は、そのページを出している間だけ窓（MessageWindow 自身）に付くクラス名。null か空文字列なら付かない。
         // choices は選択肢の文字列で、null（選択肢なし）か 1〜2 個。空の配列は、選択肢 0 個の操作できないページになるので ArgumentException。上限は 2 個で、3 個以上も ArgumentException。
-        // 配列はコピーせずに持つので、全文が出る前に要素を書き換えると、書き換えた文字列が出る。null の要素は空文字列として出す。
+        // Show は配列をコピーして持つので、Show の後に元の配列を書き換えても出る選択肢は変わらない。null の要素は空文字列として出す。
         public readonly struct Page
         {
             public readonly string speaker;
@@ -75,6 +75,9 @@ namespace Hone
         public int pageIndex => m_PageIndex;
 
         public int pageCount => m_Pages.Length;
+
+        // 選択肢を出している間（.is-choosing が付いている間）だけ true
+        public bool isChoosing => m_Choosing;
 
         // 最後のページで、全文が出た後に Advance() されたとき 1 回。次の Show まで再び出ない。選択肢を押して最後のページを終えたときも出る
         public event Action completed;
@@ -171,7 +174,7 @@ namespace Hone
             }
             m_Pages = new Page[pages.Length];
             for (var i = 0; i < pages.Length; i++)
-                m_Pages[i] = new Page(pages[i].speaker, pages[i].text ?? "", pages[i].className, pages[i].choices);
+                m_Pages[i] = new Page(pages[i].speaker, pages[i].text ?? "", pages[i].className, (string[])pages[i].choices?.Clone());
             StartPage(0);
         }
 
@@ -376,7 +379,7 @@ namespace Hone
         }
 
         // Submit とクリックは、この部品が 1 歩進める入力として消費し、祖先には届けない。
-        // 選択肢の Button が target の Submit とクリックでは進めない。押した処理で次のページへ進んだ後に届いても進めないよう、状態ではなく target のクラスで見分ける
+        // 選択肢の Button（とその子要素）が target の Submit とクリックでは進めない。押した処理で次のページへ進んだ後に届いても進めないよう、状態ではなく target から窓までの祖先のクラスで見分ける
         void OnSubmit(NavigationSubmitEvent evt)
         {
             if (!IsChoice(evt.target))
@@ -391,7 +394,15 @@ namespace Hone
             evt.StopPropagation();
         }
 
-        static bool IsChoice(IEventHandler target) => target is VisualElement element && element.ClassListContains(ChoiceClass);
+        bool IsChoice(IEventHandler target)
+        {
+            for (var element = target as VisualElement; element != null && element != this; element = element.parent)
+            {
+                if (element.ClassListContains(ChoiceClass))
+                    return true;
+            }
+            return false;
+        }
 
         // panel から外れたら送りを止め、そのページの全文を出した状態にする（付け直しても再開しない）
         void OnDetachFromPanel(DetachFromPanelEvent evt)
