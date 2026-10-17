@@ -214,6 +214,20 @@
       "classes": []
     },
     {
+      "name": "ListDetailScreen",
+      "type": "registry:block",
+      "title": "ListDetailScreen",
+      "description": "ページ送りの選択リストと、選んだ項目の詳細と決定の Button が横に並ぶ画面（読み込み中と空の表示を含む）",
+      "files": [
+        { "path": "Blocks/ListDetailScreen/ListDetailScreen.uxml", "type": "registry:block" },
+        { "path": "Blocks/ListDetailScreen/ListDetailScreen.uss", "type": "registry:block" },
+        { "path": "Blocks/ListDetailScreen/README.md", "type": "registry:block" }
+      ],
+      "registryDependencies": ["Core", "Button", "ToggleGroup", "Pagination", "Card"],
+      "dependencies": [],
+      "classes": []
+    },
+    {
       "name": "Default",
       "type": "registry:theme",
       "title": "Default",
