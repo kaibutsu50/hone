@@ -138,7 +138,7 @@ namespace Hone.Sandbox.Gallery
                 return cell;
             }, Describe("Tabs"));
             // 見た目だけの部品（.cs を持たない）。状態のデモは無いので、Default と Compact を 1 つのセルに縦に積む。
-            // 見出し・説明・中身に text を入れ、フッターは短い固定文字列にする（長文の言語では見出しと説明が折り返す）
+            // 見出し・説明・中身に text を入れ、フッターは短い固定文字列にする（長文の言語では見出しと説明と中身が折り返す）
             GalleryController.Register("Hone.Card", text =>
             {
                 var cell = new VisualElement();

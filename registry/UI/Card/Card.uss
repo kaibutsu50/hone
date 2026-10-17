@@ -21,6 +21,7 @@
 }
 
 .hone-card__description {
+    /* shadcn の space-y-1.5（6px）に当たるトークンが無いので space-1（4px） */
     margin-top: var(--hone-space-1);
     font-size: var(--hone-font-size-sm);
     color: var(--hone-color-muted-foreground);

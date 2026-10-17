@@ -30,7 +30,7 @@
 | `hone-card__content` | 中身。上の余白は持たない |
 | `hone-card__footer` | フッター。子を横に並べる。上の余白は持たない |
 
-header・content・footer はどれも省いてよい。文字を持つ要素（title、description、中身の Label）には `hone-text` を付けて、本文フォントに従わせる。
+header・content・footer はどれも省いてよい。ただし content と footer は上の余白を持たない（header の下の余白で間が空く）ので、header を省くときは、先頭になる要素に上の余白を自分で足す。文字を持つ要素（title、description、中身の Label）には `hone-text` を付けて、本文フォントに従わせる。
 
 ## variant
 

@@ -12,7 +12,7 @@ namespace Hone.Sandbox.Tests
 {
     // Editor で実行する前提（UXML と PanelSettings を AssetDatabase から読む）。
     // Card は .cs を持たない見た目だけの部品なので、確かめるのは USS が theme を通して当たっていること（resolvedStyle がトークンの値になること）だけ。
-    // 期待値は Tokens.uss の値を書き写したもの（枠 1px、border #e4e4e7、background #ffffff、radius-lg 8px、font-size 2xl 24px / xl 20px / sm 14px、space 24px / 16px）。
+    // 期待値は Tokens.uss の値を書き写したもの。
     // コメントの (C) は Issue #114 の受け入れ条件の番号
     public class CardTests
     {
@@ -63,7 +63,7 @@ namespace Hone.Sandbox.Tests
             onReady(root);
         }
 
-        // Card.uxml を 2 回読み、2 枚目に hone-card--compact を付けて（Default と Compact の 2 枚）panel に置き、レイアウトされるまで待つ
+        // Card.uxml を 2 回 Instantiate し、2 枚目に hone-card--compact を付けて（Default と Compact の 2 枚）panel に置き、レイアウトされるまで待つ
         IEnumerator PlaceCards(System.Action<VisualElement, VisualElement> onReady)
         {
             VisualElement root = null;
@@ -106,7 +106,7 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual(8f, style.borderBottomRightRadius);
         }
 
-        // (C) .hone-card__title の fontSize が 24px、--compact のとき 20px。description は 14px
+        // (C) .hone-card__title の fontSize が 24px、--compact のとき 20px。description は 14px。title と description と content の Label は折り返し（既定の Label は nowrap）、文字色は title と content が foreground、description が muted-foreground
         [UnityTest]
         public IEnumerator Card_TitleFontSizeIs24AndCompactIs20()
         {
@@ -115,12 +115,22 @@ namespace Hone.Sandbox.Tests
             yield return PlaceCards((d, c) => { card = d; compact = c; });
 
             Assert.AreEqual(24f, card.Q<Label>(className: "hone-card__title").resolvedStyle.fontSize);
-            Assert.AreEqual(14f, card.Q<Label>(className: "hone-card__description").resolvedStyle.fontSize);
-            Assert.IsTrue(compact.ClassListContains("hone-card--compact"));
+            var title = card.Q<Label>(className: "hone-card__title").resolvedStyle;
+            var description = card.Q<Label>(className: "hone-card__description").resolvedStyle;
+            var contentLabel = card.Q(className: "hone-card__content").Q<Label>().resolvedStyle;
+            Assert.AreEqual(14f, description.fontSize);
+            Assert.AreEqual(WhiteSpace.Normal, title.whiteSpace);
+            Assert.AreEqual(WhiteSpace.Normal, description.whiteSpace);
+            Assert.AreEqual(WhiteSpace.Normal, contentLabel.whiteSpace);
+            Assert.AreEqual(new Color32(0x09, 0x09, 0x0b, 0xff), (Color32)title.color);
+            Assert.AreEqual(new Color32(0x71, 0x71, 0x7a, 0xff), (Color32)description.color);
+            Assert.AreEqual(new Color32(0x09, 0x09, 0x0b, 0xff), (Color32)contentLabel.color);
             Assert.AreEqual(20f, compact.Q<Label>(className: "hone-card__title").resolvedStyle.fontSize);
+            Assert.AreEqual(1f, compact.resolvedStyle.borderTopWidth);
+            Assert.AreEqual(8f, compact.resolvedStyle.borderTopLeftRadius);
         }
 
-        // header は上下左右、content と footer は上の余白を持たない。--compact は 24px が 16px になる
+        // header は上下左右、content は上の余白を持たない。--compact は 24px が 16px になる。footer は横並び
         [UnityTest]
         public IEnumerator Card_PaddingFollowsSpaceTokens()
         {
