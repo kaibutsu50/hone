@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 
 namespace Hone.Sandbox.Gallery
 {
-    // Hone.Button、Hone.Dialog、Hone.MessageWindow、Hone.Switch、Hone.Toggle、Hone.ToggleGroup、Hone.Pagination、Hone.Cycle、Hone.Tabs、見た目だけの Hone.Card と Hone.Separator と Hone.ScrollArea（Gallery の名前だけで、C# のクラスは無い）と、block の SettingsScreen と ListDetailScreen（Gallery の名前は Hone.SettingsScreen と Hone.ListDetailScreen。block の C# のクラスは無い。ListDetailScreen の配線は sandbox の GalleryListDetailScreen）を Gallery に載せる。
+    // Hone.Button、Hone.Dialog、Hone.MessageWindow、Hone.Switch、Hone.Toggle、Hone.ToggleGroup、Hone.Pagination、Hone.Cycle、Hone.Tabs、見た目だけの Hone.Card と Hone.Separator と Hone.ScrollArea（Gallery の名前だけで、C# のクラスは無い）と、block の SettingsScreen と ListDetailScreen と PauseMenu（Gallery の名前は Hone.SettingsScreen と Hone.ListDetailScreen と Hone.PauseMenu。block の C# のクラスは無い。ListDetailScreen の配線は sandbox の GalleryListDetailScreen）を Gallery に載せる。
     // Register は sandbox 側から呼ぶ（registry/ 配下のコードには書かない）。呼ぶ時点は README の Gallery の節を参照。
     static class GalleryHoneEntries
     {
@@ -214,6 +214,11 @@ namespace Hone.Sandbox.Gallery
             // 一覧の列（40%）に Pagination の前後とページ番号の 5 つの Button が収まるよう、Gallery.uss で短文と長文を縦に積む。
             // UXML は Editor でだけ読む（SettingsScreen と同じ）。説明は渡さない（SettingsScreen と同じく UXML が長い。使用例は README にある）
             GalleryController.Register("Hone.ListDetailScreen", CreateListDetailScreen, null);
+            // block。PauseMenu.uxml を読み込み、ポーズのタイトルと確認のタイトルと本文に text を入れる（block は振る舞いを持たないので、配線はここでする）。
+            // ポーズの Dialog は attach の時点で開き（開くとフォーカスが resume に当たる）、resume で閉じる。quit で確認の Dialog を重ねて開き、cancel と confirm で閉じる。確認は閉じた状態で並ぶ。
+            // Button の文言（Resume / Settings / Quit、確認の Cancel / Quit）は短い固定文字列のまま。settings と confirm の行き先は利用者の処理なので、ここでは何もしない（confirm は確認を閉じるだけ）。
+            // Dialog は block の全面を覆う absolute なので、block に大きさを与える（Gallery.uss の .gallery-pause-menu）。UXML は Editor でだけ読む（SettingsScreen と同じ）。説明は渡さない（使用例は README にある）
+            GalleryController.Register("Hone.PauseMenu", CreatePauseMenu, null);
         }
 
         static Label CreateSeparatorLabel(string text, bool margin)
@@ -290,6 +295,36 @@ namespace Hone.Sandbox.Gallery
             return screen;
 #else
             return new Label("SettingsScreen is shown only in the Editor");
+#endif
+        }
+
+        const string PauseMenuPath = "Assets/Hone/Blocks/PauseMenu/PauseMenu.uxml";
+
+        static VisualElement CreatePauseMenu(string text)
+        {
+#if UNITY_EDITOR
+            var asset = UnityEditor.AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(PauseMenuPath);
+            if (asset == null)
+            {
+                Debug.LogWarning($"Gallery: {PauseMenuPath} was not found; PauseMenu is shown as a placeholder");
+                return new Label($"{PauseMenuPath} was not found");
+            }
+            var screen = asset.Instantiate();
+            screen.AddToClassList("gallery-pause-menu");
+            foreach (var label in screen.Query<Label>(className: "hone-dialog__title").ToList())
+                label.text = text;
+            foreach (var label in screen.Query<Label>(className: "hone-dialog__description").ToList())
+                label.text = text;
+            var pause = screen.Q<Dialog>("pause");
+            var confirm = screen.Q<Dialog>("confirm-quit");
+            screen.Q<Hone.Button>("resume").clicked += pause.Close;
+            screen.Q<Hone.Button>("quit").clicked += confirm.Open;
+            screen.Q<Hone.Button>("cancel").clicked += confirm.Close;
+            screen.Q<Hone.Button>("confirm").clicked += confirm.Close;
+            pause.RegisterCallbackOnce<AttachToPanelEvent>(evt => pause.Open());
+            return screen;
+#else
+            return new Label("PauseMenu is shown only in the Editor");
 #endif
         }
 
