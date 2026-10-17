@@ -1,8 +1,9 @@
 /* 余白はトークン。タイトルと本文と確認のボタンの行は Dialog の USS（hone-dialog__*）がそのまま当たる。
  * block の root は親の残りを埋める（flex-grow）。2 つの Dialog は position: absolute で親の全面を覆うので、root に大きさが要る。
- * Screen Space では panel の root の直下に置けば panel 全体を、World Space では panel 自体がメニューの大きさになる。
+ * root は通常のフローに乗るので、Dialog が覆うのは root の領域。panel 全体を覆うには、root が panel の残りを占めるようにするか、利用者が root を position: absolute にする。World Space では panel 自体がメニューの大きさになる。
  * 背景色・固定幅・中央寄せは持たない（Dialog の content が中央に置かれる）。
- * 項目は縦並びで、Hone.Button は縮まない（Button.uss の flex-shrink: 0）が、縦並びの align-items: stretch で幅いっぱいに広がる。 */
+ * 項目は縦並びで、Hone.Button は縦並びの既定（align-items: stretch）で幅いっぱいに広がる。
+ * 項目の間は各項目の下の余白で空ける。:first-child は USS に無い（Unknown pseudo class の警告が出て効かない）ので、先頭だけ余白を外す書き方はできない。最後の項目の下の余白は残る。 */
 .hone-pause-menu {
     flex-grow: 1;
 }
@@ -12,9 +13,5 @@
 }
 
 .hone-pause-menu__items > * {
-    margin-top: var(--hone-space-2);
-}
-
-.hone-pause-menu__items > *:first-child {
-    margin-top: 0;
+    margin-bottom: var(--hone-space-2);
 }

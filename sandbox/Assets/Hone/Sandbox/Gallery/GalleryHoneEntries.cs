@@ -215,9 +215,9 @@ namespace Hone.Sandbox.Gallery
             // UXML は Editor でだけ読む（SettingsScreen と同じ）。説明は渡さない（SettingsScreen と同じく UXML が長い。使用例は README にある）
             GalleryController.Register("Hone.ListDetailScreen", CreateListDetailScreen, null);
             // block。PauseMenu.uxml を読み込み、ポーズのタイトルと確認のタイトルと本文に text を入れる（block は振る舞いを持たないので、配線はここでする）。
-            // ポーズの Dialog は attach の時点で開き（開くとフォーカスが resume に当たる）、resume で閉じる。quit で確認の Dialog を重ねて開き、cancel と confirm で閉じる。確認は閉じた状態で並ぶ。
+            // ポーズの Dialog は attach の時点で開き、resume で閉じる（4 つ並べるので 4 つとも開いた状態で並び、フォーカスと Cancel の対象は最後に attach されたもの。撮影の ring は GalleryFocus が最初の .hone-focusable に当て直す）。quit で確認の Dialog を重ねて開き、cancel と confirm で閉じる。確認は閉じた状態で並ぶ。
             // Button の文言（Resume / Settings / Quit、確認の Cancel / Quit）は短い固定文字列のまま。settings と confirm の行き先は利用者の処理なので、ここでは何もしない（confirm は確認を閉じるだけ）。
-            // Dialog は block の全面を覆う absolute なので、block に大きさを与える（Gallery.uss の .gallery-pause-menu）。UXML は Editor でだけ読む（SettingsScreen と同じ）。説明は渡さない（使用例は README にある）
+            // Dialog は block の全面を覆う absolute なので、block の親（Instantiate が返す TemplateContainer）に大きさを与え、block は flex-grow でそれを埋める（Gallery.uss の .gallery-pause-menu）。UXML は Editor でだけ読む（SettingsScreen と同じ）。説明は渡さない（使用例は README にある）
             GalleryController.Register("Hone.PauseMenu", CreatePauseMenu, null);
         }
 

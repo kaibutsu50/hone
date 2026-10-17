@@ -80,7 +80,8 @@ namespace Hone.Sandbox.Tests
         }
 
         // Gallery が並べる 4 つのうち 1 つだけを panel に足す。attach の時点で pause が開くので、複数あると最後に開いたものがフォーカスと BackStack の先頭を取る。
-        // container を panel に足す前に余分を外しておくと、外した分は attach されず、開かない
+        // container を panel に足す前に余分を外しておくと、外した分は attach されず、開かない。
+        // menus の parent は Gallery がセルごとに返す TemplateContainer（短文と長文を並べる行ではない）なので、parent ごと外しても残す 1 つは外れない
         static VisualElement AddOneMenu(VisualElement root)
         {
             var container = new VisualElement();
@@ -88,7 +89,10 @@ namespace Hone.Sandbox.Tests
             var menus = container.Query(className: "hone-pause-menu").ToList();
             Assert.AreEqual(4, menus.Count);
             foreach (var extra in menus.Skip(1))
+            {
+                Assert.AreNotSame(menus[0].parent, extra.parent, "the menus share a parent, so removing it would also remove the one to keep");
                 extra.parent.RemoveFromHierarchy();
+            }
             root.Add(container);
             return menus[0];
         }
@@ -183,7 +187,8 @@ namespace Hone.Sandbox.Tests
             CollectionAssert.AreEqual(expected, menus.Select(m => m.Q<Dialog>("confirm-quit").Q<Label>(className: "hone-dialog__description").text).ToList());
         }
 
-        // (B) pause は開いた状態で並び、resume にフォーカスが当たる。Cancel で閉じる
+        // (B) pause は開いた状態で並び、resume にフォーカスが当たる。Cancel で閉じる。
+        // 閉じたあと、attach 済みの要素に pause.Open() を呼ぶ（README の配線の、ポーズの入力で開く流れ）と、もう一度 resume にフォーカスが当たり、Cancel で閉じる
         [UnityTest]
         public IEnumerator Gallery_PauseOpensWithFocusOnResumeAndCancelCloses()
         {
@@ -200,9 +205,18 @@ namespace Hone.Sandbox.Tests
             yield return null;
 
             Assert.IsFalse(pause.isOpen);
+
+            pause.Open();
+            yield return null;
+
+            Assert.IsTrue(pause.isOpen);
+            Assert.AreSame(pause.Q<Hone.Button>("resume"), Focused(root));
+            SendCancel((VisualElement)Focused(root));
+            yield return null;
+            Assert.IsFalse(pause.isOpen);
         }
 
-        // (B) resume で pause が閉じる
+        // (B) の補足。配線の resume で pause が閉じる
         [UnityTest]
         public IEnumerator Gallery_ResumeClosesPause()
         {
@@ -259,12 +273,23 @@ namespace Hone.Sandbox.Tests
             Assert.IsTrue(pause.isOpen);
             Assert.AreSame(quit, Focused(root));
 
+            // confirm の Button（Gallery の配線は確認を閉じるだけ）でも、確認だけが閉じて、フォーカスが quit に戻る
+            Submit(quit);
+            yield return null;
+            Assert.IsTrue(confirm.isOpen);
+            Submit(confirm.Q<Hone.Button>("confirm"));
+            yield return null;
+            Assert.IsFalse(confirm.isOpen);
+            Assert.IsTrue(pause.isOpen);
+            Assert.AreSame(quit, Focused(root));
+
             SendCancel(quit);
             yield return null;
             Assert.IsFalse(pause.isOpen);
         }
 
-        // (D) 確認が開いている間、pause 側の trap がフォーカスを奪い返さず、方向入力と Tab で pause 側の Button へ移らない
+        // (D) 確認が開いている間、pause 側の trap がフォーカスを奪い返さず、確認の中の Button から送った方向入力と Next / Previous（Tab の NavigationMoveEvent。実際のキーは送らない）で pause 側の Button へ移らない。
+        // フォーカスが外れたあと（確認の中の focusable でない部分を押したときなど）は、方向入力の target が panel の最上位になり trap の handler が呼ばれないので、ここでは確かめない
         [UnityTest]
         public IEnumerator Gallery_ConfirmOpen_FocusStaysInConfirm()
         {
@@ -302,7 +327,8 @@ namespace Hone.Sandbox.Tests
         }
 
         // block の USS が theme を通して当たっている（@import の抜けやセレクタの打ち間違いを捕まえる）。
-        // pause は block の全面を覆い、項目は縦に並んで Button が項目の幅いっぱいに広がる。見た目そのものはスクリーンショットで確かめる
+        // pause は block の全面を覆い、項目は縦に並んで Button が項目の幅いっぱいに広がり、各 Button の下に余白が入る（余白は PauseMenu.uss の規則。無ければ隣り合う Button が接する）。
+        // 見た目そのものはスクリーンショットで確かめる
         [UnityTest]
         public IEnumerator Gallery_UssAppliesItemsStackAndStretch()
         {
@@ -319,6 +345,9 @@ namespace Hone.Sandbox.Tests
             Assert.Greater(items.worldBound.width, 0f);
             foreach (var button in buttons)
                 Assert.AreEqual(items.worldBound.width, button.worldBound.width, 1f, $"{button.name} does not fill the items");
+            Assert.AreEqual(0f, buttons[0].resolvedStyle.marginTop, "the first button must not have a top margin");
+            foreach (var button in buttons)
+                Assert.Greater(button.resolvedStyle.marginBottom, 0f, $"{button.name} has no margin below it");
             Assert.Less(buttons[0].worldBound.yMax, buttons[1].worldBound.yMin);
             Assert.Less(buttons[1].worldBound.yMax, buttons[2].worldBound.yMin);
         }
