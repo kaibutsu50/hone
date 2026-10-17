@@ -25,7 +25,11 @@
 | 上下の矢印ボタン | 表示しない |
 | つまみ | 色 `--hone-color-border`、角丸 `--hone-radius-scrollbar`（5px）。幅はスクロールバーいっぱい |
 
-variant は無い。整えるのは縦のスクロールバーだけで、横のスクロールバーは整えない（使用例のように `horizontal-scroller-visibility="Hidden"` で隠す）。
+整えるのは縦のスクロールバーだけで、横のスクロールバーは整えない（使用例のように `horizontal-scroller-visibility="Hidden"` で隠す）。中身に置いた `ui:Slider` などには当たらない。
+
+## variant
+
+variant は無い。`hone-scroll-area` を付けるだけ。
 
 World Space でレイ（ポインタ）で掴みやすくしたいときは、`--hone-size-scrollbar` と `--hone-radius-scrollbar` を `HoneTheme.tss` の `:root` で上書きする。つまみの端を半円にするため、`--hone-radius-scrollbar` は `--hone-size-scrollbar` の半分に揃える。
 

@@ -108,7 +108,7 @@ namespace Hone.Sandbox.Tests
 
         // (B) つまみの背景色が #e4e4e7（--hone-color-border）、角丸が 5、枠が無く、幅がスクロールバーいっぱい（既定テーマの 18px ではない）。スライダーは矢印ボタンの分の余白を持たず、スクロールバーと同じ大きさ。溝は背景が透明で枠が無い。つまみの枠は表示されない
         [UnityTest]
-        public IEnumerator ScrollArea_DraggerFollowsBorderColorAndScrollbarRadius()
+        public IEnumerator ScrollArea_DraggerAndSliderFillScrollbarWithTokenStyle()
         {
             ScrollView scrollView = null;
             yield return PlaceScrollArea(s => scrollView = s);
@@ -127,6 +127,7 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual(0f, style.borderLeftWidth);
             Assert.AreEqual(0f, style.borderTopWidth);
             Assert.AreEqual(10f, dragger.layout.width);
+            Assert.AreEqual(0f, dragger.layout.x);
             Assert.AreEqual(0f, slider.resolvedStyle.marginTop);
             Assert.AreEqual(0f, slider.resolvedStyle.marginBottom);
             Assert.AreEqual(10f, slider.layout.width);
@@ -148,11 +149,31 @@ namespace Hone.Sandbox.Tests
             Assert.Greater(dragger.layout.height, 0f);
             Assert.Less(dragger.layout.height, scroller.layout.height);
 
+            Assert.GreaterOrEqual(scroller.highValue, 20f, "the content is not tall enough to scroll by 20");
             var before = scrollView.contentContainer.worldBound.yMin;
             scrollView.scrollOffset = new Vector2(0f, 20f);
             yield return null;
             Assert.AreEqual(20f, scrollView.scrollOffset.y);
-            Assert.Less(scrollView.contentContainer.worldBound.yMin, before);
+            Assert.AreEqual(before - 20f, scrollView.contentContainer.worldBound.yMin, 0.5f);
+        }
+
+        // 規則は縦のスクロールバーの下にだけ当たる。横のスクロールバーの矢印ボタンは表示されたままで、中身に置いた Slider の溝は透明にならない
+        [UnityTest]
+        public IEnumerator ScrollArea_DoesNotAffectHorizontalScrollerOrSliderInContent()
+        {
+            ScrollView scrollView = null;
+            yield return PlaceScrollArea(s => scrollView = s);
+
+            var slider = new Slider(0f, 1f);
+            scrollView.Add(slider);
+            scrollView.horizontalScrollerVisibility = ScrollerVisibility.AlwaysVisible;
+            yield return null;
+            yield return null;
+
+            Assert.AreNotEqual(DisplayStyle.None, scrollView.horizontalScroller.lowButton.resolvedStyle.display);
+            var tracker = slider.Q(className: BaseSlider<float>.trackerUssClassName);
+            Assert.IsNotNull(tracker);
+            Assert.Greater(tracker.resolvedStyle.backgroundColor.a, 0f);
         }
     }
 }

@@ -57,7 +57,7 @@
     --hone-size-switch-width: 44px;
     --hone-size-switch-height: 24px;
     --hone-size-switch-thumb: 20px;
-    /* 縦のスクロールバーの幅。shadcn の Scroll Area の w-2.5。World Space でレイ（ポインタ）で掴みやすくしたいときは、HoneTheme.tss の :root で上書きする */
+    /* 縦のスクロールバーの幅。shadcn の Scroll Area の w-2.5。World Space でレイ（ポインタ）で掴みやすくしたいときは、HoneTheme.tss の :root で上書きする。上書きしたら --hone-radius-scrollbar もその半分に揃える */
     --hone-size-scrollbar: 10px;
 
     --hone-ring-width: 2px;
