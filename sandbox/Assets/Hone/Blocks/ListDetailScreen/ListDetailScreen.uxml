@@ -4,7 +4,7 @@
         <ui:VisualElement class="hone-list-detail-screen__body">
             <ui:VisualElement class="hone-list-detail-screen__list">
                 <ui:VisualElement class="hone-list-detail-screen__list-area">
-                    <hone:ToggleGroup name="items" class="hone-list-detail-screen__items" allow-empty-selection="true" value="10000">
+                    <hone:ToggleGroup name="items" class="hone-list-detail-screen__items" allow-empty-selection="true" value="00001">
                         <hone:Button class="hone-list-detail-screen__item">
                             <ui:Label class="hone-list-detail-screen__item-label hone-text" text="Item 1" />
                             <ui:Label class="hone-list-detail-screen__item-meta hone-text" text="4 files" />

@@ -145,6 +145,9 @@ namespace Hone.Sandbox.Tests
             Assert.IsNotNull(items);
             Assert.IsTrue(items.allowEmptySelection);
             Assert.AreEqual(5, items.Query<Hone.Button>(className: ItemClass).ToList().Count);
+            // 使用例は 1 行目が選ばれた状態（UXML の value は右端の文字が index 0）
+            Assert.IsTrue(items.value[0]);
+            Assert.IsFalse(items.value[4]);
             Assert.IsNotNull(screen.Q<Pagination>("pagination"));
             var detail = screen.Q(className: "hone-list-detail-screen__detail");
             Assert.IsNotNull(detail);

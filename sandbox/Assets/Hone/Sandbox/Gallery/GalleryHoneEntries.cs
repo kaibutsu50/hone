@@ -308,7 +308,7 @@ namespace Hone.Sandbox.Gallery
             for (var i = 0; i < ListDetailScreenItemCount; i++)
             {
                 var number = i + 1;
-                items.Add(new ListDetailItem(text, "#" + number, text, new[] { categories[i % categories.Length], number + " files", "Day " + number }));
+                items.Add(new ListDetailItem(text, "#" + number, text, new[] { categories[i % categories.Length], number * 3 + " MB", "Day " + number }));
             }
             var wiring = new GalleryListDetailScreen(block);
             wiring.SetItems(items, 0);
