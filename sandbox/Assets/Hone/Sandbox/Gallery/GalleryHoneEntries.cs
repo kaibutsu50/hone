@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 
 namespace Hone.Sandbox.Gallery
 {
-    // Hone.Button、Hone.Dialog、Hone.MessageWindow、Hone.Switch、Hone.Toggle、Hone.ToggleGroup、Hone.Pagination、Hone.Cycle、Hone.Tabs と、block の SettingsScreen（Gallery の名前は Hone.SettingsScreen。C# のクラスは無い）を Gallery に載せる。
+    // Hone.Button、Hone.Dialog、Hone.MessageWindow、Hone.Switch、Hone.Toggle、Hone.ToggleGroup、Hone.Pagination、Hone.Cycle、Hone.Tabs、見た目だけの Hone.Card（Gallery の名前だけで、C# のクラスは無い）と、block の SettingsScreen（Gallery の名前は Hone.SettingsScreen。C# のクラスは無い）を Gallery に載せる。
     // Register は sandbox 側から呼ぶ（registry/ 配下のコードには書かない）。呼ぶ時点は README の Gallery の節を参照。
     static class GalleryHoneEntries
     {
@@ -137,6 +137,16 @@ namespace Hone.Sandbox.Gallery
                 cell.Add(tabs);
                 return cell;
             }, Describe("Tabs"));
+            // 見た目だけの部品（.cs を持たない）。状態のデモは無いので、Default と Compact を 1 つのセルに縦に積む。
+            // 見出し・説明・中身に text を入れ、フッターは短い固定文字列にする（長文の言語では見出しと説明が折り返す）
+            GalleryController.Register("Hone.Card", text =>
+            {
+                var cell = new VisualElement();
+                cell.AddToClassList("gallery-cell");
+                cell.Add(CreateCard(text, false));
+                cell.Add(CreateCard(text, true));
+                return cell;
+            }, Describe("Card", "Default / hone-card--compact"));
             // block。SettingsScreen.uxml を読み込み、各行の見出しと説明、確認の Dialog のタイトルと本文に text を入れる（長文の言語では説明が折り返す）。
             // 操作は UXML のまま使い、Cycle の選択肢と ToggleGroup のラベルだけ text にする（収まらなければ省略記号になる）。Button の文言（Refresh / Delete、Dialog の Cancel / Delete）は短い固定文字列のまま（行の中で max-width に切られた Button の長いラベルは確かめていない）。
             // Destructive の行の Button で確認の Dialog を開き、Cancel / 確定で閉じる（block は振る舞いを持たないので、配線はここでする）。Dialog は閉じた状態で並ぶ。
@@ -144,6 +154,36 @@ namespace Hone.Sandbox.Gallery
             // 説明（variant の一覧と UXML の使用例）は渡さない。UXML が長く、列の先頭に出すと SettingsScreen が表示領域の外へ押し下げられる（使用例は README にある）。
             // 初期選択（先頭の登録）は Hone.Button のままにするため、最後に登録する
             GalleryController.Register("Hone.SettingsScreen", CreateSettingsScreen, null);
+        }
+
+        static VisualElement CreateCard(string text, bool compact)
+        {
+            var card = new VisualElement();
+            card.AddToClassList("hone-card");
+            if (compact)
+                card.AddToClassList("hone-card--compact");
+            card.Add(CreateCardPart("hone-card__header", CreateCardLabel("hone-card__title", text), CreateCardLabel("hone-card__description", text)));
+            card.Add(CreateCardPart("hone-card__content", CreateCardLabel(null, text)));
+            card.Add(CreateCardPart("hone-card__footer", CreateCardLabel(null, "Footer")));
+            return card;
+        }
+
+        static VisualElement CreateCardPart(string className, params VisualElement[] children)
+        {
+            var part = new VisualElement();
+            part.AddToClassList(className);
+            foreach (var child in children)
+                part.Add(child);
+            return part;
+        }
+
+        static Label CreateCardLabel(string className, string text)
+        {
+            var label = new Label(text);
+            if (className != null)
+                label.AddToClassList(className);
+            label.AddToClassList("hone-text");
+            return label;
         }
 
         const string SettingsScreenPath = "Assets/Hone/Blocks/SettingsScreen/SettingsScreen.uxml";

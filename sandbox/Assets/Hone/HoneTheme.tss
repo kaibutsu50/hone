@@ -11,6 +11,7 @@
 @import url("UI/Cycle/Cycle.uss");
 @import url("Blocks/SettingsScreen/SettingsScreen.uss");
 @import url("UI/Tabs/Tabs.uss");
+@import url("UI/Card/Card.uss");
 /* hone add は、この行の直前に各コンポーネントの USS の @import を挿入する。
  * @import は :root などの規則より前に置く（CSS と同じ規則に合わせている。規則の後ろに置いたときの Unity の挙動は確かめていない） */
 

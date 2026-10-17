@@ -1,0 +1,62 @@
+/* 色・角丸・余白・フォントサイズ・枠の太さは Tokens.uss のトークン。shadcn の Card（rounded-lg border bg-card、header / content / footer は p-6）に合わせる。
+ * shadcn の shadow-sm は持たない（drop-shadow は必須の見た目にしない。影に当たるトークンも無い）。
+ * header は上下左右、content と footer は上の余白を持たない（header の下の余白で間が空く）。
+ * width は設定しない。縦に並べた親の幅（align-items: stretch）か、横並びの親の flex で決まる。
+ * 既定の Label は折り返さない（white-space: nowrap）ので、title と description と content の Label は white-space: normal にする。 */
+.hone-card {
+    background-color: var(--hone-color-background);
+    color: var(--hone-color-foreground);
+    border-width: var(--hone-border-width);
+    border-color: var(--hone-color-border);
+    border-radius: var(--hone-radius-lg);
+}
+
+.hone-card__header {
+    padding: var(--hone-space-6);
+}
+
+.hone-card__title {
+    font-size: var(--hone-font-size-2xl);
+    white-space: normal;
+}
+
+.hone-card__description {
+    margin-top: var(--hone-space-1);
+    font-size: var(--hone-font-size-sm);
+    color: var(--hone-color-muted-foreground);
+    white-space: normal;
+}
+
+.hone-card__content {
+    padding-left: var(--hone-space-6);
+    padding-right: var(--hone-space-6);
+    padding-bottom: var(--hone-space-6);
+}
+
+.hone-card__footer {
+    flex-direction: row;
+    align-items: center;
+    padding-left: var(--hone-space-6);
+    padding-right: var(--hone-space-6);
+    padding-bottom: var(--hone-space-6);
+}
+
+/* 余白を詰め、title を一段小さくする。親の .hone-card--compact から書くので、上の規則（クラス 1 つ）に勝つ */
+.hone-card--compact .hone-card__header {
+    padding: var(--hone-space-4);
+}
+
+.hone-card--compact .hone-card__title {
+    font-size: var(--hone-font-size-xl);
+}
+
+.hone-card--compact .hone-card__content,
+.hone-card--compact .hone-card__footer {
+    padding-left: var(--hone-space-4);
+    padding-right: var(--hone-space-4);
+    padding-bottom: var(--hone-space-4);
+}
+
+.hone-card__content Label {
+    white-space: normal;
+}
