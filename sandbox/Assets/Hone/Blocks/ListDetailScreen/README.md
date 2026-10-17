@@ -39,7 +39,7 @@
 </ui:UXML>
 ```
 
-`ListDetailScreen.uxml` は、5 行のページの 1 行目が選ばれ、詳細にその項目が出ている状態の使用例。
+`ListDetailScreen.uxml` は、5 行のページの 1 行目が選ばれ、詳細にその項目が出ている状態の使用例。`items` の `value="00001"` は右端の文字が 1 行目（index 0）に当たる（Unity 6000.7.0b4 で確認）。
 
 ## 配線
 
@@ -56,7 +56,7 @@ class Item
     public string Name;
     public string Meta;
     public string Description;
-    public string[] Values;  // 詳細の __field の順
+    public string[] Values;  // 詳細の __field の順。数は __field の行の数と同じにする
 }
 
 class ListDetailScreenWiring
@@ -83,7 +83,7 @@ class ListDetailScreenWiring
         {
             // true の行があればその項目を選ぶ。無ければ（選んだ行をもう一度押して外れた）未選択
             m_Selected = -1;
-            for (var i = 0; i < m_Items.childCount; i++)
+            for (var i = 0; i < Math.Min(m_Items.childCount, evt.newValue.length); i++)
             {
                 if (evt.newValue[i])
                 {
@@ -176,10 +176,10 @@ class ListDetailScreenWiring
 }
 ```
 
-- 読み込みを始めたら `SetLoading()`、読み終えたら `SetItems(data)` を呼ぶ。`is-loading` と `is-empty` は同時に付けない。
+- コンストラクタの直後に `SetLoading()` か `SetItems(data)` を呼ぶ（呼ぶまでは UXML の使用例の行と詳細が残っていて、配線と合わない）。読み込みを始めたら `SetLoading()`、読み終えたら `SetItems(data)` を呼ぶ。`is-loading` と `is-empty` は同時に付けない。
 - 行の子に `Hone.Toggle` は使わない（ToggleGroup の README の「子に Toggle は使わない」）。
 - `items` の `allow-empty-selection="true"` は外さない。false だと、最初の子を足した時点で基底が index 0 を選び、選んだ項目が無いページでも 1 行目が選ばれる。
-- 行を作り直すときは、`Clear()` の前と、子を足す前に、`SetValueWithoutNotify(new ToggleButtonGroupState(0, 64))` で全部 false・length 64 の value にする。選ばれている行があるまま外すと、基底が残りの子の数の length で `ChangeEvent` を出すことがある（1 行目が選ばれていたときに出た。2 行目のときは出なかった）。`Clear()` で length が 0 になり、そのまま子を足すと、足すたびに length を伸ばして `ChangeEvent`（全部 false）を出す。Pagination の `ChangeEvent<int>` の中で作り直すと、それらが作り直しの後に届き、選んだ項目が外れる（Unity 6000.7.0b4 で確認）。
+- 行を作り直すときは、`Clear()` の前と、子を足す前に、`SetValueWithoutNotify(new ToggleButtonGroupState(0, 64))` で全部 false・length 64 の value にする。選ばれている行があるまま外すと、基底が残りの子の数の length で `ChangeEvent` を出すことがある。`Clear()` で length が 0 になり、そのまま子を足すと、足すたびに length を伸ばして `ChangeEvent`（全部 false）を出す。Pagination の `ChangeEvent<int>` の中で作り直すと、それらが作り直しの後に届き、選んだ項目が外れる（Unity 6000.7.0b4 で確認）。
 - ページを送ると行を作り直すので、行にあったフォーカスは外れる。選択と詳細は変わらず、選んだ項目のあるページに戻ると、その行が選ばれた状態で出る。
 - 読み込み中と空の Label は、C# の `style.display` で切り替えない。root の `is-loading` / `is-empty` で USS が切り替える（見た目を USS で変えられるように）。
 - 失敗の表示は持たない。出すときは、`__empty` と同じ場所（`__list-area` の中）に Label を足し、root のクラスで切り替える。
@@ -191,7 +191,7 @@ class ListDetailScreenWiring
 | `hone-list-detail-screen` | 画面全体。縦並びで、親の残りの高さを取る |
 | `hone-list-detail-screen__title` | 画面のタイトルの `Label`。折り返す |
 | `hone-list-detail-screen__body` | 一覧の列と詳細の横並び |
-| `hone-list-detail-screen__list` | 左の列（一覧と Pagination）。画面の 40% の幅 |
+| `hone-list-detail-screen__list` | 左の列（一覧と Pagination）。`__body` の 40% の幅 |
 | `hone-list-detail-screen__list-area` | 一覧の領域。残りの高さを取り、行が少ないページでも Pagination の位置を変えない |
 | `hone-list-detail-screen__items` | 一覧の `Hone.ToggleGroup`。縦並び |
 | `hone-list-detail-screen__item` | 1 行（`Hone.Button`）。項目名と補足が横に並ぶ。縦に伸びない |
@@ -209,8 +209,8 @@ class ListDetailScreenWiring
 ## レイアウトの規約
 
 - 画面は親の残りの高さを取る（`flex-grow: 1`）。行が少ないページで Pagination の位置が動かないのは、親の高さが決まっていて（panel の root など）、一覧の領域が余りの高さを取れるときだけ。親の高さが内容で決まると、行の数に応じて動く。
-- 列の幅は画面の割合で決める。固定幅を書かない（言語によって文字列の幅が変わる）。一覧の列（40%）には、Pagination の前後とページ番号の Button（縮まない）が収まる幅が要る。`pageCount` が 3 なら 5 つで、収まらないと Pagination が列の右へはみ出す。
-- 行の項目名は 1 行で、収まらなければ省略記号になる。詳細の見出しと説明は折り返す（Card の USS）。
+- 列の幅は画面の割合で決める。固定幅を書かない（言語によって文字列の幅が変わる）。一覧の列（40%）には、Pagination の前後とページ番号の Button（縮まない）が収まる幅が要る。`pageCount` が 3 なら 5 つ、8 以上なら 9 つ（Pagination の README）で、収まらないと Pagination が列からはみ出す。
+- 行の項目名は 1 行で、収まらなければ省略記号になる。詳細の見出し・説明・行の項目名と値は折り返す（Card の USS）。
 - 画面の背景色・固定幅・中央寄せは持たない。World Space では panel 自体が画面の大きさになる。Screen Space で中央に置きたいときは、利用者が親に書く。
 - 選んだ行の見た目は ToggleGroup の既定（`:checked` で accent の背景）のまま。
 

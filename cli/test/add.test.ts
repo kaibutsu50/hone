@@ -149,9 +149,12 @@ describe("hone add", () => {
     ]) {
       expect(files).toContain(f);
     }
-    expect(await read(root, "Assets/Hone/HoneTheme.tss")).toContain(
-      '@import url("Blocks/ListDetailScreen/ListDetailScreen.uss");',
-    );
+    // block の USS は ToggleGroup.uss と同じ詳細度の規則で行の flex-grow を上書きするので、ToggleGroup の @import が先に入る
+    const theme = await read(root, "Assets/Hone/HoneTheme.tss");
+    const toggleGroupImport = theme.indexOf('@import url("UI/ToggleGroup/ToggleGroup.uss");');
+    const blockImport = theme.indexOf('@import url("Blocks/ListDetailScreen/ListDetailScreen.uss");');
+    expect(toggleGroupImport).toBeGreaterThanOrEqual(0);
+    expect(blockImport).toBeGreaterThan(toggleGroupImport);
     expect((await readManifest(root)).components).toContain("ListDetailScreen");
   });
 

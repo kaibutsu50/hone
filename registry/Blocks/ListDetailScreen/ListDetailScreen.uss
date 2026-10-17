@@ -2,7 +2,7 @@
  * 「左: 一覧と Pagination / 右: 詳細の Card」の横並び。一覧の列は 40% の幅で、詳細が残りの幅を取って縮む。
  * 一覧の領域（__list-area）が残りの高さを取るので、行が少ないページでも Pagination の位置は動かない（画面が panel などの高さの決まった親を埋めるとき）。
  * 読み込み中と空は、root の is-loading / is-empty で行を隠し、同じ領域の中央に Label を出す。
- * 既定の Label は折り返さない（white-space: nowrap）。行の項目名は省略記号で切り、タイトルと読み込み中・空の Label は折り返す。
+ * 既定の Label は折り返さない（white-space: nowrap）。行の項目名は省略記号で切り、タイトルと読み込み中・空の Label は折り返す（詳細の Label は Card の USS が折り返す）。
  * 画面全体の背景・中央寄せ・固定幅は持たない（World Space では panel 自体が画面の大きさになる）。 */
 .hone-list-detail-screen {
     flex-direction: column;

@@ -147,7 +147,7 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual(5, items.Query<Hone.Button>(className: ItemClass).ToList().Count);
             // 使用例は 1 行目が選ばれた状態（UXML の value は右端の文字が index 0）
             Assert.IsTrue(items.value[0]);
-            Assert.IsFalse(items.value[4]);
+            Assert.AreEqual(1, Enumerable.Range(0, items.childCount).Count(i => items.value[i]));
             Assert.IsNotNull(screen.Q<Pagination>("pagination"));
             var detail = screen.Q(className: "hone-list-detail-screen__detail");
             Assert.IsNotNull(detail);
@@ -174,15 +174,18 @@ namespace Hone.Sandbox.Tests
             CollectionAssert.AreEqual(expected, screens.Select(s => s.Q<Label>(className: "hone-list-detail-screen__item-label").text).ToList());
         }
 
-        // (C) 12 件・1 ページ 5 件で pageCount が 3、ページ 0 / 1 / 2 の行の数が 5 / 5 / 2。行はそのページの項目（補足の #番号）
+        // (C) 12 件・1 ページ 5 件で pageCount が 3、ページ 0 / 1 / 2 の行の数が 5 / 5 / 2。行はそのページの項目（補足の #番号）。
+        // Gallery は 1 件目を選んだ状態で出すので、1 行目を選んだままページを送っても選択が外れないこと（block の README の「配線」の注記の回避策）も確かめる
         [UnityTest]
         public IEnumerator Gallery_PageCountIsThreeAndRowsFollowThePage()
         {
             VisualElement block = null;
             yield return CreateScreen("ja", 2, 800, 480, b => block = b);
             var pagination = block.Q<Pagination>("pagination");
+            var wiring = Wiring(block);
+            var confirm = block.Q<Hone.Button>("confirm");
 
-            Assert.AreEqual(12, Wiring(block).items.Count);
+            Assert.AreEqual(12, wiring.items.Count);
             Assert.AreEqual(3, pagination.pageCount);
             Assert.AreEqual(0, pagination.value);
             var expected = new[] { 5, 5, 2 };
@@ -193,8 +196,16 @@ namespace Hone.Sandbox.Tests
                 var rows = Rows(block);
                 Assert.AreEqual(expected[page], rows.Count, $"page {page}");
                 var metas = rows.Select(r => r.Q<Label>(className: "hone-list-detail-screen__item-meta").text).ToList();
-                CollectionAssert.AreEqual(Enumerable.Range(page * 5 + 1, expected[page]).Select(n => "#" + n).ToList(), metas, $"page {page}");
+                CollectionAssert.AreEqual(Enumerable.Range(page * GalleryListDetailScreen.PageSize + 1, expected[page]).Select(n => "#" + n).ToList(), metas, $"page {page}");
+                Assert.AreEqual(0, wiring.selectedIndex, $"page {page}");
+                CollectionAssert.AreEqual(page == 0 ? new[] { 0 } : new int[0], SelectedRows(block), $"page {page}");
+                Assert.IsTrue(confirm.enabledSelf, $"page {page}");
             }
+
+            pagination.value = 0;
+            yield return null;
+            CollectionAssert.AreEqual(new[] { 0 }, SelectedRows(block));
+            Assert.AreEqual(0, wiring.selectedIndex);
         }
 
         // (D) ページ 0 の 2 行目を選んでからページ 1 へ送ると、どの行も選ばれておらず、詳細は 2 件目のまま。ページ 0 へ戻ると 2 行目が選ばれている
@@ -216,7 +227,7 @@ namespace Hone.Sandbox.Tests
             yield return null;
             CollectionAssert.IsEmpty(SelectedRows(block));
             Assert.AreEqual(1, wiring.selectedIndex);
-            Assert.AreEqual(second.Label, DetailTitle(block));
+            Assert.AreEqual(second.Name, DetailTitle(block));
             CollectionAssert.AreEqual(second.Values, DetailValues(block));
 
             pagination.value = 0;
@@ -245,13 +256,15 @@ namespace Hone.Sandbox.Tests
             CollectionAssert.IsEmpty(SelectedRows(block));
             Assert.IsFalse(confirm.enabledSelf);
             Assert.AreEqual("Select an item", DetailTitle(block));
+            Assert.AreEqual(string.Empty, block.Q<Label>("detail-description").text);
             Assert.AreEqual(DisplayStyle.None, fields.resolvedStyle.display);
 
             Submit(Rows(block)[2]);
             yield return null;
             Assert.AreEqual(2, wiring.selectedIndex);
             Assert.IsTrue(confirm.enabledSelf);
-            Assert.AreEqual(wiring.items[2].Label, DetailTitle(block));
+            Assert.AreEqual(wiring.items[2].Name, DetailTitle(block));
+            CollectionAssert.AreEqual(wiring.items[2].Values, DetailValues(block));
             Assert.AreEqual(DisplayStyle.Flex, fields.resolvedStyle.display);
 
             Submit(Rows(block)[2]);
@@ -306,7 +319,44 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual(DisplayStyle.None, loading.resolvedStyle.display);
         }
 
-        // (H) 長いドイツ語と日本語の長文で、行の項目名が行の幅を超えず、省略記号で切る設定になる。補足も行の中に残る
+        // 配線の読み込み中と空（Issue #126 の UI 仕様の状態の表）。読み込み中は is-loading だけが付き、Pagination と決定は disabled、詳細は未選択。
+        // 0 件で読み終えると is-loading が外れて is-empty だけが付き、pageCount が 0、決定は disabled。もう一度データを渡すと両方が外れる
+        [UnityTest]
+        public IEnumerator Gallery_SetLoadingAndEmptyItemsUpdateTheScreen()
+        {
+            VisualElement block = null;
+            yield return CreateScreen("ja", 2, 800, 480, b => block = b);
+            var wiring = Wiring(block);
+            var data = wiring.items;
+            var pagination = block.Q<Pagination>("pagination");
+            var confirm = block.Q<Hone.Button>("confirm");
+
+            wiring.SetLoading();
+            Assert.IsTrue(block.ClassListContains("is-loading"));
+            Assert.IsFalse(block.ClassListContains("is-empty"));
+            Assert.IsFalse(pagination.enabledSelf);
+            Assert.IsFalse(confirm.enabledSelf);
+            Assert.AreEqual(-1, wiring.selectedIndex);
+            Assert.AreEqual("Select an item", DetailTitle(block));
+
+            wiring.SetItems(Array.Empty<ListDetailItem>());
+            Assert.IsFalse(block.ClassListContains("is-loading"));
+            Assert.IsTrue(block.ClassListContains("is-empty"));
+            Assert.IsTrue(pagination.enabledSelf);
+            Assert.AreEqual(0, pagination.pageCount);
+            Assert.AreEqual(0, Rows(block).Count);
+            Assert.IsFalse(confirm.enabledSelf);
+
+            wiring.SetItems(data);
+            yield return null;
+            Assert.IsFalse(block.ClassListContains("is-loading"));
+            Assert.IsFalse(block.ClassListContains("is-empty"));
+            Assert.AreEqual(3, pagination.pageCount);
+            Assert.AreEqual(5, Rows(block).Count);
+        }
+
+        // (H) 長いドイツ語と日本語の長文で、行の項目名が行の幅を超えず、省略記号で切る設定になる。補足も行の中に残る。
+        // 行は ToggleGroup.uss の flex-grow: 1 を block の USS が 0 に戻している（同じ詳細度で後ろに @import される）
         [UnityTest]
         public IEnumerator Gallery_LongGermanItemLabelStaysInsideTheRow() => LongItemLabelStaysInsideTheRow("de-long");
 
@@ -325,6 +375,7 @@ namespace Hone.Sandbox.Tests
             {
                 var label = row.Q<Label>(className: "hone-list-detail-screen__item-label");
                 var meta = row.Q<Label>(className: "hone-list-detail-screen__item-meta");
+                Assert.AreEqual(0f, row.resolvedStyle.flexGrow);
                 Assert.AreEqual(TextOverflow.Ellipsis, label.resolvedStyle.textOverflow);
                 Assert.AreEqual(WhiteSpace.NoWrap, label.resolvedStyle.whiteSpace);
                 Assert.LessOrEqual(label.worldBound.xMax, row.worldBound.xMax + 1f, "the item label overflows the row");
