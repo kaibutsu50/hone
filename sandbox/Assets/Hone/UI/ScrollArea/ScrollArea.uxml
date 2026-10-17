@@ -1,0 +1,12 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement style="height: 96px;">
+        <ui:ScrollView class="hone-scroll-area" mode="Vertical" horizontal-scroller-visibility="Hidden" style="flex-grow: 1;">
+            <ui:Label text="Terms of use" class="hone-text" style="white-space: normal;" />
+            <ui:Label text="Hone is a set of UI components for Unity UI Toolkit. Copy the components into your project and change them freely." class="hone-text" style="white-space: normal;" />
+            <ui:Label text="Licenses" class="hone-text" style="white-space: normal;" />
+            <ui:Label text="Each component keeps its own behavior. Only the look is yours to decide, through the tokens in Tokens.uss." class="hone-text" style="white-space: normal;" />
+            <ui:Label text="Notices" class="hone-text" style="white-space: normal;" />
+            <ui:Label text="The vertical scrollbar appears only when the content does not fit in the height of the ScrollView." class="hone-text" style="white-space: normal;" />
+        </ui:ScrollView>
+    </ui:VisualElement>
+</ui:UXML>

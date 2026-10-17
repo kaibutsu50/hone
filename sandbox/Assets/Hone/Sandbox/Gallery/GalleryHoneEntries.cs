@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 
 namespace Hone.Sandbox.Gallery
 {
-    // Hone.Button、Hone.Dialog、Hone.MessageWindow、Hone.Switch、Hone.Toggle、Hone.ToggleGroup、Hone.Pagination、Hone.Cycle、Hone.Tabs、見た目だけの Hone.Card と Hone.Separator（Gallery の名前だけで、C# のクラスは無い）と、block の SettingsScreen（Gallery の名前は Hone.SettingsScreen。C# のクラスは無い）を Gallery に載せる。
+    // Hone.Button、Hone.Dialog、Hone.MessageWindow、Hone.Switch、Hone.Toggle、Hone.ToggleGroup、Hone.Pagination、Hone.Cycle、Hone.Tabs、見た目だけの Hone.Card と Hone.Separator と Hone.ScrollArea（Gallery の名前だけで、C# のクラスは無い）と、block の SettingsScreen（Gallery の名前は Hone.SettingsScreen。C# のクラスは無い）を Gallery に載せる。
     // Register は sandbox 側から呼ぶ（registry/ 配下のコードには書かない）。呼ぶ時点は README の Gallery の節を参照。
     static class GalleryHoneEntries
     {
@@ -175,6 +175,26 @@ namespace Hone.Sandbox.Gallery
                 cell.Add(row);
                 return cell;
             }, Describe("Separator", "Horizontal / hone-separator--vertical"));
+            // 見た目だけの部品（.cs を持たない）。状態のデモは無いので、高さを固定した ScrollView に text の Label を 6 つ入れ、縦のスクロールバーが出る状態で 1 つのセルに置く。
+            // 横のスクロールバーは整えない部品なので Hidden にする。Label は幅に収まらなければ折り返す（既定の Label は折り返さない）
+            GalleryController.Register("Hone.ScrollArea", text =>
+            {
+                var cell = new VisualElement();
+                cell.AddToClassList("gallery-cell");
+                var scrollView = new ScrollView(ScrollViewMode.Vertical);
+                scrollView.AddToClassList("hone-scroll-area");
+                scrollView.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
+                scrollView.style.height = 160;
+                for (var i = 0; i < 6; i++)
+                {
+                    var label = new Label(text);
+                    label.AddToClassList("hone-text");
+                    label.style.whiteSpace = WhiteSpace.Normal;
+                    scrollView.Add(label);
+                }
+                cell.Add(scrollView);
+                return cell;
+            }, Describe("ScrollArea"));
             // block。SettingsScreen.uxml を読み込み、各行の見出しと説明、確認の Dialog のタイトルと本文に text を入れる（長文の言語では説明が折り返す）。
             // 操作は UXML のまま使い、Cycle の選択肢と ToggleGroup のラベルだけ text にする（収まらなければ省略記号になる）。Button の文言（Refresh / Delete、Dialog の Cancel / Delete）は短い固定文字列のまま（行の中で max-width に切られた Button の長いラベルは確かめていない）。
             // Destructive の行の Button で確認の Dialog を開き、Cancel / 確定で閉じる（block は振る舞いを持たないので、配線はここでする）。Dialog は閉じた状態で並ぶ。
