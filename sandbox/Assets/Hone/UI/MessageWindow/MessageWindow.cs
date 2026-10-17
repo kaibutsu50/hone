@@ -25,7 +25,8 @@ namespace Hone
     {
         // 1 ページ分。値は渡したまま持つ。Show は、speaker が null か空文字列のページを話者なし（名札は出ない）、text が null のページを空文字列として扱う。
         // className は、そのページを出している間だけ窓（MessageWindow 自身）に付くクラス名。null か空文字列なら付かない。
-        // choices は選択肢の文字列。null は選択肢なし。選択肢 0 個のページは操作できなくなるので、空の配列と 3 個以上は ArgumentException。null の要素は空文字列として出す
+        // choices は選択肢の文字列で、null（選択肢なし）か 1〜2 個。空の配列は、選択肢 0 個の操作できないページになるので ArgumentException。上限は 2 個で、3 個以上も ArgumentException。
+        // 配列はコピーせずに持つので、全文が出る前に要素を書き換えると、書き換えた文字列が出る。null の要素は空文字列として出す。
         public readonly struct Page
         {
             public readonly string speaker;
@@ -78,7 +79,8 @@ namespace Hone
         // 最後のページで、全文が出た後に Advance() されたとき 1 回。次の Show まで再び出ない。選択肢を押して最後のページを終えたときも出る
         public event Action completed;
 
-        // 選択肢を押したとき 1 回。引数は choices の index。このあと次のページへ進むか completed を出す（この中で Show したときは進まない）
+        // 選択肢を押したとき 1 回。引数は choices の index。呼ばれている間、pageIndex は選択肢のページを指す。
+        // このあと次のページへ進むか completed を出す。この中で Show か Advance() をしたときは、部品はそれ以上進めない
         public event Action<int> choiceSelected;
 
         readonly Label m_Speaker;
@@ -99,10 +101,8 @@ namespace Hone
         string m_PageClass;
         // 選択肢を出していて、まだ選ばれていない間 true
         bool m_Choosing;
-        // Show の回数。choiceSelected の中で Show されたかを見分ける
-        int m_ShowCount;
-        // 選択肢を押した処理の中で、次に出す選択肢へフォーカスを移すか（押した Button はもう外れているので、フォーカスの位置からは判定できない）
-        bool m_FocusNextChoices;
+        // Show、ページの開始、completed のたびに増える。choiceSelected の中でページか完了の状態が動いたかを見分ける
+        int m_Version;
 
         public MessageWindow()
         {
@@ -154,7 +154,7 @@ namespace Hone
         // null は型を付けて渡す（Show(null) と引数なしの Show() は、2 つの Show のどちらか決まらずコンパイルエラー）
         public void Show(params Page[] pages)
         {
-            m_ShowCount++;
+            m_Version++;
             StopReveal();
             m_Completed = false;
             if (pages == null || pages.Length == 0)
@@ -200,6 +200,7 @@ namespace Hone
             if (m_Completed)
                 return;
             m_Completed = true;
+            m_Version++;
             completed?.Invoke();
         }
 
@@ -208,6 +209,7 @@ namespace Hone
 
         void StartPage(int index)
         {
+            m_Version++;
             StopReveal();
             ClearChoices();
             m_PageIndex = index;
@@ -260,13 +262,13 @@ namespace Hone
             UpdateStateClasses();
         }
 
-        // 全文が出たときに呼ぶ。今のページに選択肢があれば Button を出し、窓（か押した選択肢）にフォーカスがあれば最初の選択肢へ移す
+        // 全文が出たときに呼ぶ。今のページに選択肢があれば Button を出し、窓にフォーカスがあれば最初の選択肢へ移す
         void ShowChoices()
         {
             var choices = m_Pages[m_PageIndex].choices;
             if (choices == null || m_Choosing)
                 return;
-            var moveFocus = m_FocusNextChoices || HasFocusWithin();
+            var moveFocus = HasFocusWithin();
             m_Choosing = true;
             for (var i = 0; i < choices.Length; i++)
             {
@@ -286,28 +288,33 @@ namespace Hone
             m_Choices.Clear();
         }
 
-        // 選択肢を外してから choiceSelected を出し、その中で Show されていなければ次へ進む。
-        // 押す前にフォーカスが窓の中にあったなら、外した Button に残らないよう、次の選択肢か窓へ移す（completed の後は、利用者が移した先を上書きしないよう移さない）
+        // 選択肢を外してから choiceSelected を出し、その中でページか完了の状態が動いていなければ次へ進む。
+        // 押す前にフォーカスが窓の中にあったなら、外した Button に残らないよう、次の更新で最初の選択肢か窓へ移す（choiceSelected が例外を投げたときも）
         void Choose(int index)
         {
             if (!m_Choosing)
                 return;
-            var hadFocus = HasFocusWithin();
+            var pressed = m_Choices[index];
+            if (HasFocusWithin())
+                schedule.Execute(() => RestoreFocus(pressed));
             ClearChoices();
             UpdateStateClasses();
-            var showCount = m_ShowCount;
-            m_FocusNextChoices = hadFocus;
-            try
-            {
-                choiceSelected?.Invoke(index);
-                if (m_ShowCount == showCount)
-                    Next();
-            }
-            finally
-            {
-                m_FocusNextChoices = false;
-            }
-            if (hadFocus && !m_Choosing && !m_Completed && m_PageIndex >= 0)
+            var version = m_Version;
+            choiceSelected?.Invoke(index);
+            if (m_Version == version)
+                Next();
+        }
+
+        // フォーカスが外した Button に残っているか、どこにも無いときだけ移す。choiceSelected や completed の中で利用者が移した先は上書きしない。
+        // 選択肢と同じ処理の中では、利用者の Focus() がまだ確定していないことがあるので、次の更新まで待ってから見る
+        void RestoreFocus(VisualElement pressed)
+        {
+            var focused = focusController?.focusedElement;
+            if (focused != null && focused != pressed)
+                return;
+            if (m_Choosing)
+                m_Choices[0].Focus();
+            else
                 Focus();
         }
 
@@ -369,7 +376,7 @@ namespace Hone
         }
 
         // Submit とクリックは、この部品が 1 歩進める入力として消費し、祖先には届けない。
-        // 選択肢の Button からの泡立ちでは進めない（押した処理で次のページへ進み、Button が外れた後に届くので、状態ではなく target のクラスで見分ける）
+        // 選択肢の Button が target の Submit とクリックでは進めない。押した処理で次のページへ進んだ後に届いても進めないよう、状態ではなく target のクラスで見分ける
         void OnSubmit(NavigationSubmitEvent evt)
         {
             if (!IsChoice(evt.target))

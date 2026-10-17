@@ -739,7 +739,7 @@ namespace Hone.Sandbox.Tests
             AssertSpeakerShown(window, "<b>bold</b>", "tag-like speaker");
         }
 
-        // 選択肢（#128）。選択肢の Button は .hone-message-window__choices の子
+        // 選択肢。コメントの (A)〜(F) は Issue #128 の受け入れ条件の番号。選択肢の Button は .hone-message-window__choices の子
         static List<Button> ChoicesOf(MessageWindow window) =>
             window.Q(className: "hone-message-window__choices").Query<Button>().ToList();
 
@@ -865,9 +865,9 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual(0, completed);
         }
 
-        // (C) 選択肢の Button への ClickEvent は、窓の Advance() として扱わない（ClickEvent だけでは Button の clicked も出ない）
+        // (C) 選択肢の Button への ClickEvent だけでは選ばれず（Button の clicked は出ない）、祖先へも伝わらない
         [UnityTest]
-        public IEnumerator Choosing_ClickEventOnChoice_DoesNotAdvanceWindow()
+        public IEnumerator Choosing_ClickEventOnChoice_DoesNotSelectOrReachAncestors()
         {
             VisualElement root = null;
             yield return CreatePanel(r => root = r);
@@ -1032,11 +1032,11 @@ namespace Hone.Sandbox.Tests
             yield return CreatePanel(r => root = r);
             var window = new MessageWindow();
             root.Add(window);
-            window.Show(ChoicePage("first", "a", "b"), ChoicePage("second", "c", "d"), new MessageWindow.Page(null, "third"));
             window.Focus();
-            yield return Settle();
-            ChoicesOf(window)[0].Focus();
             yield return null;
+            window.Show(ChoicePage("first", "a", "b"), ChoicePage("second", "c", "d"), new MessageWindow.Page(null, "third"));
+            yield return Settle();
+            Assert.AreEqual(ChoicesOf(window)[0], window.focusController.focusedElement, "precondition: the first choice has focus");
 
             SubmitTo(ChoicesOf(window)[0]);
             yield return Settle();
@@ -1064,6 +1064,195 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual(0, ChoicesOf(window).Count);
             Assert.AreEqual(0f, window.Q(className: "hone-message-window__choices").layout.height);
             Assert.IsFalse(window.ClassListContains("is-choosing"));
+        }
+
+        // 窓にフォーカスを置いて 1 frame 待ってから、選択肢のページを出す
+        IEnumerator ShowFocused(MessageWindow window, params MessageWindow.Page[] pages)
+        {
+            window.Focus();
+            yield return null;
+            window.Show(pages);
+            yield return Settle();
+        }
+
+        // (D) choiceSelected の中で Advance() しても、部品はそれ以上進めない（1 ページだけ進む）
+        [UnityTest]
+        public IEnumerator Choice_AdvanceInChoiceSelected_AdvancesOnce()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow();
+            var completed = 0;
+            window.completed += () => completed++;
+            window.choiceSelected += index => window.Advance();
+            root.Add(window);
+            window.Show(ChoicePage("question", "yes", "no"), new MessageWindow.Page(null, "second"), new MessageWindow.Page(null, "third"));
+            yield return Settle();
+
+            SubmitTo(ChoicesOf(window)[0]);
+            yield return Settle();
+
+            Assert.AreEqual(1, window.pageIndex);
+            Assert.AreEqual(0, completed);
+        }
+
+        // (B) 時間で文字送りが終わっても、選択肢が出て、窓にフォーカスがあれば最初の選択肢へ移る
+        [UnityTest]
+        public IEnumerator Reveal_FinishesByTime_ShowsChoicesAndMovesFocus()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow { charactersPerSecond = 100 };
+            root.Add(window);
+
+            yield return ShowFocused(window, ChoicePage("0123456789", "yes", "no"));
+            yield return WaitRealtime(0.5f);
+            yield return Settle();
+
+            Assert.IsFalse(window.ClassListContains("is-revealing"));
+            Assert.IsTrue(window.ClassListContains("is-choosing"));
+            Assert.AreEqual(2, ChoicesOf(window).Count);
+            Assert.AreEqual(ChoicesOf(window)[0], window.focusController.focusedElement);
+        }
+
+        // 選択肢を出している間に Show すると、選択肢が消えて is-choosing が外れ、新しいページを Submit で送れる。ページ無しにしても外れる
+        [UnityTest]
+        public IEnumerator Choosing_ShowFromOutside_ClearsChoices()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow();
+            root.Add(window);
+            window.Show(ChoicePage("question", "yes", "no"));
+            yield return Settle();
+
+            window.Show("next", "last");
+            yield return Settle();
+            Assert.AreEqual(0, ChoicesOf(window).Count);
+            Assert.IsFalse(window.ClassListContains("is-choosing"));
+            Submit(window);
+            Assert.AreEqual(1, window.pageIndex);
+
+            window.Show(ChoicePage("question", "yes", "no"));
+            yield return Settle();
+            window.Show((MessageWindow.Page[])null);
+            yield return Settle();
+            Assert.AreEqual(0, ChoicesOf(window).Count);
+            Assert.IsFalse(window.ClassListContains("is-choosing"));
+        }
+
+        // (E) choiceSelected の中で Show し直すと、フォーカスは新しいページへ移る（選択肢のページなら最初の選択肢、そうでなければ窓）
+        [UnityTest]
+        public IEnumerator Choice_ShowInChoiceSelected_MovesFocusToNewPage([Values(true, false)] bool nextHasChoices)
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow();
+            window.choiceSelected += index =>
+            {
+                if (nextHasChoices)
+                    window.Show(ChoicePage("branch", "c", "d"));
+                else
+                    window.Show("branch");
+            };
+            root.Add(window);
+            yield return ShowFocused(window, ChoicePage("question", "yes", "no"));
+
+            SubmitTo(ChoicesOf(window)[0]);
+            yield return Settle();
+
+            var expected = nextHasChoices ? ChoicesOf(window)[0] : (Focusable)window;
+            Assert.AreEqual(expected, window.focusController.focusedElement);
+        }
+
+        // (E) choiceSelected か completed の中で利用者が移したフォーカスは、部品が上書きしない
+        [UnityTest]
+        public IEnumerator Choice_HandlerMovesFocus_IsKept([Values(true, false)] bool inCompleted)
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var other = new Button { text = "other" };
+            root.Add(other);
+            var window = new MessageWindow();
+            if (inCompleted)
+                window.completed += () => other.Focus();
+            else
+                window.choiceSelected += index => { window.Show("branch"); other.Focus(); };
+            root.Add(window);
+            yield return ShowFocused(window, ChoicePage("question", "yes", "no"));
+
+            SubmitTo(ChoicesOf(window)[0]);
+            yield return Settle();
+
+            Assert.AreEqual(other, window.focusController.focusedElement);
+        }
+
+        // (E) 最後のページで選んで completed が出ても、利用者がフォーカスを移さなければ、外した Button に残さず窓へ移す
+        [UnityTest]
+        public IEnumerator Choice_OnLastPage_FocusReturnsToWindow()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow();
+            root.Add(window);
+            yield return ShowFocused(window, ChoicePage("question", "yes", "no"));
+
+            SubmitTo(ChoicesOf(window)[1]);
+            yield return Settle();
+
+            Assert.AreEqual(window, window.focusController.focusedElement);
+        }
+
+        // (E) 窓に Focus() したのと同じ frame で選択肢のページを出しても、最初の選択肢にフォーカスが移る
+        [UnityTest]
+        public IEnumerator Choices_FocusAndShowInSameFrame_FocusMovesToFirstChoice()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow();
+            root.Add(window);
+
+            window.Focus();
+            window.Show(ChoicePage("question", "yes", "no"));
+            yield return Settle();
+
+            Assert.AreEqual(ChoicesOf(window)[0], window.focusController.focusedElement);
+        }
+
+        // choices の null の要素は、空文字列の選択肢として出る
+        [UnityTest]
+        public IEnumerator Show_NullChoice_ShowsEmptyText()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow();
+            root.Add(window);
+
+            window.Show(ChoicePage("question", null, "no"));
+            yield return Settle();
+
+            Assert.AreEqual("", ChoicesOf(window)[0].text);
+            Assert.AreEqual("no", ChoicesOf(window)[1].text);
+        }
+
+        // 選択肢のページの文字送りの途中で panel から外すと、全文が出て選択肢も出た状態になる（付け直しても再開しない）
+        [UnityTest]
+        public IEnumerator Detach_WhileRevealingChoicePage_ShowsChoices()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(r => root = r);
+            var window = new MessageWindow { charactersPerSecond = 10 };
+            root.Add(window);
+            yield return ShowFocused(window, ChoicePage("01234567890123456789", "yes", "no"));
+            Assert.IsTrue(window.ClassListContains("is-revealing"), "the reveal ended before detaching");
+
+            window.RemoveFromHierarchy();
+            root.Add(window);
+            yield return Settle();
+
+            Assert.IsFalse(window.ClassListContains("is-revealing"));
+            Assert.IsTrue(window.ClassListContains("is-choosing"));
+            Assert.AreEqual(2, ChoicesOf(window).Count);
         }
     }
 }

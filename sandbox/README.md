@@ -151,7 +151,7 @@ unity command run_tests --mode playmode --filter Hone.Sandbox.Tests.SandboxSmoke
 `variants` を渡すのは variant を持つ部品だけ。`Hone.Button` は `variant` プロパティの値で、`Enum.GetNames(typeof(Hone.Button.Variant))` から作る。`Hone.Dialog` は README に opt-in の variant として書かれた USS クラス `hone-dialog--blur` を渡す。カードの中の台（説明とタグ）は `Label` だけで作り、Hone の部品は使わない（部品の変更で台の見た目が変わると比較できなくなる）。
 Dialog と MessageWindow は親の幅に従う部品なので、`Gallery.uss` はセル（`.gallery-dialog`、`.gallery-message-window`）の基準の幅を px で持ち、行の残りまで伸ばしている（`flex-basis: 0` や割合の幅から伸ばすと 1 文字ずつ折り返す）。
 Screen Space の panel は `Sandbox/PanelSettings.asset` の Scale With Screen Size（基準 1200×800、幅に合わせる）なので、Game view が 16:9 なら論理サイズはおよそ 1200×675 になる。
-その Screen Space で `Japanese` を選ぶと、MessageWindow と Dialog は列の上の説明の高さのぶん ja の行の下端が 1 画面からはみ出す（メニューとカードの構成で、ScrollView の表示領域の高さ約 580 に対し、中身の高さは MessageWindow が 704（選択肢の窓を積んだ後）、Dialog が 719。ほかの言語は確かめていない。6000.7.0b4）。下までスクロールして 2 枚撮る。
+その Screen Space で `Japanese` を選ぶと、MessageWindow と Dialog は中身の高さが表示領域を超え、ja の行の下端が 1 画面からはみ出す（メニューとカードの構成で、ScrollView の表示領域の高さ約 580 に対し、中身の高さは MessageWindow が 704（選択肢の窓を含む）、Dialog が 719。ほかの言語は確かめていない。6000.7.0b4）。下までスクロールして 2 枚撮る。
 収まらないときに下まで見るには、`ScrollView`（name `gallery`）の `scrollOffset` を `unity command eval_file` で書き換えながら、`capture_game_view` で複数枚撮る。収めるためにセルの幅（`.gallery-dialog` など）は変えない。
 コンポーネントは、メニューの代わりに `GalleryController.SelectComponent` で切り替えて撮る（下の「コンポーネントの切り替え」）。言語も、Cycle の代わりに `GalleryController.SelectScript` で切り替えて撮る（eval から panel の要素に届く公開 API が無いため。下の「言語の切り替え」）。
 `GalleryController.preview`（カードの中の `ScrollView`、name `gallery`）は、テストと eval から panel の要素に届く入口。UI の読み込みが最後まで済むと入り、それまでは null（`ModelRoomsController.columns` と同じ形）。`preview.panel.visualTree` からメニューや Cycle も引ける。
@@ -243,7 +243,7 @@ unity command editor_stop --project-path <sandbox の絶対パス>
 
 - World Space は `screenshot --view game` で写る（カメラ経由で描画されるため）。
 - `set_active` の `--target` に `hierarchyPath` で指定した名前は完全一致で、`PanelRenderer` は `PanelRendererWorldSpace` を巻き込まない（6000.7.0b2 で、`PanelRenderer` だけを無効化して World Space 側が写ることを確認）。
-- コンポーネントと言語の切り替えは Screen Space と同じ `SelectComponent` と `SelectScript`。World Space の panel は論理サイズが 1920×1080 で、`Japanese` では、列の上に説明があっても Dialog の en と ja の 2 行が 1 画面に収まる（メニューとカードの構成で、ScrollView の表示領域の高さ 950 に対し、Dialog の中身の高さは 719。MessageWindow は 704（選択肢の窓を積んだ後）。ほかの言語は確かめていない。6000.7.0b4）。収まらないときは、Screen Space と同じく `ScrollView`（name `gallery`）の `scrollOffset` を書き換えながら複数枚撮る。
+- コンポーネントと言語の切り替えは Screen Space と同じ `SelectComponent` と `SelectScript`。World Space の panel は論理サイズが 1920×1080 で、`Japanese` では、列の上に説明があっても Dialog の en と ja の 2 行が 1 画面に収まる（メニューとカードの構成で、ScrollView の表示領域の高さ 950 に対し、Dialog の中身の高さは 719。MessageWindow は 704（選択肢の窓を含む）。ほかの言語は確かめていない。6000.7.0b4）。収まらないときは、Screen Space と同じく `ScrollView`（name `gallery`）の `scrollOffset` を書き換えながら複数枚撮る。
 - 同じ Gallery でも、World Space は論理サイズが 1920×1080 の panel なので、Screen Space と列の幅が違い、省略記号になる位置も違う（6000.7.0b2。原因は調べていない）。
 
 撮った画像で、文字列が読めるか、豆腐（□）になっていないか、行や列がはみ出していないかを人が見る。画像の自動比較はしない。

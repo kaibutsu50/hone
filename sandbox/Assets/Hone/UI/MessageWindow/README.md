@@ -37,7 +37,7 @@ slot は持たず、UXML の子要素は想定しない（入れると選択肢�
 |---|---|---|
 | 話者が別の欄にあるシナリオ | `Show(new Hone.MessageWindow.Page("ジョシュ", "あ、ハシゴだ。"), ...)` | ページごとに替わる |
 | 地の文（話者なし） | `Page` の `speaker` を `null` か空文字列にする | 出ない |
-| 話者を本文に混ぜる書き方（「＊「」など） | 今までどおり `Show("＊「...", ...)` | 一度も出ない |
+| 話者を本文に混ぜる書き方（「＊「」など） | `Show("＊「...", ...)`（文字列のページ） | 一度も出ない |
 | データには話者があるが、名札を出さない見た目 | `Page` で渡し、利用者の USS で名札を `display: none` にする（下の例） | 出ない |
 
 名札を出す既定の規則は `.hone-message-window.is-speaker-set > .hone-message-window__speaker`（クラス 3 つ）なので、`.hone-message-window__speaker` だけの規則では詳細度で負けて隠れない。
@@ -75,10 +75,12 @@ window.Show(
 押すと `choiceSelected` が選択肢の index で 1 回出て、そのあと `Advance()` と同じく次のページへ進むか、最後のページなら `completed` が出る。
 
 - 選択肢を出している間（`is-choosing`）は、窓への Submit と、選択肢の外のクリックでは進まない（`Advance()` も何もしない）。▼ は出ない。
-- 選択肢を出した時点で窓にフォーカスがあれば、最初の選択肢へフォーカスを移す（ゲームパッドで続けて選べる）。`FocusScope` の trap はしない。
-- 選択肢を押した後は Button が消える。押す前にフォーカスが窓の中にあったなら、次のページの窓（次のページも選択肢なら最初の選択肢）へフォーカスを戻す。`completed` が出たときは戻さない。
-- 分岐は持たない。どの選択肢でどのページへ行くかは、利用者が `choiceSelected` を受けて `Show` し直す。`choiceSelected` の中で `Show` したときは、部品は次のページへ進まない（新しい 1 ページ目がそのまま出る）。
-- `choices` が `null` のページは選択肢なし（今までどおり Submit とクリックで送る）。空の配列と 3 個以上は `Page` のコンストラクタが `ArgumentException` にする（選択肢 0 個のページは、何も押せなくなるため）。`null` の要素は空文字列として出す。
+- 選択肢を出した時点で窓にフォーカスがあれば、最初の選択肢へフォーカスを移す（ゲームパッドで続けて選べる）。窓にフォーカスが無ければ移さない。
+- `FocusScope` の trap はしない。Tab や 2D ナビゲーションで、フォーカスは窓自身や窓の外へも出る（窓にフォーカスが戻っても、Submit では選べない）。Cancel で選択肢を選ぶ動作も持たない。
+- 選択肢を押した後は Button が消える。押す前にフォーカスが窓の中にあったなら、次の更新で、次のページの窓（次のページも選択肢なら最初の選択肢）へフォーカスを移す。`completed` の後と、`choiceSelected` の中で `Show` した後も同じ。`choiceSelected` か `completed` の中で利用者が別の要素へフォーカスを移していたら、移さない。
+- 分岐は持たない。どの選択肢でどのページへ行くかは、利用者が `choiceSelected` を受けて `Show` し直す。`choiceSelected` の中で `Show` か `Advance()` をしたときは、部品はそれ以上進めない（`Show` なら新しい 1 ページ目がそのまま出る）。`choiceSelected` が呼ばれている間、`pageIndex` は選択肢のページを指す。
+- `choices` が `null` のページは選択肢なし（Submit とクリックで送る）。空の配列は、何も押せないページになるので `Page` のコンストラクタが `ArgumentException` にする。上限は 2 個で、3 個以上も `ArgumentException`。`null` の要素は空文字列として出す。
+- 配列はコピーせずに持つ。全文が出る前に要素を書き換えると、書き換えた文字列が出る。
 - 選択肢の Button は縮まず折り返さない（Button.uss）。幅が足りないときは並びが折り返して次の行に出る。長い文言を入れない。
 
 ```csharp
@@ -104,7 +106,7 @@ window.Focus();
 | `pageIndex` | 今のページ。ページが無いときは -1（読み取りのみ） |
 | `pageCount` | ページ数（読み取りのみ） |
 | `completed` | 最後のページで全文が出た後に `Advance()` されたとき 1 回出るイベント。最後のページの選択肢を押したときも出る。次の `Show` まで再び出ない |
-| `choiceSelected` | 選択肢を押したとき 1 回出るイベント（`Action<int>`。引数は `choices` の index）。このあと次のページへ進むか `completed` が出る。この中で `Show` したときは進まない |
+| `choiceSelected` | 選択肢を押したとき 1 回出るイベント（`Action<int>`。引数は `choices` の index）。呼ばれている間、`pageIndex` は選択肢のページを指す。このあと次のページへ進むか `completed` が出る。この中で `Show` か `Advance()` をしたときは、部品はそれ以上進めない |
 
 ## Advance の処理
 
@@ -116,7 +118,7 @@ window.Focus();
 |---|---|
 | ページが無い（`Show` 前） | 何もしない |
 | 文字送りの途中 | そのページの全文を出す（ページは進めない） |
-| 選択肢を出している（`is-choosing`） | 何もしない（選択肢を押すと進む） |
+| 選択肢を出している（`is-choosing`。下の 2 行より先に当てはまる） | 何もしない（選択肢を押すと進む） |
 | 全文が出ていて、次のページがある | 次のページへ進み、文字送りを始める |
 | 最後のページで全文が出ている（`completed` 前） | `completed` を 1 回出す |
 | `completed` の後 | 何もしない（次の `Show` まで） |
@@ -132,7 +134,7 @@ window.Focus();
 | `hone-message-window__choices` | 選択肢の並び（最後の子）。選択肢の無いページでは子が無く、高さは 0 |
 | `hone-message-window__choice` | 選択肢の `Hone.Button`（variant は `outline`）。`is-choosing` の間だけ並びの子にある |
 | `is-speaker-set` | MessageWindow に付く状態クラス。今のページの `speaker` が `null` でも空文字列でもない間。名札の表示はこのクラスと USS で切り替わり、C# から `display` を書かない（利用者の USS で隠せなくなるため）。ページが無いときは付かない |
-| ページの `className` | MessageWindow 自身に付く、利用者が `Page` で渡したクラス。そのページを出している間（文字送りの途中の `.is-revealing` の間も）付く。`null` か空文字列なら付かない。窓に既に付いているクラス（`hone-message-window` `hone-focusable`、状態クラスの `is-speaker-set` `is-revealing` `is-waiting`、利用者が自分で付けたクラス）と同じ名前は使わない。ページが変わるとそのクラスごと外れる |
+| ページの `className` | MessageWindow 自身に付く、利用者が `Page` で渡したクラス。そのページを出している間（文字送りの途中の `.is-revealing` の間も）付く。`null` か空文字列なら付かない。窓に既に付いているクラス（`hone-message-window` `hone-focusable`、状態クラスの `is-speaker-set` `is-revealing` `is-waiting` `is-choosing`、利用者が自分で付けたクラス）と同じ名前は使わない。ページが変わるとそのクラスごと外れる |
 | `is-revealing` | MessageWindow に付く状態クラス。文字送りの途中の間 |
 | `is-waiting` | MessageWindow に付く状態クラス。全文が出ていて、次のページがある間（▼ が見える）。選択肢を出している間は付かない |
 | `is-choosing` | MessageWindow に付く状態クラス。選択肢を出していて、まだ押されていない間 |
