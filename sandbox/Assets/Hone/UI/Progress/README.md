@@ -2,7 +2,7 @@
 
 `UnityEngine.UIElements.ProgressBar` を継承した、進捗率を出す細いバー。shadcn の Progress に当たる。
 `value`、`lowValue`、`highValue`、`title`、`ChangeEvent<float>` は基底のまま使える。
-Progress 自身は振る舞いを足さず、基底が付けるクラスを付け替えるだけ。
+Progress 自身は振る舞いを足さず、基底が付けるクラスの付け替えと、title の `Label` への `hone-text` の追加だけを行う。
 
 ```xml
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:hone="Hone">
@@ -40,10 +40,12 @@ progress.value = loadedBytes * 100f / totalBytes;
 
 indicator の幅は基底が決める。`value` を設定した時点と track の大きさが変わった時点で、indicator の inline の `right` を px で書き換える。
 `Progress.uss` は indicator を `position: absolute` で `left` `top` `bottom` を 0 にして、この `right` を効かせている。indicator に `width` や `right` を書かない。
-基底は `right` を「(track の幅 - 2px) × (1 - 割合)」で決める（2px は既定テーマの track の左右の枠の分。Progress の track は枠を持たない）。
+基底は `right` を「(track の幅 - 2px) × (1 - 割合)」で決め、固定で 2px を引く（既定テーマの track の左右 1px の枠に合わせた値と見られる。Progress の track は枠を持たない）。
 そのため 0 より大きい値では、indicator の幅は割合ちょうどより最大 2px 広い（track の幅 200px で `value` 25 なら 51.5px）。`value` が 0 のとき（`lowValue` と `highValue` は既定の 0 と 100）は、基底が幅を 0 にする（Unity 6000.7.0b4 で測った）。
+`lowValue` を 0 以外にしたときの割合の計算は確かめていない。
 
 variant は持たない。値の変化はアニメーションしない（`transition` を書いていない）。動きは演出なので、利用者が `.hone-progress__indicator` に `transition` を付ける。
+基底が書き換えるのは `right` なので、`transition` は `right` に付ける（`width` に付けても、`width` は変わらないので動かない）。
 
 ## title
 

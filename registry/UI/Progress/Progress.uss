@@ -2,7 +2,7 @@
  * shadcn の Progress（track は h-2 w-full overflow-hidden rounded-full bg-primary/20、indicator は h-full bg-primary）に合わせる。
  * Progress.cs が基底の unity-progress-bar 系のクラスを外すので、既定テーマの規則は当たらない。
  * indicator の幅は基底が inline の right（px）で決める。left と top と bottom は 0 に固定し、absolute にして right を効かせる。
- * 基底は right を既定テーマの track の枠（左右 1px）を引いた幅で計算するので、枠の無い track では幅が割合ちょうどより最大 2px 広くなる（README）。
+ * 基底は right を track の幅から固定で 2px（既定テーマの track の左右 1px の枠に合わせた値と見られる）を引いて計算するので、枠の無い track では幅が割合ちょうどより最大 2px 広くなる（README）。
  * indicator の角丸は track と同じにする。右端も丸くなり、100% で track とちょうど重なる。
  * width は設定しない。縦に並べた親の幅（align-items: stretch）か、横並びの親の flex で決まる。
  * title は既定で表示しない（shadcn の Progress は文字を持たない）。 */

@@ -4,8 +4,7 @@ namespace Hone
 {
     // 基底は完全修飾で書く（Hone の他の部品と揃える）。
     // value、lowValue、highValue、title、ChangeEvent<float> は基底のものをそのまま使う。
-    // Progress 自身は振る舞いを足さず、基底が付けるクラスの付け替えだけを行う。
-    // 進捗の幅は基底が決める（value を設定した時点と track の大きさが変わった時点で、indicator の inline の right を px で書き換える）
+    // Progress 自身は振る舞いを足さず、基底が付けるクラスの付け替えと、title への hone-text の追加だけを行う。
     [UxmlElement]
     public partial class Progress : UnityEngine.UIElements.ProgressBar
     {

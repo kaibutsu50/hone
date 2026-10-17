@@ -11,7 +11,7 @@ using Object = UnityEngine.Object;
 namespace Hone.Sandbox.Tests
 {
     // Editor で実行する前提（UXML と PanelSettings を AssetDatabase から読む）。
-    // UnityEditor.Progress と名前が重なるので、Hone.Progress は完全修飾で書く。
+    // Hone.Progress は、UnityEditor.Progress ではないことを読み手に示すため完全修飾で書く（namespace Hone の中なので、修飾しなくても Hone.Progress に決まる）。
     // 期待値は Tokens.uss の値を書き写したもの。
     // コメントの (B) は Issue #129 の受け入れ条件の番号
     public class ProgressTests
@@ -61,6 +61,7 @@ namespace Hone.Sandbox.Tests
                 Assert.IsNull(progress.Q(className: unityClass), $"{unityClass} must be replaced");
                 Assert.IsNotNull(progress.Q(className: honeClass), $"no .{honeClass}");
             }
+            Assert.IsTrue(progress.Q(className: "hone-progress__title").ClassListContains("hone-text"), "the title must follow the body font");
         }
 
         // PanelRenderer を 1 つ作り、UI が読み込まれたら root を返す。PanelSettings は複製して、panel の状態をテスト間で共有しない
@@ -118,10 +119,23 @@ namespace Hone.Sandbox.Tests
             onReady(progress);
         }
 
-        // (B) value を変えると、進捗の要素（indicator）の幅が track の幅の value / highValue の割合になる。
-        // 基底は value を設定した時点と track の大きさが変わった時点で、indicator の inline の right を px で書き換える。書き換えた right がレイアウトに出るまで待ってから測る。
-        // 基底は right を「(track の幅 - 2) × (1 - 割合)」で決める（2 は既定テーマの track の左右の枠の分。Progress は枠を持たない）。
-        // そのため 0 より大きい値では、幅は「2 + (track の幅 - 2) × 割合」になり、割合ちょうどの幅より最大 2px 広い。0 では基底が幅を 0 にする（6000.7.0b4 で測った）
+        // 基底は right を「(track の幅 - 2) × (1 - 割合)」で決める（6000.7.0b4 で測った。2 は既定テーマの track の左右 1px の枠に合わせた値と見られる。Progress の track は枠を持たない）。
+        // そのため 0 より大きい値では、幅は「2 + (track の幅 - 2) × 割合」になり、割合ちょうどの幅より最大 2px 広い。0 では基底が幅を 0 にする
+        static float ExpectedIndicatorWidth(float trackWidth, float ratio) => ratio > 0f ? 2f + (trackWidth - 2f) * ratio : 0f;
+
+        // indicator の幅が expected になるまで待つ。layout の幅は画素に丸められるので 0.5px まで許す
+        static IEnumerator WaitForIndicatorWidth(VisualElement indicator, float expected)
+        {
+            var frames = 0;
+            while (frames < MaxWaitFrames && Mathf.Abs(indicator.layout.width - expected) > 0.5f)
+            {
+                frames++;
+                yield return null;
+            }
+        }
+
+        // (B) value を変えると、進捗の要素（indicator）の幅が track の幅の value / highValue の割合になる（lowValue は既定の 0）。
+        // 基底は value を設定した時点と track の大きさが変わった時点で、indicator の inline の right を px で書き換える。書き換えた right がレイアウトに出るまで待ってから測る
         [UnityTest]
         public IEnumerator Value_SetsIndicatorWidthToRatioOfTrack()
         {
@@ -135,19 +149,47 @@ namespace Hone.Sandbox.Tests
             {
                 progress.value = value;
                 var ratio = value / progress.highValue;
-                var expected = ratio > 0f ? 2f + (TrackWidth - 2f) * ratio : 0f;
-                var frames = 0;
-                // layout の幅は画素に丸められるので 0.5px まで許す
-                while (frames < MaxWaitFrames && Mathf.Abs(indicator.layout.width - expected) > 0.5f)
-                {
-                    frames++;
-                    yield return null;
-                }
+                var expected = ExpectedIndicatorWidth(TrackWidth, ratio);
+                yield return WaitForIndicatorWidth(indicator, expected);
                 Assert.AreEqual(expected, indicator.layout.width, 0.5f, $"value {value}");
                 Assert.AreEqual(TrackWidth * ratio, indicator.layout.width, 2f, $"value {value}: the width must be within 2px of the ratio of the track");
                 Assert.AreEqual(0f, indicator.layout.x, 0.01f, $"value {value}: the indicator must start at the left edge of the track");
                 Assert.AreEqual(track.layout.height, indicator.layout.height, 0.01f, $"value {value}: the indicator must fill the height of the track");
             }
+        }
+
+        // (B) value を設定し直さなくても、track の幅が変わると indicator の幅が新しい track の幅の割合に追従する
+        [UnityTest]
+        public IEnumerator TrackResize_KeepsIndicatorWidthAtRatio()
+        {
+            Hone.Progress progress = null;
+            yield return PlaceProgress(p => progress = p);
+            var indicator = IndicatorOf(progress);
+            const float ratio = 0.6f;
+            progress.value = ratio * progress.highValue;
+            yield return WaitForIndicatorWidth(indicator, ExpectedIndicatorWidth(TrackWidth, ratio));
+            Assert.AreEqual(ExpectedIndicatorWidth(TrackWidth, ratio), indicator.layout.width, 0.5f, "before the resize");
+
+            const float narrowWidth = 100f;
+            // PlaceProgress の縦並びの枠（Progress -> TemplateContainer -> 枠）
+            progress.parent.parent.style.width = narrowWidth;
+            yield return WaitForIndicatorWidth(indicator, ExpectedIndicatorWidth(narrowWidth, ratio));
+            Assert.AreEqual(narrowWidth, TrackOf(progress).layout.width, 0.01f);
+            Assert.AreEqual(ExpectedIndicatorWidth(narrowWidth, ratio), indicator.layout.width, 0.5f, "after the resize");
+        }
+
+        // (B) README の案内どおり highValue を 1 にすると、0〜1 の割合をそのまま value に渡せる
+        [UnityTest]
+        public IEnumerator HighValueOne_TakesRatioAsValue()
+        {
+            Hone.Progress progress = null;
+            yield return PlaceProgress(p => progress = p);
+            var indicator = IndicatorOf(progress);
+            progress.highValue = 1f;
+            progress.value = 0.25f;
+            var expected = ExpectedIndicatorWidth(TrackWidth, 0.25f);
+            yield return WaitForIndicatorWidth(indicator, expected);
+            Assert.AreEqual(expected, indicator.layout.width, 0.5f);
         }
 
         // (B) track の高さが --hone-size-progress（8px）、角丸が --hone-radius-progress（4px）、溝の色が --hone-color-progress-track、進捗の色が --hone-color-primary。
@@ -166,7 +208,8 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual(4f, track.borderTopRightRadius);
             Assert.AreEqual(4f, track.borderBottomLeftRadius);
             Assert.AreEqual(4f, track.borderBottomRightRadius);
-            Assert.AreEqual(new Color(24f / 255f, 24f / 255f, 27f / 255f, 0.2f), track.backgroundColor);
+            // rgba(24, 24, 27, 0.2)。alpha の 0.2 は Color32 で 51
+            Assert.AreEqual(new Color32(0x18, 0x18, 0x1b, 51), (Color32)track.backgroundColor);
             Assert.AreEqual(8f, progress.resolvedStyle.height, "the root must be as tall as the track");
 
             var indicator = IndicatorOf(progress).resolvedStyle;

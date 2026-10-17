@@ -64,7 +64,7 @@ public class SpinManipulator : Manipulator
 }
 ```
 
-回転の中心は要素の中央（`transform-origin` の既定）。`Update` や `Time` を使わず、要素の schedule で回す。
+回転の中心は要素の中央（`transform-origin` の既定）。`Update` や `Time` を使わず、要素の schedule で回すので、MonoBehaviour を置かずに要素と Manipulator だけで完結する。
 
 ## variant
 

@@ -64,11 +64,8 @@ namespace Hone.Sandbox.Tests
             onReady(root);
         }
 
-        // (C) Spinner.uxml の .hone-spinner の大きさが --hone-size-spinner（16px）、角丸が --hone-radius-spinner（8px）で円になる。
-        // 枠の太さは --hone-border-width（1px）、色は上の 1 辺だけ透明で、残りの 3 辺が --hone-color-foreground。
-        // 横並びの親（使用例の行）の中で縮まない
-        [UnityTest]
-        public IEnumerator Ring_ResolvesSizeAndColorFromTokens()
+        // Spinner.uxml を Instantiate して panel に置き、輪がレイアウトされるまで待つ
+        IEnumerator PlaceSpinner(System.Action<VisualElement> onReady)
         {
             VisualElement root = null;
             yield return CreatePanel(r => root = r);
@@ -84,6 +81,18 @@ namespace Hone.Sandbox.Tests
                 frames++;
                 yield return null;
             }
+            Assert.Greater(spinner.layout.width, 0f, "the spinner was not laid out");
+            onReady(spinner);
+        }
+
+        // (C) Spinner.uxml の .hone-spinner の大きさが --hone-size-spinner（16px）、角丸が --hone-radius-spinner（8px）で円になる。
+        // 枠の太さは --hone-border-width（1px）、色は上の 1 辺だけ透明で、残りの 3 辺が --hone-color-foreground。
+        // flex-shrink は 0
+        [UnityTest]
+        public IEnumerator Ring_ResolvesSizeAndColorFromTokens()
+        {
+            VisualElement spinner = null;
+            yield return PlaceSpinner(s => spinner = s);
 
             var style = spinner.resolvedStyle;
             Assert.AreEqual(16f, style.width);
@@ -102,6 +111,28 @@ namespace Hone.Sandbox.Tests
             Assert.AreEqual(foreground, (Color32)style.borderRightColor);
             Assert.AreEqual(foreground, (Color32)style.borderBottomColor);
             Assert.AreEqual(foreground, (Color32)style.borderLeftColor);
+        }
+
+        // (C) 使用例の行（輪と Label の横並び）の幅を、輪と文言が収まらない 40px に絞っても、輪は 16px の円のまま潰れない
+        [UnityTest]
+        public IEnumerator Ring_DoesNotShrinkInNarrowRow()
+        {
+            VisualElement spinner = null;
+            yield return PlaceSpinner(s => spinner = s);
+            var row = spinner.parent;
+            row.style.width = 40;
+            row.Q<Label>().text = "Loading a long list of items...";
+            var frames = 0;
+            while (frames < MaxWaitFrames && !Mathf.Approximately(row.layout.width, 40f))
+            {
+                frames++;
+                yield return null;
+            }
+            yield return null;
+
+            Assert.AreEqual(40f, row.layout.width, 0.01f);
+            Assert.AreEqual(16f, spinner.layout.width, 0.01f);
+            Assert.AreEqual(16f, spinner.layout.height, 0.01f);
         }
     }
 }

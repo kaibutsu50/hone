@@ -35,6 +35,7 @@ Assets/Hone/
     Cycle/            Hone.Cycle（Cycle.cs、Cycle.uxml、Cycle.uss、README.md）
     Tabs/             Hone.Tabs（Tabs.cs、Tabs.uxml、Tabs.uss、README.md）
     Progress/         Hone.Progress（Progress.cs、Progress.uxml、Progress.uss、README.md）
+    Spinner/          見た目だけの Spinner（.cs を持たない。Spinner.uxml、Spinner.uss、README.md）
   Blocks/             registry/Blocks の手コピー（asmdef は無い。今の block は C# を持たない）
     SettingsScreen/   SettingsScreen（SettingsScreen.uxml、SettingsScreen.uss、README.md）
     ListDetailScreen/ ListDetailScreen（ListDetailScreen.uxml、ListDetailScreen.uss、README.md）
