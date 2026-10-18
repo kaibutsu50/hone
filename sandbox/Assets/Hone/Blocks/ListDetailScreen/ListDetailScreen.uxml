@@ -1,0 +1,59 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:hone="Hone">
+    <ui:VisualElement class="hone-list-detail-screen">
+        <ui:Label class="hone-list-detail-screen__title hone-text" text="Items" />
+        <ui:VisualElement class="hone-list-detail-screen__body">
+            <ui:VisualElement class="hone-list-detail-screen__list">
+                <ui:VisualElement class="hone-list-detail-screen__list-area">
+                    <hone:ToggleGroup name="items" class="hone-list-detail-screen__items" allow-empty-selection="true" value="00001">
+                        <hone:Button class="hone-list-detail-screen__item">
+                            <ui:Label class="hone-list-detail-screen__item-label hone-text" text="Item 1" />
+                            <ui:Label class="hone-list-detail-screen__item-meta hone-text" text="4 files" />
+                        </hone:Button>
+                        <hone:Button class="hone-list-detail-screen__item">
+                            <ui:Label class="hone-list-detail-screen__item-label hone-text" text="Item 2" />
+                            <ui:Label class="hone-list-detail-screen__item-meta hone-text" text="2 files" />
+                        </hone:Button>
+                        <hone:Button class="hone-list-detail-screen__item">
+                            <ui:Label class="hone-list-detail-screen__item-label hone-text" text="Item 3" />
+                            <ui:Label class="hone-list-detail-screen__item-meta hone-text" text="7 files" />
+                        </hone:Button>
+                        <hone:Button class="hone-list-detail-screen__item">
+                            <ui:Label class="hone-list-detail-screen__item-label hone-text" text="Item 4" />
+                            <ui:Label class="hone-list-detail-screen__item-meta hone-text" text="1 file" />
+                        </hone:Button>
+                        <hone:Button class="hone-list-detail-screen__item">
+                            <ui:Label class="hone-list-detail-screen__item-label hone-text" text="Item 5" />
+                            <ui:Label class="hone-list-detail-screen__item-meta hone-text" text="5 files" />
+                        </hone:Button>
+                    </hone:ToggleGroup>
+                    <ui:Label name="loading" class="hone-list-detail-screen__loading hone-text" text="Loading…" />
+                    <ui:Label name="empty" class="hone-list-detail-screen__empty hone-text" text="No items" />
+                </ui:VisualElement>
+                <hone:Pagination name="pagination" class="hone-list-detail-screen__pagination" page-count="3" />
+            </ui:VisualElement>
+            <ui:VisualElement class="hone-card hone-card--compact hone-list-detail-screen__detail">
+                <ui:VisualElement class="hone-card__header">
+                    <ui:Label name="detail-title" class="hone-card__title hone-text" text="Item 1" />
+                    <ui:Label name="detail-description" class="hone-card__description hone-text" text="A short description of the selected item." />
+                </ui:VisualElement>
+                <ui:VisualElement name="detail-fields" class="hone-card__content">
+                    <ui:VisualElement class="hone-list-detail-screen__field">
+                        <ui:Label class="hone-list-detail-screen__field-label hone-text" text="Category" />
+                        <ui:Label class="hone-list-detail-screen__field-value hone-text" text="General" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="hone-list-detail-screen__field">
+                        <ui:Label class="hone-list-detail-screen__field-label hone-text" text="Size" />
+                        <ui:Label class="hone-list-detail-screen__field-value hone-text" text="4 files" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="hone-list-detail-screen__field">
+                        <ui:Label class="hone-list-detail-screen__field-label hone-text" text="Updated" />
+                        <ui:Label class="hone-list-detail-screen__field-value hone-text" text="Today" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement class="hone-card__footer hone-list-detail-screen__actions">
+                    <hone:Button name="confirm" text="Start" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

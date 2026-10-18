@@ -132,6 +132,32 @@ describe("hone add", () => {
     expect((await readManifest(root)).components).toContain("SettingsScreen");
   });
 
+  it("registry の block（listdetailscreen）を追加すると、依存のプリミティブと見た目だけの Card と block の 3 ファイルがコピーされ、USS の @import と components が入る", async () => {
+    const root = await makeInitializedProject();
+
+    await runAdd({ cwd: root, names: ["listdetailscreen"], ...silent });
+
+    const files = await listFiles(root);
+    for (const f of [
+      "Assets/Hone/Blocks/ListDetailScreen/README.md",
+      "Assets/Hone/Blocks/ListDetailScreen/ListDetailScreen.uss",
+      "Assets/Hone/Blocks/ListDetailScreen/ListDetailScreen.uxml",
+      "Assets/Hone/UI/Button/Button.cs",
+      "Assets/Hone/UI/ToggleGroup/ToggleGroup.cs",
+      "Assets/Hone/UI/Pagination/Pagination.cs",
+      "Assets/Hone/UI/Card/Card.uss",
+    ]) {
+      expect(files).toContain(f);
+    }
+    // block の USS は ToggleGroup.uss と同じ詳細度の規則で行の flex-grow を上書きするので、ToggleGroup の @import が先に入る
+    const theme = await read(root, "Assets/Hone/HoneTheme.tss");
+    const toggleGroupImport = theme.indexOf('@import url("UI/ToggleGroup/ToggleGroup.uss");');
+    const blockImport = theme.indexOf('@import url("Blocks/ListDetailScreen/ListDetailScreen.uss");');
+    expect(toggleGroupImport).toBeGreaterThanOrEqual(0);
+    expect(blockImport).toBeGreaterThan(toggleGroupImport);
+    expect((await readManifest(root)).components).toContain("ListDetailScreen");
+  });
+
   it("(B) dialog を追加すると、依存の Button を先にコピーし、@import も Button が先に入る", async () => {
     const root = await makeInitializedProject();
     const lines: string[] = [];

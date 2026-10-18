@@ -1,0 +1,117 @@
+/* 色・余白・フォントサイズは Tokens.uss のトークン。一覧の列の幅の割合（40%）と、タイトルの太字（-unity-font-style: bold）はトークンを持たない。
+ * 「左: 一覧と Pagination / 右: 詳細の Card」の横並び。一覧の列は 40% の幅で、詳細が残りの幅を取って縮む。
+ * 一覧の領域（__list-area）が残りの高さを取るので、行が少ないページでも Pagination の位置は動かない（画面が panel などの高さの決まった親を埋めるとき）。
+ * 読み込み中と空は、root の is-loading / is-empty で行を隠し、同じ領域の中央に Label を出す。
+ * 既定の Label は折り返さない（white-space: nowrap）。行の項目名は省略記号で切り、タイトルと読み込み中・空の Label は折り返す（詳細の Label は Card の USS が折り返す）。
+ * 画面全体の背景・中央寄せ・固定幅は持たない（World Space では panel 自体が画面の大きさになる）。 */
+.hone-list-detail-screen {
+    flex-direction: column;
+    flex-grow: 1;
+    padding: var(--hone-space-4);
+}
+
+.hone-list-detail-screen__title {
+    font-size: var(--hone-font-size-lg);
+    -unity-font-style: bold;
+    color: var(--hone-color-foreground);
+    white-space: normal;
+    margin-bottom: var(--hone-space-4);
+}
+
+.hone-list-detail-screen__body {
+    flex-direction: row;
+    flex-grow: 1;
+}
+
+.hone-list-detail-screen__list {
+    flex-direction: column;
+    width: 40%;
+    margin-right: var(--hone-space-4);
+}
+
+.hone-list-detail-screen__list-area {
+    flex-grow: 1;
+}
+
+/* ToggleGroup の README の「縦並び」と同じ書き方 */
+.hone-list-detail-screen__items > .unity-button-group {
+    flex-direction: column;
+}
+
+/* 行は Button の中に項目名と補足の Label を横に並べる。
+ * ToggleGroup.uss の .hone-toggle-group .hone-button（クラス 2 つ）の flex-grow: 1 は横並びで幅を分けるためのもので、縦並びでは縦に効くので 0 に戻す。
+ * 同じ詳細度で、ToggleGroup.uss より後ろに @import される（この block は ToggleGroup に依存する）ので、こちらが勝つ */
+.hone-list-detail-screen__items .hone-list-detail-screen__item {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    flex-grow: 0;
+}
+
+/* 内容の幅より縮めるには min-width: 0 が要る */
+.hone-list-detail-screen__item-label {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    -unity-text-align: middle-left;
+}
+
+.hone-list-detail-screen__item-meta {
+    flex-shrink: 0;
+    color: var(--hone-color-muted-foreground);
+    margin-left: var(--hone-space-2);
+}
+
+/* 一覧の領域を占めて、その中で上下左右の中央に出す（__list-area を中央寄せにすると、行の幅も内容の幅に潰れる） */
+.hone-list-detail-screen__loading,
+.hone-list-detail-screen__empty {
+    display: none;
+    flex-grow: 1;
+    -unity-text-align: middle-center;
+    color: var(--hone-color-muted-foreground);
+    font-size: var(--hone-font-size-sm);
+    white-space: normal;
+}
+
+.hone-list-detail-screen.is-loading .hone-list-detail-screen__items,
+.hone-list-detail-screen.is-empty .hone-list-detail-screen__items {
+    display: none;
+}
+
+.hone-list-detail-screen.is-loading .hone-list-detail-screen__loading,
+.hone-list-detail-screen.is-empty .hone-list-detail-screen__empty {
+    display: flex;
+}
+
+.hone-list-detail-screen__detail {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+.hone-list-detail-screen__field {
+    flex-direction: row;
+    padding: var(--hone-space-1) 0;
+}
+
+.hone-list-detail-screen__field-label {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+    color: var(--hone-color-muted-foreground);
+    font-size: var(--hone-font-size-sm);
+}
+
+.hone-list-detail-screen__field-value {
+    flex-shrink: 0;
+    color: var(--hone-color-foreground);
+    font-size: var(--hone-font-size-sm);
+    -unity-text-align: middle-right;
+}
+
+.hone-list-detail-screen__actions {
+    justify-content: flex-end;
+}
