@@ -14,7 +14,7 @@
 </ui:UXML>
 ```
 
-選択を C# から設定し、変化を受ける例（`ToggleButtonGroupState` の `length` は子の数ではなく常に 64。全部 false にしてから 1 つを true にする。`allowEmptySelection` が false のままだと、最初の子を足した時点で基底が index 0 を選ぶので、選び直すときは全部外す。Unity 6000.7.0b4 で確認。panel に attach する前に設定しても、attach 後に残る）:
+選択を C# から設定し、変化を受ける例（`ToggleButtonGroupState` の `length` は、新しく作った ToggleGroup に子を足していくだけなら、子の数ではなく 64 のまま（子を外すと変わる。下の「子を作り直すとき」）。全部 false にしてから 1 つを true にする。`allowEmptySelection` が false のままだと、最初の子を足した時点で基底が index 0 を選ぶので、選び直すときは全部外す。Unity 6000.7.0b4 で確認。panel に attach する前に設定しても、attach 後に残る）:
 
 ```csharp
 var group = new Hone.ToggleGroup();
@@ -38,6 +38,22 @@ group.RegisterValueChangedCallback(evt =>
             Debug.Log($"selected: {i}");
     }
 });
+```
+
+## 子を作り直すとき
+
+`Clear()` で `length` が 0 になり、そのまま子を足すと、足すたびに `length` を伸ばして `ChangeEvent`（全部 false）を出す。選ばれている子があるまま外したときも、基底が残りの子の数の `length` で `ChangeEvent` を出すことがある（Unity 6000.7.0b4 で確認）。
+対処しないまま、別の要素のイベントの中（`ListDetailScreen` では Pagination の `ChangeEvent<int>`）で作り直すと、これらの `ChangeEvent` が作り直しの後に届き、受け取ったコールバックは全部 false を見て、何も選ばれていないと読む。
+作り直す関数の中で、`Clear()` の前と子を足す前に `SetValueWithoutNotify(new ToggleButtonGroupState(0, 64))` で、全部 false・`length` 64 の value にしておく。
+実際の配線は `ListDetailScreen` の README の注記（行を作り直すとき）。
+
+```csharp
+var none = new ToggleButtonGroupState(0, 64);
+group.SetValueWithoutNotify(none);
+group.Clear();
+group.SetValueWithoutNotify(none);
+// ここで子を足す
+// 足し終えてから、選ぶ子を SetValueWithoutNotify で設定する
 ```
 
 ## 基底のまま使うもの
