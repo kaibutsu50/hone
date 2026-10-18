@@ -2,7 +2,8 @@
  * 太字（-unity-font-style: bold）と省略記号の指定はトークンを持たない。
  * 幅は親に従い、高さは内容に従う（固定しない）。ページで行数が変わると高さが変わる。
  * 既定の Label は折り返さない（white-space: nowrap）ので、text は折り返す。
- * ▼ は .is-waiting の間（全文が出ていて、次のページがあるとき）だけ見える。点滅などの演出は持たない。.is-waiting と .is-revealing を使って利用者が書く。 */
+ * ▼ は .is-waiting の間（全文が出ていて、次のページがあるとき）だけ見える。点滅などの演出は持たない。.is-waiting と .is-revealing を使って利用者が書く。
+ * 選択肢の Button の見た目は Button.uss（variant は outline）。 */
 .hone-message-window {
     background-color: var(--hone-color-background);
     border-width: var(--hone-border-width);
@@ -43,4 +44,25 @@
 
 .hone-message-window.is-waiting > .hone-message-window__indicator {
     visibility: visible;
+}
+
+/* 選択肢を出している間（.is-choosing）は、▼ の行を詰めて、本文の下に選択肢を右寄せの横並びで出す。横並び・折り返し・右寄せ・左の間隔は Dialog の footer と同じで、本文との間は Dialog より 1 段狭い space-3。
+ * 選択肢の無いページでは並びに子が無く、余白も付かないので、高さは 0 のまま（選択肢の無いページの見た目は変わらない）。
+ * 並びは display: none にしない。選択肢を出した処理の中で最初の選択肢へフォーカスを移すので、その時点で表示されている必要がある */
+.hone-message-window__choices {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.hone-message-window.is-choosing > .hone-message-window__choices {
+    margin-top: var(--hone-space-3);
+}
+
+.hone-message-window__choices > .hone-message-window__choice {
+    margin-left: var(--hone-space-2);
+}
+
+.hone-message-window.is-choosing > .hone-message-window__indicator {
+    display: none;
 }
