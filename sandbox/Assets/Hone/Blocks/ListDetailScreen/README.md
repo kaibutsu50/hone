@@ -179,7 +179,7 @@ class ListDetailScreenWiring
 - コンストラクタの直後に `SetLoading()` か `SetItems(data)` を呼ぶ（呼ぶまでは UXML の使用例の行と詳細が残っていて、配線と合わない）。読み込みを始めたら `SetLoading()`、読み終えたら `SetItems(data)` を呼ぶ。`is-loading` と `is-empty` は同時に付けない。
 - 行の子に `Hone.Toggle` は使わない（ToggleGroup の README の「子に Toggle は使わない」）。
 - `items` の `allow-empty-selection="true"` は外さない。false だと、最初の子を足した時点で基底が index 0 を選び、選んだ項目が無いページでも 1 行目が選ばれる。
-- 行を作り直すときは、`Clear()` の前と、子を足す前に、`SetValueWithoutNotify(new ToggleButtonGroupState(0, 64))` で全部 false・length 64 の value にする。選ばれている行があるまま外すと、基底が残りの子の数の length で `ChangeEvent` を出すことがある。`Clear()` で length が 0 になり、そのまま子を足すと、足すたびに length を伸ばして `ChangeEvent`（全部 false）を出す。Pagination の `ChangeEvent<int>` の中で作り直すと、それらが作り直しの後に届き、選んだ項目が外れる（Unity 6000.7.0b4 で確認）。
+- 行を作り直すとき、選ばれている行があるまま外すと、基底が残りの子の数の length で `ChangeEvent` を出すことがある。`Clear()` で length が 0 になり、そのまま子を足すと、足すたびに length を伸ばして `ChangeEvent`（全部 false）を出す。Pagination の `ChangeEvent<int>` の中で作り直すと、それらが作り直しの後に届き、選んだ項目が外れる（Unity 6000.7.0b4 で確認）。対処は、`Clear()` の前と、子を足す前に、`SetValueWithoutNotify(new ToggleButtonGroupState(0, 64))` で全部 false・length 64 の value にすること。
 - ページを送ると行を作り直すので、行にあったフォーカスは外れる。選択と詳細は変わらず、選んだ項目のあるページに戻ると、その行が選ばれた状態で出る。
 - 読み込み中と空の Label は、C# の `style.display` で切り替えない。root の `is-loading` / `is-empty` で USS が切り替える（見た目を USS で変えられるように）。
 - 失敗の表示は持たない。出すときは、`__empty` と同じ場所（`__list-area` の中）に Label を足し、root のクラスで切り替える。

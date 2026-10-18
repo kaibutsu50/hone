@@ -95,7 +95,8 @@ namespace Hone
             m_Value = Clamp(newValue);
             if (m_Tabs.Count > 0)
             {
-                // ToggleButtonGroupState の length は子の数ではなく常に 64（タブは 64 個まで）。全部外してから 1 つを選ぶ
+                // ToggleButtonGroupState の length は 64 とは限らない（6000.7.0b4 で実測。一度も子を持たなかった列に初めて tabs を設定したあとは 64、子のある列から作り直したあとは子の数）。
+                // m_Value は Clamp でタブの数未満なので、length が子の数でも state[m_Value] は範囲内。length は 64 が上限で、タブは 64 個まで。全部外してから 1 つを選ぶ
                 var state = m_List.value;
                 for (var i = 0; i < state.length; i++)
                     state[i] = false;

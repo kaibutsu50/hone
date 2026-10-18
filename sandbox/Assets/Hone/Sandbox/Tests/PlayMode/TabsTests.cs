@@ -389,6 +389,55 @@ namespace Hone.Sandbox.Tests
             CollectionAssert.IsEmpty(changes, "setting tabs must not fire a ChangeEvent");
         }
 
+        // tabs を 3 個から 2 個、2 個から 4 個に set し直したあと（6000.7.0b4 では、タブの列の length が子の数になる作り直しになる）も、タブの列で選ばれているのは value の 1 つだけで、その中身だけが表示される。
+        // 伸ばしたあとの最後のタブも選べる
+        [UnityTest]
+        public IEnumerator SetTabs_ToOtherCount_SelectsOnlyValue_AndShowsOnlyThatContent()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(false, r => root = r);
+            var tabs = new Tabs { tabs = new List<string> { "A", "B", "C" } };
+            for (var i = 0; i < 4; i++)
+                tabs.Add(new VisualElement { name = "content-" + i });
+            root.Add(tabs);
+            yield return Settle();
+            tabs.value = 2;
+            yield return Settle();
+            Assert.AreEqual(2, tabs.value, "precondition");
+            CollectionAssert.AreEqual(new[] { 2 }, DisplayedContents(tabs), "precondition");
+            var changes = RecordChanges(tabs);
+
+            tabs.tabs = new List<string> { "A", "B" };
+            yield return Settle();
+            AssertOnlyValueSelected(tabs, 1, 2);
+
+            tabs.tabs = new List<string> { "A", "B", "C", "D" };
+            yield return Settle();
+            AssertOnlyValueSelected(tabs, 1, 4);
+            CollectionAssert.IsEmpty(changes, "setting tabs must not fire a ChangeEvent");
+
+            tabs.value = 3;
+            yield return Settle();
+            AssertOnlyValueSelected(tabs, 3, 4);
+            CollectionAssert.AreEqual(new[] { 3 }, changes);
+        }
+
+        static void AssertOnlyValueSelected(Tabs tabs, int expectedValue, int expectedTabCount)
+        {
+            Assert.AreEqual(expectedTabCount, Triggers(tabs).Count);
+            Assert.AreEqual(expectedValue, tabs.value);
+            var state = tabs.Q<ToggleGroup>(className: "hone-tabs__list").value;
+            Assert.GreaterOrEqual(state.length, expectedTabCount, "the tab list state must cover every tab");
+            var selected = new List<int>();
+            for (var i = 0; i < state.length; i++)
+            {
+                if (state[i])
+                    selected.Add(i);
+            }
+            CollectionAssert.AreEqual(new[] { expectedValue }, selected, "exactly the tab at value must be selected");
+            CollectionAssert.AreEqual(new[] { expectedValue }, DisplayedContents(tabs));
+        }
+
         // 別のイベントの配送中（Tabs の ChangeEvent の callback の中）に tabs を set し直しても、value は戻らず、ChangeEvent は Submit の 1 回だけ
         [UnityTest]
         public IEnumerator SetTabs_InsideCallback_KeepsValue()
