@@ -1,0 +1,40 @@
+/* 縦のスクロールバーの見た目だけを整える。横のスクロールバーと、中身に置いた Slider などには当たらないよう、規則はすべて .unity-scroller--vertical の下に書く。
+ * 幅（--hone-size-scrollbar）、つまみの色（--hone-color-border）、つまみの角丸（--hone-radius-scrollbar）は Tokens.uss のトークン。transparent、0、100% はトークンを持たない。
+ * shadcn の Scroll Area（矢印ボタンを持たず、つまみは bg-border の丸い形）に合わせる。幅は w-2.5 に合わせるが、shadcn のつまみは余白（p-px）と透明な枠の内側に描かれて 7px ほどになる。ここでは余白を持たず、つまみをスクロールバーの幅いっぱいにする。
+ * スクロールの振る舞いは ScrollView の標準のまま使う */
+.hone-scroll-area .unity-scroller--vertical {
+    width: var(--hone-size-scrollbar);
+    background-color: transparent;
+    border-width: 0;
+}
+
+.hone-scroll-area .unity-scroller--vertical .unity-scroller__low-button,
+.hone-scroll-area .unity-scroller--vertical .unity-scroller__high-button {
+    display: none;
+}
+
+/* 既定テーマは、スライダーの上下に矢印ボタンの分の余白（24px）と、幅・最小幅（24px）を付けている。矢印を消したので、余白と最小幅を外して、幅をスクロールバーに合わせる */
+.hone-scroll-area .unity-scroller--vertical .unity-scroller__slider {
+    width: 100%;
+    min-width: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.hone-scroll-area .unity-scroller--vertical .unity-base-slider__tracker {
+    background-color: transparent;
+    border-width: 0;
+}
+
+/* 既定テーマのつまみは position: absolute で left: 3px、width: 18px。スクロールバーの幅いっぱいにする */
+.hone-scroll-area .unity-scroller--vertical .unity-base-slider__dragger {
+    left: 0;
+    width: 100%;
+    background-color: var(--hone-color-border);
+    border-radius: var(--hone-radius-scrollbar);
+    border-width: 0;
+}
+
+.hone-scroll-area .unity-scroller--vertical .unity-base-slider__dragger-border {
+    display: none;
+}

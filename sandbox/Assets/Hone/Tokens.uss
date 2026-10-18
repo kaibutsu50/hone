@@ -30,6 +30,10 @@
      * thumb（20px）には 12px が軸ごとに 10px へ縮んで円になる */
     --hone-radius-switch: 12px;
 
+    /* スクロールバーのつまみの角丸。下の --hone-size-scrollbar の半分で、つまみの両端が半円になる。
+     * --hone-size-scrollbar を変えたら、その半分に揃える。理由は --hone-radius-switch と同じ（要素の大きさを超える角丸は、Unity が縦横の軸ごとに別々に縮めて楕円に描く） */
+    --hone-radius-scrollbar: 5px;
+
     --hone-space-1: 4px;
     --hone-space-2: 8px;
     --hone-space-3: 12px;
@@ -53,6 +57,8 @@
     --hone-size-switch-width: 44px;
     --hone-size-switch-height: 24px;
     --hone-size-switch-thumb: 20px;
+    /* 縦のスクロールバーの幅。shadcn の Scroll Area の w-2.5。World Space でレイ（ポインタ）で掴みやすくしたいときは、HoneTheme.tss の :root で上書きする。上書きしたら --hone-radius-scrollbar もその半分に揃える */
+    --hone-size-scrollbar: 10px;
 
     --hone-ring-width: 2px;
     /* 未使用。Core.uss の ring は border で描くので、offset を表現できない */
