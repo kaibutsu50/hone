@@ -127,7 +127,7 @@
 }
 
 /* フォーカスした Button の左にハート（8×7 の自作のドット絵を 2 倍の 16×14 で。Point で拡大するので縁がにじまない。.meta の filterMode: 0）。ring は出さない。
- * Core.uss の ring（.hone-focusable.hone-focusable:focus）に勝つよう、クラス 3 つ + :focus で書く */
+ * Core.uss の ring（.hone-focusable:focus）に勝つよう、クラス 3 つ + :focus で書く */
 .room-retro-indie-rpg .hone-button.hone-focusable:focus {
     border-width: 0;
     background-image: url("Heart.png");
