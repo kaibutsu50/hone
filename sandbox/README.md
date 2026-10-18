@@ -7,7 +7,7 @@ Hone の検証用 Unity プロジェクト。コンポーネントの動作確�
 
 | 項目 | 値 |
 |---|---|
-| Unity | 6000.7.0b2 (d6546dc2b3a9) |
+| Unity | 6000.7.0b5 (5747dc44953f) |
 | 基準 | Unity 6.7 LTS が出るまでは 6000.7 系の最新 alpha / beta を使う |
 
 `ProjectSettings/ProjectVersion.txt` が正。
@@ -106,7 +106,7 @@ Assets/Hone/
 Editor を閉じた状態で、プロジェクトは絶対パスで渡す（`sandbox` だけだと、同じ名前のディレクトリを持つ他の worktree と曖昧になる）:
 
 ```bash
-unity test <sandbox の絶対パス> --mode EditMode --editor-version 6000.7.0b2 --output <結果の xml の絶対パス>
+unity test <sandbox の絶対パス> --mode EditMode --editor-version 6000.7.0b5 --output <結果の xml の絶対パス>
 ```
 
 ## PlayMode テストの実行
@@ -114,7 +114,7 @@ unity test <sandbox の絶対パス> --mode EditMode --editor-version 6000.7.0b2
 Editor を閉じた状態（batchmode で別プロセスが走る）:
 
 ```bash
-unity test sandbox --mode PlayMode --editor-version 6000.7.0b2 --filter "Hone.Sandbox.Tests.SandboxSmokeTests" --output sandbox/test-results.xml
+unity test sandbox --mode PlayMode --editor-version 6000.7.0b5 --filter "Hone.Sandbox.Tests.SandboxSmokeTests" --output sandbox/test-results.xml
 ```
 
 `sandbox/` で Editor を開いている状態（`unity command` で同じ Editor に投げる）:
@@ -135,11 +135,11 @@ unity command run_tests --mode playmode --filter Hone.Sandbox.Tests.SandboxSmoke
 1. 先に batchmode でコンパイルが通ることを確かめる。コンパイルエラーがあると GUI の Editor は Safe Mode のダイアログで止まる。
 
    ```bash
-   "C:/Program Files/Unity/Hub/Editor/6000.7.0b2/Editor/Unity.exe" -batchmode -nographics -quit -projectPath <sandbox の絶対パス> -logFile <ログの絶対パス>
+   "C:/Program Files/Unity/Hub/Editor/6000.7.0b5/Editor/Unity.exe" -batchmode -nographics -quit -projectPath <sandbox の絶対パス> -logFile <ログの絶対パス>
    ```
 
    終了コードが 0 で、ログに `error CS` が無いこと。Unity.exe のパスは Hub 既定のインストール先の例。
-2. `unity open <sandbox の絶対パス> --editor-version 6000.7.0b2 --args "-automated"`。
+2. `unity open <sandbox の絶対パス> --editor-version 6000.7.0b5 --args "-automated"`。
    `-automated` が無いと、初回に URP のマテリアル更新ダイアログが出て、人が閉じるまで `unity command` が 503 を返す。
 
 ## Gallery（多言語スクリーンショット）
