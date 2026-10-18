@@ -156,7 +156,7 @@ unity command run_tests --mode playmode --filter Hone.Sandbox.Tests.SandboxSmoke
 `GalleryHoneEntries` の `Describe(component, variants)` が `Hone/UI/<component>/<component>.uxml` の全文を読んで `uxml` にする。`File` で読むので Editor 専用で、Player ではファイルが無く、説明なしになる。Editor でファイルが無いとき（`component` の誤りやリネーム）は、説明なしにして Console に警告を出す。
 `variants` を渡すのは variant を持つ部品だけ。`Hone.Button` は `variant` プロパティの値で、`Enum.GetNames(typeof(Hone.Button.Variant))` から作る。`Hone.Dialog` は README に opt-in の variant として書かれた USS クラス `hone-dialog--blur` を渡す。カードの中の台（説明とタグ）は `Label` だけで作り、Hone の部品は使わない（部品の変更で台の見た目が変わると比較できなくなる）。
 Dialog と MessageWindow は親の幅に従う部品なので、`Gallery.uss` はセル（`.gallery-dialog`、`.gallery-message-window`）の基準の幅を px で持ち、行の残りまで伸ばしている（`flex-basis: 0` や割合の幅から伸ばすと 1 文字ずつ折り返す）。
-Screen Space の panel は `Sandbox/PanelSettings.asset` の Scale With Screen Size（基準 1200×800、幅に合わせる）なので、Game view が 16:9 なら論理サイズはおよそ 1200×675 になる。
+Screen Space の panel は `Sandbox/PanelSettings.asset` の Constant Physical Size（Reference DPI 106）で、倍率は `Screen.dpi` ÷ 106 になる。Game view の `Screen.dpi` は 106 なので倍率は 1 で、論理サイズは Game view の描画解像度そのままになる（6000.7.0b5）。撮影手順で描画解像度を 1200×675 に固定するので、論理サイズは 1200×675 になる。
 その Screen Space で `Japanese` を選ぶと、MessageWindow と Dialog は中身の高さが表示領域を超え、ja の行の下端が 1 画面からはみ出す（メニューとカードの構成で、ScrollView の表示領域の高さ約 580 に対し、中身の高さは MessageWindow が 704（選択肢の窓を含む）、Dialog が 719。ほかの言語は確かめていない。6000.7.0b4）。下までスクロールして 2 枚撮る。
 収まらないときに下まで見るには、`ScrollView`（name `gallery`）の `scrollOffset` を `unity command eval_file` で書き換えながら、`capture_game_view` で複数枚撮る。収めるためにセルの幅（`.gallery-dialog` など）は変えない。
 コンポーネントは、メニューの代わりに `GalleryController.SelectComponent` で切り替えて撮る（下の「コンポーネントの切り替え」）。言語も、Cycle の代わりに `GalleryController.SelectScript` で切り替えて撮る（eval から panel の要素に届く公開 API が無いため。下の「言語の切り替え」）。
@@ -175,6 +175,8 @@ Hone のコンポーネントを載せるときは、`Register` を **sandbox �
 ```bash
 unity command open_scene --path Assets/Hone/Sandbox/Gallery/Gallery.unity --project-path <sandbox の絶対パス>
 unity command set_active --target '{"hierarchyPath":"PanelRendererWorldSpace"}' --active false --project-path <sandbox の絶対パス>
+# Game view の描画解像度を 1200×675 に固定する（下の set-resolution.cs）
+unity command eval_file --file <set-resolution.cs の絶対パス> --project-path <sandbox の絶対パス>
 unity command editor_play --project-path <sandbox の絶対パス>
 # 先頭（Hone.Button）だけ撮るときは、この 1 行を飛ばす。手順は下の「コンポーネントの切り替え」
 unity command eval_file --file <select-component.cs の絶対パス> --project-path <sandbox の絶対パス>
@@ -186,6 +188,12 @@ python -c "import json,base64; t=open(r'<json の絶対パス>',encoding='utf-8'
 unity command editor_stop --project-path <sandbox の絶対パス>
 gh attach --key <ブランチ名> <sandbox の絶対パス>/Screenshots/gallery.png
 ```
+
+- 先に Game view の描画解像度を固定する。新しく開いた Editor の Game view はウィンドウの大きさで描画し（6000.7.0b5 では縦長の 802×1372 だった）、そのまま `--width 1920 --height 1080` で撮ると縦につぶれた画像になる（`--width` `--height` は拡大・縮小するだけ。「既知の事項」の `capture_game_view` の項目）。`set-resolution.cs` は次の 1 行で、Screen Space は 1200×675、World Space は 1920×1080 を渡す:
+
+  ```csharp
+  UnityEditor.PlayModeWindow.SetCustomRenderingResolution(1200, 675, "Gallery 1200x675");
+  ```
 
 - `screenshot --view game` は使わない。カメラ経由の撮影なので `PanelRenderer`（Screen Space）の UI が写らず、空と地面だけの画像が success で返る（6000.7.0b2）。
 - `capture_game_view` は `--save_path` を渡さない。渡すと `Assets/` 配下（`sandbox/Assets/Screenshots/`）に保存され、Texture として import されて `.meta` も増える。返ってきた base64 を自分で書き出す。
@@ -239,6 +247,8 @@ World Space 側は `WorldSpacePanelSettings.asset`、`worldSpaceSizeMode = Fixed
 ```bash
 unity command open_scene --path Assets/Hone/Sandbox/Gallery/Gallery.unity --project-path <sandbox の絶対パス>
 unity command set_active --target '{"hierarchyPath":"PanelRenderer"}' --active false --project-path <sandbox の絶対パス>
+# Game view の描画解像度を 1920×1080 に固定する（set-resolution.cs は上の Screen Space の注記。引数を 1920, 1080 にする）
+unity command eval_file --file <set-resolution.cs の絶対パス> --project-path <sandbox の絶対パス>
 unity command editor_play --project-path <sandbox の絶対パス>
 # 既定（Japanese）だけ撮るときは、この 1 行を飛ばす（select-script.cs は上の「言語の切り替え」）
 unity command eval_file --file <select-script.cs の絶対パス> --project-path <sandbox の絶対パス>
@@ -309,9 +319,11 @@ timeout 120 <sandbox の絶対パス>/Build/TokensExp/TokensExp.exe -screen-full
 | `:root` の変数に `url("/Assets/…")`、`resource("…")` を書く | どちらも Editor と Player で通る（`nofont.path` `nofont.res`）。ただし指す先が Resources 側の複製で、Player ではビルドに必ず入るため、Player で「参照だけでビルドに含まれるか」は見ていない |
 | `--hone-font-body` が未定義のとき `.hone-text` | 祖先にフォント指定が無ければ `fontAsset=null`（Unity の既定）。祖先にフォント指定があれば、その値を継承する（`nofont.inherit`。null には戻らない）。警告は出ない |
 | `--hone-font-body` が定義済みで、祖先に別のフォント指定があるとき | `.hone-text` の指定が勝つ（`hone.inherit`） |
-| （一回限り、Editor のみ）`.hone-focusable:focus`（クラス 1 つ + `:focus`）を `Core.uss` に書く | 既定テーマの Button の `:focus` の枠の色 `rgb(0,106,166)` が勝つ。幅（`--hone-ring-width`）だけ効く。`HoneTheme.tss` 自身に書いた同じ形の規則も負ける。`border-color` を 4 辺の個別指定にしても負ける。UXML の `<Style>` に書いた同じ形の規則は勝つ |
-| `.hone-focusable.hone-focusable:focus`（クラスを 2 回）を `Core.uss` に書く | `--hone-color-ring` の色 `rgb(24,24,27)` と幅 2 が効く |
+| （一回限り、Editor のみ）`.hone-focusable:focus`（クラス 1 つ + `:focus`）を `Core.uss` に書く | 既定テーマの Button の `:focus` の枠の色 `rgb(0,106,166)` が勝つ。幅（`--hone-ring-width`）だけ効く。`HoneTheme.tss` 自身に書いた同じ形の規則も負ける。`border-color` を 4 辺の個別指定にしても負ける。UXML の `<Style>` に書いた同じ形の規則は勝つ。<br>6000.7.0b5 では勝つ（下の段落） |
+| （一回限り）`.hone-focusable.hone-focusable:focus`（クラスを 2 回）を `Core.uss` に書く | `--hone-color-ring` の色 `rgb(24,24,27)` と幅 2 が効く |
 | `HoneTheme.tss` の `@import url("Tokens.uss")` `@import url("Core/Runtime/Core.uss")`（`HoneTheme.tss` 起点の相対パス） | 通る（`.hone-text` と `.hone-focusable` が効く） |
+
+6000.7.0b5 では、今の `Core.uss` の `.hone-focusable:focus`（クラス 1 つ + `:focus`）で、Gallery の focus 中の `Hone.Button` の `resolvedStyle` が `--hone-color-ring`（`#A1A1AA`）と幅 2 になり、既定テーマの Button の `:focus` に勝つ（Screen Space と World Space の両方。Editor で測った。Player は確かめていない）。b4 のリリースノートに、theme style sheet の規則を詳細度に関係なく Unity の組み込みスタイルより上に置く変更があり、b5 で作られた `ProjectSettings/UIToolkitProjectSettings.asset` は `m_EnableLegacyThemePriority: 0` になっている。
 
 未確認: 2 枚目の `PanelRenderer`（`nofont`）の Button は `Focus()` してもフォーカスを取れなかった（原因は調べていない）。ring の測定は `hone` の panel だけで行っている。
 

@@ -156,7 +156,7 @@
 /* フォーカスした選択肢の左に ☞（Tabler Icons の hand-finger-right。MIT）。ring は出さない。
  * SVG は Texture2D として import している（.meta の svgType: 2、40×40）。既定の UI Toolkit の Vector Image のままだと、
  * それを background-image にした Button の文字が描かれなかった（6000.7.0b2、Screen Space。sandbox/README.md）。
- * Core.uss の ring（.hone-focusable.hone-focusable:focus）に勝つよう、クラス 3 つ + :focus で書く */
+ * Core.uss の ring（.hone-focusable:focus）に勝つよう、クラス 3 つ + :focus で書く */
 .room-text-adventure .hone-button.hone-focusable:focus {
     border-width: 0;
     background-image: url("../../Icons/hand-finger-right.svg");

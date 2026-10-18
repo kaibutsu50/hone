@@ -87,8 +87,6 @@ block は必ず `registryDependencies` でプリミティブ（または見た�
 - コンポーネントの USS はトークンを `var()` で参照するだけで構成する。色・角丸・余白・フォントの実値を書かない。
 - `HoneTheme.tss` の `@import` は、`HoneTheme.tss` からの相対パスで書く。出力先を変えても壊れず、絶対パス（`/Assets/Hone/…`）は出力先に依存する。
 - 未解決の `var()` は、前の規則の値に戻らず、そのプロパティの初期値になる（継承するプロパティは祖先の値を引き継ぐ）。トークンの定義漏れは、見た目が黙って崩れる形で現れる。
-- テーマ内（`Core.uss` やコンポーネントの USS、`HoneTheme.tss` 自身）に書いた「クラス 1 つ + pseudo-class」の規則は、既定テーマ（`unity-theme://default`）の Button の `:focus` に勝てない。
-  focus ring は `.hone-focusable` を 2 回書いて詳細度を上げている。既定テーマの規則に負ける見た目が出たら、`resolvedStyle` で実際の値を測ってから詳細度を疑う。
 - USS の `var()` は他の関数の中に書けない。`calc()` も存在しない。合成が必要な値はトークン側で完成形として定義する。
 - 影とぼかしは `filter: drop-shadow()` と `backdrop-filter: blur()` を使う。`backdrop-filter` は URP のみ、Screen Space のみ、transition 非対応なので、必須の見た目に使わず opt-in の variant に留める。
 - `line-height` `font-weight` `font-feature-settings` は USS プロパティとして存在しない。これらを前提にした API を作らない。

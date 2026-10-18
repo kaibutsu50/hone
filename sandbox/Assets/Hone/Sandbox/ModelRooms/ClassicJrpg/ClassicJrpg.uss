@@ -135,7 +135,7 @@
 }
 
 /* フォーカスした Button の文字のすぐ左に ▶（▶ の先と文字の間は約 1px）。ring は出さない。
- * Core.uss の ring（.hone-focusable.hone-focusable:focus）に勝つよう、クラス 3 つ + :focus で書く */
+ * Core.uss の ring（.hone-focusable:focus）に勝つよう、クラス 3 つ + :focus で書く */
 .room-classic-jrpg .hone-button.hone-focusable:focus {
     border-width: 0;
     background-image: url("Cursor.png");
