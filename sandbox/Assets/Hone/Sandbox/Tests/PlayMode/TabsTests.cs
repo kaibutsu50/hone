@@ -389,6 +389,46 @@ namespace Hone.Sandbox.Tests
             CollectionAssert.IsEmpty(changes, "setting tabs must not fire a ChangeEvent");
         }
 
+        // tabs を 3 個から 2 個、2 個から 4 個に set し直したあと（タブの列の length は子の数になる。6000.7.0b4 で実測）も、タブの列で選ばれているのは value の 1 つだけで、その中身だけが表示される
+        [UnityTest]
+        public IEnumerator SetTabs_ToOtherCount_SelectsOnlyValue_AndShowsOnlyThatContent()
+        {
+            VisualElement root = null;
+            yield return CreatePanel(false, r => root = r);
+            var tabs = new Tabs { tabs = new List<string> { "A", "B", "C" } };
+            for (var i = 0; i < 4; i++)
+                tabs.Add(new VisualElement { name = "content-" + i });
+            root.Add(tabs);
+            yield return Settle();
+            tabs.value = 2;
+            yield return Settle();
+            var changes = RecordChanges(tabs);
+
+            tabs.tabs = new List<string> { "A", "B" };
+            yield return Settle();
+            AssertOnlyValueSelected(tabs, 1, 2);
+
+            tabs.tabs = new List<string> { "A", "B", "C", "D" };
+            yield return Settle();
+            AssertOnlyValueSelected(tabs, 1, 4);
+            CollectionAssert.IsEmpty(changes, "setting tabs must not fire a ChangeEvent");
+        }
+
+        static void AssertOnlyValueSelected(Tabs tabs, int expectedValue, int expectedTabCount)
+        {
+            Assert.AreEqual(expectedTabCount, Triggers(tabs).Count);
+            Assert.AreEqual(expectedValue, tabs.value);
+            var state = tabs.Q<ToggleGroup>().value;
+            var selected = new List<int>();
+            for (var i = 0; i < state.length; i++)
+            {
+                if (state[i])
+                    selected.Add(i);
+            }
+            CollectionAssert.AreEqual(new[] { expectedValue }, selected, "exactly the tab at value must be selected");
+            CollectionAssert.AreEqual(new[] { expectedValue }, DisplayedContents(tabs));
+        }
+
         // 別のイベントの配送中（Tabs の ChangeEvent の callback の中）に tabs を set し直しても、value は戻らず、ChangeEvent は Submit の 1 回だけ
         [UnityTest]
         public IEnumerator SetTabs_InsideCallback_KeepsValue()
