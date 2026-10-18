@@ -158,6 +158,27 @@ describe("hone add", () => {
     expect((await readManifest(root)).components).toContain("ListDetailScreen");
   });
 
+  it("registry の block（pausemenu）を追加すると、依存の Button と Dialog と block の 3 ファイルがコピーされ、USS の @import と components が入る", async () => {
+    const root = await makeInitializedProject();
+
+    await runAdd({ cwd: root, names: ["pausemenu"], ...silent });
+
+    const files = await listFiles(root);
+    for (const f of [
+      "Assets/Hone/Blocks/PauseMenu/README.md",
+      "Assets/Hone/Blocks/PauseMenu/PauseMenu.uss",
+      "Assets/Hone/Blocks/PauseMenu/PauseMenu.uxml",
+      "Assets/Hone/UI/Button/Button.cs",
+      "Assets/Hone/UI/Dialog/Dialog.cs",
+    ]) {
+      expect(files).toContain(f);
+    }
+    expect(await read(root, "Assets/Hone/HoneTheme.tss")).toContain(
+      '@import url("Blocks/PauseMenu/PauseMenu.uss");',
+    );
+    expect((await readManifest(root)).components).toContain("PauseMenu");
+  });
+
   it("(B) dialog を追加すると、依存の Button を先にコピーし、@import も Button が先に入る", async () => {
     const root = await makeInitializedProject();
     const lines: string[] = [];

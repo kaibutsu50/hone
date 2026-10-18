@@ -228,6 +228,20 @@
       "classes": []
     },
     {
+      "name": "PauseMenu",
+      "type": "registry:block",
+      "title": "PauseMenu",
+      "description": "タイトルと縦に並んだ Button のポーズメニュー（終了の確認は Dialog の重ね開き）",
+      "files": [
+        { "path": "Blocks/PauseMenu/PauseMenu.uxml", "type": "registry:block" },
+        { "path": "Blocks/PauseMenu/PauseMenu.uss", "type": "registry:block" },
+        { "path": "Blocks/PauseMenu/README.md", "type": "registry:block" }
+      ],
+      "registryDependencies": ["Core", "Button", "Dialog"],
+      "dependencies": [],
+      "classes": []
+    },
+    {
       "name": "Default",
       "type": "registry:theme",
       "title": "Default",

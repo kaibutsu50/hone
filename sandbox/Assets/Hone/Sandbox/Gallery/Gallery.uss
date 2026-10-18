@@ -180,3 +180,13 @@
 .gallery-list-detail-screen {
     margin-bottom: var(--hone-space-3);
 }
+
+/* block の PauseMenu は、2 つの Dialog が block の全面を覆う（position: absolute）ので、block に大きさが要る。このクラスは block の親（Instantiate が返す TemplateContainer）に付け、block は flex-grow: 1 でそれを埋める。
+ * 幅は .gallery-dialog と同じ決め方（基準を px で持ち、行の残りまで伸ばす）で、高さは確認の Dialog（タイトルと本文とボタンの行）が収まる値にする */
+.gallery-pause-menu {
+    width: 480px;
+    min-height: 320px;
+    flex-grow: 1;
+    flex-shrink: 0;
+    margin-right: 4px;
+}
