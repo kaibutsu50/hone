@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 
 namespace Hone.Sandbox.Gallery
 {
-    // Hone.Button、Hone.Dialog、Hone.MessageWindow、Hone.Switch、Hone.Toggle、Hone.ToggleGroup、Hone.Pagination、Hone.Cycle、Hone.Tabs、見た目だけの Hone.Card と Hone.Separator と Hone.ScrollArea（Gallery の名前だけで、C# のクラスは無い）と、block の SettingsScreen と ListDetailScreen と PauseMenu（Gallery の名前は Hone.SettingsScreen と Hone.ListDetailScreen と Hone.PauseMenu。block の C# のクラスは無い。ListDetailScreen の配線は sandbox の GalleryListDetailScreen）を Gallery に載せる。
+    // Hone.Button、Hone.Dialog、Hone.MessageWindow、Hone.Switch、Hone.Toggle、Hone.ToggleGroup、Hone.Pagination、Hone.Cycle、Hone.Tabs、見た目だけの Hone.Card と Hone.Separator と Hone.ScrollArea（Gallery の名前だけで、C# のクラスは無い）と、Hone.Progress と、見た目だけの Hone.Spinner（Card と同じく C# のクラスは無い）と、block の SettingsScreen と ListDetailScreen と PauseMenu（Gallery の名前は Hone.SettingsScreen と Hone.ListDetailScreen と Hone.PauseMenu。block の C# のクラスは無い。ListDetailScreen の配線は sandbox の GalleryListDetailScreen）を Gallery に載せる。
     // Register は sandbox 側から呼ぶ（registry/ 配下のコードには書かない）。呼ぶ時点は README の Gallery の節を参照。
     static class GalleryHoneEntries
     {
@@ -201,6 +201,41 @@ namespace Hone.Sandbox.Gallery
                 cell.Add(scrollView);
                 return cell;
             }, Describe("ScrollArea"));
+            // value が 0、33、66、100 の 4 本を 1 つのセルに縦に積む。title は既定で表示しないので文字列は使わず、言語を切り替えても同じに写る。
+            // Progress はフォーカスを受けないので ring は写らない
+            GalleryController.Register("Hone.Progress", text =>
+            {
+                var cell = new VisualElement();
+                cell.AddToClassList("gallery-cell");
+                foreach (var value in new[] { 0f, 33f, 66f, 100f })
+                {
+                    var progress = new Progress { value = value };
+                    progress.style.marginBottom = 8;
+                    cell.Add(progress);
+                }
+                return cell;
+            }, Describe("Progress"));
+            // 見た目だけの部品（.cs を持たない）。状態のデモは無いので、Spinner と text の Label を横に並べた行を 1 つのセルに置く（使用例と同じ並び）。
+            // 回転は注入しない（演出なので、撮影する画像が撮るたびに変わらないよう止めたまま写す）。Label は幅に収まらなければ折り返し、Spinner は縮まない
+            GalleryController.Register("Hone.Spinner", text =>
+            {
+                var cell = new VisualElement();
+                cell.AddToClassList("gallery-cell");
+                var row = new VisualElement();
+                row.style.flexDirection = FlexDirection.Row;
+                row.style.alignItems = Align.Center;
+                var spinner = new VisualElement();
+                spinner.AddToClassList("hone-spinner");
+                row.Add(spinner);
+                var label = new Label(text);
+                label.AddToClassList("hone-text");
+                label.style.whiteSpace = WhiteSpace.Normal;
+                label.style.flexShrink = 1;
+                label.style.marginLeft = 8;
+                row.Add(label);
+                cell.Add(row);
+                return cell;
+            }, Describe("Spinner"));
             // block。SettingsScreen.uxml を読み込み、各行の見出しと説明、確認の Dialog のタイトルと本文に text を入れる（長文の言語では説明が折り返す）。
             // 操作は UXML のまま使い、Cycle の選択肢と ToggleGroup のラベルだけ text にする（収まらなければ省略記号になる）。Button の文言（Refresh / Delete、Dialog の Cancel / Delete）は短い固定文字列のまま（行の中で max-width に切られた Button の長いラベルは確かめていない）。
             // Destructive の行の Button で確認の Dialog を開き、Cancel / 確定で閉じる（block は振る舞いを持たないので、配線はここでする）。Dialog は閉じた状態で並ぶ。
