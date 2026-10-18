@@ -389,7 +389,8 @@ namespace Hone.Sandbox.Tests
             CollectionAssert.IsEmpty(changes, "setting tabs must not fire a ChangeEvent");
         }
 
-        // tabs を 3 個から 2 個、2 個から 4 個に set し直したあと（タブの列の length は子の数になる。6000.7.0b4 で実測）も、タブの列で選ばれているのは value の 1 つだけで、その中身だけが表示される
+        // tabs を 3 個から 2 個、2 個から 4 個に set し直したあと（6000.7.0b4 では、タブの列の length が子の数になる作り直しになる）も、タブの列で選ばれているのは value の 1 つだけで、その中身だけが表示される。
+        // 伸ばしたあとの最後のタブも選べる
         [UnityTest]
         public IEnumerator SetTabs_ToOtherCount_SelectsOnlyValue_AndShowsOnlyThatContent()
         {
@@ -402,6 +403,8 @@ namespace Hone.Sandbox.Tests
             yield return Settle();
             tabs.value = 2;
             yield return Settle();
+            Assert.AreEqual(2, tabs.value, "precondition");
+            CollectionAssert.AreEqual(new[] { 2 }, DisplayedContents(tabs), "precondition");
             var changes = RecordChanges(tabs);
 
             tabs.tabs = new List<string> { "A", "B" };
@@ -412,13 +415,19 @@ namespace Hone.Sandbox.Tests
             yield return Settle();
             AssertOnlyValueSelected(tabs, 1, 4);
             CollectionAssert.IsEmpty(changes, "setting tabs must not fire a ChangeEvent");
+
+            tabs.value = 3;
+            yield return Settle();
+            AssertOnlyValueSelected(tabs, 3, 4);
+            CollectionAssert.AreEqual(new[] { 3 }, changes);
         }
 
         static void AssertOnlyValueSelected(Tabs tabs, int expectedValue, int expectedTabCount)
         {
             Assert.AreEqual(expectedTabCount, Triggers(tabs).Count);
             Assert.AreEqual(expectedValue, tabs.value);
-            var state = tabs.Q<ToggleGroup>().value;
+            var state = tabs.Q<ToggleGroup>(className: "hone-tabs__list").value;
+            Assert.GreaterOrEqual(state.length, expectedTabCount, "the tab list state must cover every tab");
             var selected = new List<int>();
             for (var i = 0; i < state.length; i++)
             {
